@@ -1,57 +1,45 @@
-# Plano inicial: Splash, Login e Cadastro
+# Gym Flow
 
-## Objetivo
-
-Preparar o projeto Expo/React Native para iniciar o app Gym Flow com uma base limpa, modular e pronta para consumo de API, começando pela sequência:
-
-1. Splash
-2. Login
-3. Cadastro
-
-O foco inicial será entregar telas bem acabadas, reaproveitando a direção visual do diretório `preview`, removendo o que veio do template e criando uma estrutura simples de evoluir.
+Aplicativo mobile em Expo/React Native para acompanhamento de treinos, com fluxo inicial de splash, login, cadastro e uma base preparada para integração com API.
 
 ## Preview
 
-<img src="./preview/login.png" alt="" />
-<img src="./preview/sign-up.png" alt="" />
+<p align="center">
+  <img src="./preview/login.png" alt="Tela de login" width="220" />
+  <img src="./preview/sign-up.png" alt="Tela de cadastro" width="220" />
+  <img src="./preview/home.png" alt="Tela home" width="220" />
+</p>
 
-## Referências analisadas
+<p align="center">
+  <img src="./preview/exercise.png" alt="Tela de exercício" width="220" />
+  <img src="./preview/history.png" alt="Tela de histórico" width="220" />
+  <img src="./preview/profile.png" alt="Tela de perfil" width="220" />
+</p>
 
-Arquivos em `preview/`:
+## Status
 
-- `login.png`: tela de autenticação com imagem de academia em fundo, overlay escuro, marca "Ignite Gym", CTA verde, campos de e-mail/senha e link para criação de conta.
-- `sign-up.png`: mesma identidade do login, com campos de nome, e-mail, senha e confirmação de senha.
-- `home.png`, `history.png`, `exercise.png`, `profile.png`: indicam a identidade futura do app pós-login: fundo escuro, cards cinza, destaque verde, navegação inferior e foco em treino/exercícios.
+Base inicial criada com:
 
-## Estado atual do projeto
+- Splash screen
+- Login
+- Cadastro
+- Home mínima pós-autenticação
+- Componentes reutilizáveis de UI
+- Validação de formulários com `react-hook-form` e `zod`
+- Serviços preparados para autenticação via API
 
-O projeto ainda está próximo do template padrão do Expo Router:
+## Tecnologias
 
-- Rotas de exemplo em `app/(tabs)/index.tsx` e `app/(tabs)/explore.tsx`.
-- Modal de exemplo em `app/modal.tsx`.
-- Componentes de template em `components/hello-wave.tsx`, `parallax-scroll-view.tsx`, `themed-text.tsx`, `themed-view.tsx`, `external-link.tsx` e `components/ui/*`.
-- Assets padrão do React/Expo em `assets/images/react-logo*`, `partial-react-logo.png` e ícones padrão.
-- `README.md` com texto de instalação, mas com caracteres quebrados de encoding.
+- Expo SDK 54
+- React 19
+- React Native 0.81
+- Expo Router
+- TypeScript
+- React Hook Form
+- Zod
+- Expo Vector Icons
 
-Esses itens devem ser limpos ou substituídos por uma base própria do Gym Flow.
-
-## Direção visual
-
-Base visual para as primeiras telas:
-
-- Tema principal escuro.
-- Fundo preto ou quase preto: `#121214` / `#111113`.
-- Superfícies: `#202024` / `#29292E`.
-- Texto principal branco: `#FFFFFF`.
-- Texto secundário cinza: `#C4C4CC` / `#A9A9B2`.
-- Ação principal verde: `#00875F` ou `#00B37E`.
-- Campos com fundo escuro, altura generosa e cantos levemente arredondados.
-- Marca no topo com ícone de halter e texto `Ignite Gym` ou nome definitivo do app.
-- Imagem de fundo no fluxo de autenticação com overlay escuro para preservar contraste.
-
-## Estrutura proposta
-
-Criar uma estrutura focada em telas, componentes e serviços:
+## Estrutura
 
 ```txt
 app/
@@ -67,218 +55,98 @@ app/
     home.tsx
 
 src/
-  assets/
   components/
     auth/
-      AuthBackground.tsx
-      BrandHeader.tsx
     ui/
-      Button.tsx
-      Input.tsx
-      Screen.tsx
   config/
-    env.ts
   constants/
-    colors.ts
-    spacing.ts
   services/
-    api.ts
-    auth.ts
   types/
-    auth.ts
-  utils/
+
+preview/
+  login.png
+  sign-up.png
+  home.png
+  exercise.png
+  history.png
+  profile.png
 ```
 
-Observação: se preferirmos manter `components/` e `constants/` na raiz, podemos fazer isso, mas o ideal é padronizar antes de começar as telas.
+## Instalação
 
-## Limpeza inicial
-
-Remover ou substituir:
-
-- `app/(tabs)/index.tsx`
-- `app/(tabs)/explore.tsx`
-- `app/(tabs)/_layout.tsx`
-- `app/modal.tsx`
-- Componentes de exemplo não usados:
-  - `components/hello-wave.tsx`
-  - `components/parallax-scroll-view.tsx`
-  - `components/external-link.tsx`
-  - `components/themed-text.tsx`
-  - `components/themed-view.tsx`
-  - `components/ui/collapsible.tsx`
-  - `components/ui/icon-symbol.tsx`
-  - `components/ui/icon-symbol.ios.tsx`
-  - `components/haptic-tab.tsx`
-- Assets padrão do React/Expo que não serão usados:
-  - `assets/images/react-logo.png`
-  - `assets/images/react-logo@2x.png`
-  - `assets/images/react-logo@3x.png`
-  - `assets/images/partial-react-logo.png`
-
-Manter por enquanto:
-
-- `app.json`
-- `package.json`
-- `package-lock.json`
-- `tsconfig.json`
-- `eslint.config.js`
-- `assets/images/icon.png`
-- `assets/images/splash-icon.png`
-- `assets/images/favicon.png`
-- ícones Android configurados em `assets/images/`
-- `preview/` como referência visual temporária
-
-## Dependências recomendadas
-
-Instalar para formulários e validação:
+Instale as dependências:
 
 ```powershell
-npm i react-hook-form zod @hookform/resolvers
+npm install
 ```
 
-Avaliar instalar quando necessário:
+## Execução
+
+Iniciar o Expo:
 
 ```powershell
-npx expo install expo-secure-store
+npm run start
 ```
 
-Uso previsto:
+Rodar no navegador:
 
-- `react-hook-form`: estado dos formulários.
-- `zod`: validação de login e cadastro.
-- `@hookform/resolvers`: integração entre formulário e validação.
-- `expo-secure-store`: persistência segura de token quando a API real entrar.
-
-## Preparação para API
-
-Criar uma camada simples e substituível:
-
-```txt
-src/services/api.ts
-src/services/auth.ts
-src/config/env.ts
-src/types/auth.ts
+```powershell
+npm run web
 ```
 
-Responsabilidades:
+Rodar no Android:
 
-- `api.ts`: cliente HTTP centralizado com `baseURL`, headers e tratamento básico de erro.
-- `auth.ts`: funções `signIn`, `signUp`, `signOut` e futura recuperação de sessão.
-- `env.ts`: leitura da URL da API via configuração.
-- `types/auth.ts`: tipos de payload e resposta da autenticação.
-
-Exemplo de contrato inicial:
-
-```ts
-export type SignInPayload = {
-  email: string;
-  password: string;
-};
-
-export type SignUpPayload = {
-  name: string;
-  email: string;
-  password: string;
-  passwordConfirmation: string;
-};
-
-export type AuthResponse = {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-};
+```powershell
+npm run android
 ```
 
-Enquanto a API real não existir, usar mocks controlados dentro de `auth.ts`, sem espalhar dados falsos pelas telas.
+Rodar no iOS:
 
-## Fluxo de navegação
-
-Rota inicial:
-
-- `app/index.tsx` redireciona para `/(auth)/splash`.
-
-Fluxo esperado:
-
-```txt
-splash -> login -> sign-up
-              \-> app/home após autenticação
+```powershell
+npm run ios
 ```
 
-Splash:
+## Qualidade
 
-- Carrega identidade visual.
-- Faz checagem futura de token/sessão.
-- Enquanto não houver autenticação real, redireciona para login depois de um pequeno delay.
+Rodar o lint:
 
-Login:
+```powershell
+npm run lint
+```
 
-- E-mail.
-- Senha.
-- Botão `Acessar`.
-- Link `Criar conta`.
-- Validação local antes de chamar `auth.signIn`.
-- Estados de loading, erro e campo inválido.
+Checar TypeScript:
 
-Cadastro:
+```powershell
+npx tsc --noEmit
+```
 
-- Nome.
-- E-mail.
-- Senha.
-- Confirmar senha.
-- Botão `Criar e acessar`.
-- Link `Voltar para o login`.
-- Validação de senha e confirmação.
-- Estados de loading, erro e campo inválido.
+## API
 
-## Componentes iniciais
+A base para integração com API está em:
 
-Criar componentes reutilizáveis:
+- `src/config/env.ts`
+- `src/services/api.ts`
+- `src/services/auth.ts`
+- `src/types/auth.ts`
 
-- `Screen`: wrapper com `SafeAreaView`, background e padding padrão.
-- `AuthBackground`: imagem de fundo com overlay escuro para splash/login/cadastro.
-- `BrandHeader`: ícone + nome + subtítulo.
-- `Button`: variantes `primary` e `outline`.
-- `Input`: campo controlado com label opcional, erro, senha visível/oculta quando aplicável.
+Hoje o fluxo de autenticação usa mock em `src/services/auth.ts`. Quando a API real estiver pronta, a troca deve ficar concentrada nos serviços, sem espalhar `fetch` pelas telas.
 
-Critérios:
+Configure a URL base em `app.json`:
 
-- Componentes sem regra de negócio.
-- Telas chamam serviços de API, não fazem `fetch` direto.
-- Estilos centralizados por tokens de cor e espaçamento.
-- Layout responsivo para Android, iOS e web.
+```json
+{
+  "expo": {
+    "extra": {
+      "apiUrl": "https://sua-api.com"
+    }
+  }
+}
+```
 
-## Checklist de execução
+## Próximos passos
 
-1. Criar tokens de tema em `src/constants/colors.ts` e `src/constants/spacing.ts`.
-2. Criar estrutura `src/components`, `src/services`, `src/config` e `src/types`.
-3. Limpar rotas e componentes do template Expo.
-4. Criar rotas `splash`, `login` e `sign-up`.
-5. Implementar `Screen`, `AuthBackground`, `BrandHeader`, `Button` e `Input`.
-6. Configurar validação com `react-hook-form` e `zod`.
-7. Criar `api.ts` e `auth.ts` com mocks temporários.
-8. Conectar login e cadastro aos serviços de autenticação.
-9. Configurar redirecionamento pós-login para `/(app)/home`.
-10. Criar uma `home` mínima apenas para confirmar o fluxo autenticado.
-11. Rodar `npm run lint`.
-12. Rodar `npm run web` ou `npm run start` para validar visualmente.
-
-## Pendências de decisão
-
-- Nome final da marca: manter `Ignite Gym` das referências ou trocar para `Gym Flow`.
-- Imagem final de fundo do auth: usar asset próprio, gerar imagem nova ou incorporar uma imagem licenciada.
-- API real: definir `baseURL`, endpoints e formato final de resposta.
-- Persistência de sessão: confirmar uso de `expo-secure-store`.
-
-## Primeiro incremento recomendado
-
-Começar pelo incremento abaixo:
-
-1. Limpar o template.
-2. Criar a arquitetura base.
-3. Implementar Splash, Login e Cadastro com mock de API.
-4. Validar navegação e estados de formulário.
-
-Depois disso, o projeto já estará pronto para trocar o mock pela API real sem refatorar as telas.
+- Conectar login e cadastro na API real
+- Persistir sessão do usuário
+- Implementar home completa com treinos
+- Criar histórico de exercícios
+- Criar perfil do usuário
