@@ -24,7 +24,7 @@ export async function signIn(payload: SignInPayload) {
     throw new Error('E-mail ou senha invalidos.');
   }
 
-  return createAuthResponse('Rodrigo Goncalves', payload.email);
+  return createAuthResponse('Rodrigo Gonçalves', payload.email);
 }
 
 export async function signUp(payload: SignUpPayload) {

@@ -6,7 +6,7 @@ type RequestOptions = RequestInit & {
 
 export async function apiRequest<TResponse>(path: string, options: RequestOptions = {}) {
   if (!env.apiUrl) {
-    throw new Error('API_URL nao configurada.');
+    throw new Error('API_URL não configurada.');
   }
 
   const headers = new Headers(options.headers);
@@ -22,7 +22,7 @@ export async function apiRequest<TResponse>(path: string, options: RequestOption
   });
 
   if (!response.ok) {
-    throw new Error('Nao foi possivel concluir a solicitacao.');
+    throw new Error('Não foi possível concluir a solicitação.');
   }
 
   return response.json() as Promise<TResponse>;

@@ -44,10 +44,10 @@ export default function SignUpScreen() {
   async function handleSignUp(payload: SignUpPayload) {
     try {
       await signUp(payload);
-      router.replace('/(app)/home');
+      router.replace('/(onboarding)/start');
     } catch (error) {
       setError('root', {
-        message: error instanceof Error ? error.message : 'Nao foi possivel criar sua conta.',
+        message: error instanceof Error ? error.message : 'Não foi possível criar sua conta.',
       });
     }
   }
@@ -73,6 +73,7 @@ export default function SignUpScreen() {
                 <Input
                   autoCapitalize="words"
                   error={errors.name?.message}
+                  icon="person-outline"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   placeholder="Nome"
@@ -89,6 +90,7 @@ export default function SignUpScreen() {
                   autoCapitalize="none"
                   autoComplete="email"
                   error={errors.email?.message}
+                  icon="mail-outline"
                   keyboardType="email-address"
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -105,6 +107,7 @@ export default function SignUpScreen() {
                 <Input
                   autoCapitalize="none"
                   error={errors.password?.message}
+                  icon="lock-closed-outline"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   placeholder="Senha"
@@ -121,6 +124,7 @@ export default function SignUpScreen() {
                 <Input
                   autoCapitalize="none"
                   error={errors.passwordConfirmation?.message}
+                  icon="shield-checkmark-outline"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   placeholder="Confirme a senha"
@@ -134,6 +138,7 @@ export default function SignUpScreen() {
 
             <Button
               disabled={isSubmitting}
+              icon="person-add-outline"
               loading={isSubmitting}
               onPress={handleSubmit(handleSignUp)}
               title="Criar e acessar"
@@ -141,7 +146,7 @@ export default function SignUpScreen() {
           </View>
 
           <Link href="/(auth)/login" asChild>
-            <Button title="Voltar para o login" variant="outline" />
+            <Button icon="arrow-back-outline" title="Voltar para o login" variant="outline" />
           </Link>
         </ScrollView>
       </KeyboardAvoidingView>

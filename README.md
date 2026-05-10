@@ -2,6 +2,9 @@
 
 Aplicativo mobile em Expo/React Native para acompanhamento de treinos, com fluxo inicial de splash, login, cadastro e uma base preparada para integração com API.
 
+## Treino em Dia
+- melhor equilíbrio entre clareza e disponibilidade aparente.
+
 ## Preview
 
 <p align="center">

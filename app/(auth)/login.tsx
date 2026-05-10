@@ -38,7 +38,7 @@ export default function LoginScreen() {
       router.replace('/(app)/home');
     } catch (error) {
       setError('root', {
-        message: error instanceof Error ? error.message : 'Nao foi possivel acessar sua conta.',
+        message: error instanceof Error ? error.message : 'Não foi possível acessar sua conta.',
       });
     }
   }
@@ -65,6 +65,7 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoComplete="email"
                   error={errors.email?.message}
+                  icon="mail-outline"
                   keyboardType="email-address"
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -81,6 +82,7 @@ export default function LoginScreen() {
                 <Input
                   autoCapitalize="none"
                   error={errors.password?.message}
+                  icon="lock-closed-outline"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   placeholder="Senha"
@@ -94,6 +96,7 @@ export default function LoginScreen() {
 
             <Button
               disabled={isSubmitting}
+              icon="log-in-outline"
               loading={isSubmitting}
               onPress={handleSubmit(handleSignIn)}
               title="Acessar"
@@ -101,9 +104,9 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Ainda nao tem acesso?</Text>
+            <Text style={styles.footerText}>Ainda não tem acesso?</Text>
             <Link href="/(auth)/sign-up" asChild>
-              <Button title="Criar conta" variant="outline" />
+              <Button icon="person-add-outline" title="Criar conta" variant="outline" />
             </Link>
           </View>
         </ScrollView>

@@ -17,7 +17,7 @@ type AuthBackgroundProps = PropsWithChildren<{
 export function AuthBackground({ children, contentStyle }: AuthBackgroundProps) {
   return (
     <View style={styles.container}>
-      <Image source={require('@/assets/images/icon.png')} style={styles.watermark} />
+      <Image source={require('../../../assets/images/icon.png')} style={styles.watermark} />
       <View style={styles.overlay} />
       <SafeAreaView style={[styles.content, contentStyle]}>{children}</SafeAreaView>
     </View>
