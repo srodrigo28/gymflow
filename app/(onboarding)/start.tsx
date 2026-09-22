@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { BodyStartCard } from '@/src/components/onboarding/BodyStartCard';
 import { OnboardingFooter } from '@/src/components/onboarding/OnboardingFooter';
 import { OnboardingLayout } from '@/src/components/onboarding/OnboardingLayout';
 import { OnboardingOption } from '@/src/components/onboarding/OnboardingOption';
@@ -378,6 +379,7 @@ function MetricsStep({ profile, updateProfile }: StepProps) {
         rightText="cm"
         value={profile.heightCm}
       />
+      <BodyStartCard heightCm={profile.heightCm} weightKg={profile.weightKg} />
     </>
   );
 }
