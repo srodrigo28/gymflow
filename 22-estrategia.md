@@ -269,7 +269,7 @@ A ideia é **R$ 1,00 ou R$ 5,00**, valores de apoio, não de assinatura cara. Tr
 
 ## 7. Plano de execução
 
-### Fase 1 — Fundação do registro ⬜
+### Fase 1 — Fundação do registro 🟨 (em 22/09)
 
 **Objetivo:** registrar treino bem feito e ver o histórico. Sem isso, nada de social.
 
@@ -281,6 +281,9 @@ A ideia é **R$ 1,00 ou R$ 5,00**, valores de apoio, não de assinatura cara. Tr
 - Histórico semanal e mensal, com volume por grupo muscular.
 - Detecção automática de recorde.
 - **Contador de usuários cadastrados e ativos na semana**, visível só para você. É o que mede o gatilho dos 200 (seção 5.1).
+
+**Situação em 22/09:** feito tudo, menos o contador de usuários (depende da API real) e o check-in.
+Detalhes em **Registro da Fase 1** no fim do documento.
 
 **Critérios de aceite**: registrar um treino de 6 exercícios em menos de 90 segundos de interação; funcionar em modo avião; o histórico bate com o que foi registrado.
 
@@ -398,6 +401,35 @@ e prompts prontos para executar cada fase.
 | **Dependência do personal** | O app precisa ser bom sozinho: o aluno que perde o personal continua tendo motivo para abrir. |
 
 ---
+
+## Registro da Fase 1 (22/09)
+
+**O que foi construído**
+
+- **Banco local** (`src/db/`): `expo-sqlite` com migrações versionadas (`PRAGMA user_version`), tabelas `exercises`, `sessions`, `session_exercises`, `sets` e a fila `outbox`, que guarda o que ainda não subiu para a API. A semente traz 37 exercícios em português, com grupo muscular, padrão de movimento e equipamento.
+- **Serviço** (`src/services/training.ts`): começar/retomar/descartar/finalizar sessão, adicionar exercício e série, concluir série, resumo por período e "dias desde o último treino de cada grupo". Recorde usa a carga máxima **ou** a carga estimada para 1 repetição (fórmula de Epley), então 60 kg × 10 conta como evolução mesmo sem bater o peso máximo.
+- **Telas** (`app/(app)/treino/`): o *hub* (começar/continuar, resumo da semana, "o que está faltando", últimos treinos), a sessão (cronômetro, séries, descanso de 90 s com +15 s e pular, recorde na hora, tela sempre acesa), a busca de exercícios e o histórico (semana/mês com barras de volume por grupo).
+- **Repetir a última série**: ao adicionar uma série, o app copia a anterior do mesmo exercício; se for o primeiro do dia, copia a última vez que a pessoa fez aquele exercício. Registrar vira confirmar, não digitar.
+
+**Bug encontrado no teste e corrigido**
+
+As cargas eram gravadas só quando o campo perdia o foco (`onEndEditing`). Quem digita a carga, digita as repetições e toca no check em seguida — o gesto real — marcava a série **sem carga**, e o treino ia para o histórico com 0 kg. Agora cada tecla grava, e as escritas do serviço entram em **fila**, de modo que o valor já está no banco quando o recorde é calculado.
+
+**Como foi validado** (emulador Android 16, Expo Go, banco nativo)
+
+| Verificação | Resultado |
+| --- | --- |
+| Criar sessão, escolher exercício, registrar série | Supino reto, 60 kg × 10 |
+| Recorde detectado e marcado com troféu | ✅ |
+| Descanso de 90 s aparece ao concluir a série | ✅ |
+| Volume do treino | Agachamento 80 kg × 5 = **400 kg** |
+| Resumo da semana soma os treinos | 66,0 t + 400 kg = **66,4 t** |
+| Histórico por grupo muscular | Peito 66,0 t · Pernas 400 kg |
+| **Modo avião** | Remada curvada 50 kg × 12 = **600 kg**, registrada sem rede |
+
+**Web**: o `expo-sqlite` no navegador precisa de `SharedArrayBuffer` e de um *worker*, que não sobe no servidor de desenvolvimento do Metro. O registro de treino, por enquanto, é testado no Android e no iOS. Para o site não quebrar no empacotamento, `web.output` passou de `static` para `single` (o `.wasm` do banco não sobrevive à renderização no servidor).
+
+**Fora desta fase**: contador de usuários cadastrados (depende da API real), check-in na academia e a sincronização de verdade — a fila `outbox` já grava o que precisará subir.
 
 ## Fontes da pesquisa
 

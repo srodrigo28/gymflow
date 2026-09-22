@@ -22,6 +22,14 @@ type ProfileMenuItem = {
 
 const menuItems: ProfileMenuItem[] = [
   {
+    accessibilityLabel: 'Abrir Treino. Registre suas séries, veja o histórico e o volume por grupo muscular.',
+    description: 'Registre série por série, veja o histórico e o que está faltando.',
+    href: '/(app)/treino',
+    icon: 'dumbbell',
+    title: 'Treino',
+    tone: 'treino',
+  },
+  {
     accessibilityLabel:
       'Abrir Sincronizar dispositivos. Conecte relógios e dispositivos para acompanhar dados de saúde e atividade.',
     description: 'Conecte relógios e dispositivos para acompanhar atividade e saúde.',
