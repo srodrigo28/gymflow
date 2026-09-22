@@ -1,67 +1,147 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState, type ComponentProps } from 'react';
-import { Pressable, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeInLeft, FadeInRight, FadeInUp, ZoomIn } from 'react-native-reanimated';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
+import Animated, { FadeIn, FadeInDown, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/src/components/auth/BrandHeader';
+import { BodyScene } from '@/src/components/hero/BodyScene';
+import { EvolutionScene } from '@/src/components/hero/EvolutionScene';
+import { PagerDots } from '@/src/components/hero/PagerDots';
+import type { SceneProps, StageSize } from '@/src/components/hero/stage';
+import { WellbeingScene } from '@/src/components/hero/WellbeingScene';
 import { Button } from '@/src/components/ui/Button';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
-import { BenefitCard } from '@/src/components/visual/BenefitCard';
-import { EvolutionRing } from '@/src/components/visual/EvolutionRing';
-import { GlassChip } from '@/src/components/visual/GlassChip';
-import { OutlineWord } from '@/src/components/visual/OutlineWord';
-import { heroPeopleImage, heroPeopleRatio } from '@/src/constants/images';
 import { fonts, makeStyles, radius, typography, withAlpha } from '@/src/theme';
 
-// Valores ilustrativos do painel de exemplo. Nada de números de usuários inventados.
-const exampleRings = [
-  { domain: 'treino' as const, value: 0.78 },
-  { domain: 'sono' as const, value: 0.64 },
-  { domain: 'agua' as const, value: 0.52 },
+type Scene = {
+  key: string;
+  label: string;
+  overline: string;
+  subtitle: string;
+  tagline: string;
+  // Título em três partes: a do meio fica na cor de destaque. Espaços não separáveis
+  // (\u00a0) mantêm o destaque inteiro numa linha.
+  title: [string, string, string];
+  Visual: ComponentType<SceneProps>;
+};
+
+const scenes: Scene[] = [
+  {
+    key: 'evolucao',
+    label: 'Evolução',
+    overline: 'Treino · Sono · Água · Mente',
+    subtitle:
+      'Treinos, hábitos e bem-estar em um só lugar, com uma pontuação diária que mostra o quanto você avançou.',
+    tagline: 'Corpo · Mente · Uma vida melhor',
+    title: ['Veja seu corpo ', 'evoluir', ', dia após dia.'],
+    Visual: EvolutionScene,
+  },
+  {
+    key: 'corpo',
+    label: 'Corpo',
+    overline: 'Evolução do corpo',
+    subtitle: 'Cargas, medidas e fotos lado a lado para você enxergar o progresso além da balança.',
+    tagline: 'Força · Medidas · Fotos',
+    title: ['Cada treino conta. ', 'E\u00a0aparece', '.'],
+    Visual: BodyScene,
+  },
+  {
+    key: 'bem-estar',
+    label: 'Bem-estar',
+    overline: 'Bem-estar',
+    subtitle: 'Sono, água e humor também contam na sua evolução, sem culpa e sem comparação.',
+    tagline: 'Sono · Água · Humor',
+    title: ['Cuide de você, ', 'no\u00a0seu\u00a0ritmo', '.'],
+    Visual: WellbeingScene,
+  },
 ];
 
-type Benefit = {
-  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
-  label: string;
-};
+// Tempo de leitura de cada cena antes de avançar sozinho. O avanço automático para no
+// primeiro toque, na última cena e com "reduzir movimento" (carrossel que não para
+// atrapalha a leitura).
+const AUTO_ADVANCE_MS = 6500;
 
-// Painéis de vidro atrás das pessoas, em duas colunas (o de cima aparece primeiro).
-const benefitColumns: Record<'left' | 'right', Benefit[]> = {
-  left: [
-    { icon: 'run-fast', label: 'Mais\ndisposição' },
-    { icon: 'chart-bar', label: 'Evolução\nreal' },
-  ],
-  right: [
-    { icon: 'heart-outline', label: 'Uma vida\nmais saudável' },
-    { icon: 'brain', label: 'Mente\nmais forte' },
-  ],
-};
-
-const CARD_RATIO = 1.1;
-const CARD_GAP = 10;
-
-type StageSize = { height: number; width: number };
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
+type PagerSize = { height: number; width: number };
 
 export default function WelcomeScreen() {
   const styles = useStyles();
   const { height } = useWindowDimensions();
   const isShort = height <= 700;
-  const [stage, setStage] = useState<StageSize | null>(null);
+  const reduceMotion = useReducedMotion();
+  const pagerRef = useRef<ScrollView>(null);
+  const scrollX = useSharedValue(0);
+  const [pager, setPager] = useState<PagerSize | null>(null);
+  const [index, setIndex] = useState(0);
+  const [visited, setVisited] = useState<number[]>([0]);
+  const [stages, setStages] = useState<Record<number, StageSize>>({});
+  const hasUserInteracted = useRef(false);
 
-  function handleStageLayout(event: LayoutChangeEvent) {
-    const { height: stageHeight, width: stageWidth } = event.nativeEvent.layout;
-    setStage((current) =>
-      current && current.width === stageWidth && current.height === stageHeight
+  useEffect(() => {
+    setVisited((current) => (current.includes(index) ? current : [...current, index]));
+  }, [index]);
+
+  useEffect(() => {
+    if (reduceMotion || !pager || index >= scenes.length - 1) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (!hasUserInteracted.current) {
+        pagerRef.current?.scrollTo({ animated: true, x: (index + 1) * pager.width });
+      }
+    }, AUTO_ADVANCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [index, pager, reduceMotion]);
+
+  function handlePagerLayout(event: LayoutChangeEvent) {
+    const { height: pagerHeight, width: pagerWidth } = event.nativeEvent.layout;
+    setPager((current) =>
+      current && current.width === pagerWidth && current.height === pagerHeight
         ? current
-        : { height: stageHeight, width: stageWidth },
+        : { height: pagerHeight, width: pagerWidth },
     );
+  }
+
+  function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const x = event.nativeEvent.contentOffset.x;
+    scrollX.value = x;
+
+    if (pager) {
+      const nextIndex = Math.min(Math.max(Math.round(x / pager.width), 0), scenes.length - 1);
+      setIndex((current) => (current === nextIndex ? current : nextIndex));
+    }
+  }
+
+  function handleStageLayout(sceneIndex: number, event: LayoutChangeEvent) {
+    const { height: stageHeight, width: stageWidth } = event.nativeEvent.layout;
+    setStages((current) => {
+      const previous = current[sceneIndex];
+      return previous && previous.width === stageWidth && previous.height === stageHeight
+        ? current
+        : { ...current, [sceneIndex]: { height: stageHeight, width: stageWidth } };
+    });
+  }
+
+  function markInteraction() {
+    hasUserInteracted.current = true;
+  }
+
+  function goToScene(sceneIndex: number) {
+    markInteraction();
+    if (pager) {
+      pagerRef.current?.scrollTo({ animated: !reduceMotion, x: sceneIndex * pager.width });
+    }
   }
 
   return (
@@ -81,33 +161,76 @@ export default function WelcomeScreen() {
           )}
         </Animated.View>
 
-        <View onLayout={handleStageLayout} style={styles.stage}>
-          {stage ? <HeroStage isShort={isShort} stage={stage} /> : null}
-        </View>
+        <ScrollView
+          horizontal
+          onLayout={handlePagerLayout}
+          onScroll={handleScroll}
+          onScrollBeginDrag={markInteraction}
+          onTouchStart={markInteraction}
+          pagingEnabled
+          ref={pagerRef}
+          scrollEventThrottle={16}
+          showsHorizontalScrollIndicator={false}
+          style={styles.pager}>
+          {pager
+            ? scenes.map((scene, sceneIndex) => {
+                const isVisited = visited.includes(sceneIndex);
+                const stage = stages[sceneIndex];
+                const Visual = scene.Visual;
 
-        <Animated.View entering={FadeIn.delay(800).duration(500)} style={styles.tagline}>
-          <Text style={styles.taglineText}>Corpo · Mente · Uma vida melhor</Text>
-          <View style={styles.dash} />
+                return (
+                  <View
+                    accessibilityElementsHidden={sceneIndex !== index}
+                    importantForAccessibility={sceneIndex === index ? 'auto' : 'no-hide-descendants'}
+                    key={scene.key}
+                    style={{ height: pager.height, width: pager.width }}>
+                    {/* O texto é montado sempre (o palco não muda de tamanho); o visual só na
+                        primeira vez que a cena aparece, para a animação de entrada tocar à vista. */}
+                    <View onLayout={(event) => handleStageLayout(sceneIndex, event)} style={styles.stage}>
+                      {isVisited && stage ? <Visual isShort={isShort} stage={stage} /> : null}
+                    </View>
+
+                    <Animated.View entering={FadeIn.delay(300).duration(500)} style={styles.tagline}>
+                      <Text style={styles.taglineText}>{scene.tagline}</Text>
+                      <View style={styles.dash} />
+                    </Animated.View>
+
+                    <View style={styles.copy}>
+                      <Animated.Text
+                        entering={FadeInDown.delay(200).duration(500)}
+                        style={styles.overline}>
+                        {scene.overline}
+                      </Animated.Text>
+                      <Animated.Text
+                        accessibilityRole="header"
+                        entering={FadeInDown.delay(280).duration(500)}
+                        maxFontSizeMultiplier={1.4}
+                        style={[styles.title, isShort ? styles.titleShort : null]}>
+                        {scene.title[0]}
+                        <Text style={styles.titleAccent}>{scene.title[1]}</Text>
+                        {scene.title[2]}
+                      </Animated.Text>
+                      <Animated.Text
+                        entering={FadeInDown.delay(360).duration(500)}
+                        style={[styles.subtitle, isShort ? styles.subtitleShort : null]}>
+                        {scene.subtitle}
+                      </Animated.Text>
+                    </View>
+                  </View>
+                );
+              })
+            : null}
+        </ScrollView>
+
+        <Animated.View entering={FadeIn.delay(900).duration(400)} style={styles.dots}>
+          <PagerDots
+            labels={scenes.map((scene) => scene.label)}
+            onSelect={goToScene}
+            pageWidth={pager?.width ?? 0}
+            scrollX={scrollX}
+            selectedIndex={index}
+          />
         </Animated.View>
-
-        <View style={styles.copy}>
-          <Animated.Text entering={FadeInDown.delay(300).duration(500)} style={styles.overline}>
-            Treino · Sono · Água · Mente
-          </Animated.Text>
-          <Animated.Text
-            accessibilityRole="header"
-            entering={FadeInDown.delay(380).duration(500)}
-            maxFontSizeMultiplier={1.4}
-            style={[styles.title, isShort ? styles.titleShort : null]}>
-            Veja seu corpo <Text style={styles.titleAccent}>evoluir</Text>, dia após dia.
-          </Animated.Text>
-          <Animated.Text
-            entering={FadeInDown.delay(460).duration(500)}
-            style={[styles.subtitle, isShort ? styles.subtitleShort : null]}>
-            Treinos, hábitos e bem-estar em um só lugar, com uma pontuação diária que mostra o quanto
-            você avançou.
-          </Animated.Text>
-        </View>
 
         <Animated.View entering={FadeInDown.delay(1000).duration(400)} style={styles.actions}>
           <View style={styles.ctaGlow}>
@@ -139,126 +262,6 @@ export default function WelcomeScreen() {
           </Animated.View>
         )}
       </SafeAreaView>
-    </View>
-  );
-}
-
-// Palco do hero: painéis de vidro, palavra vazada, pessoas e o anel, em camadas.
-// As posições saem da geometria real do palco para nada colidir em telas diferentes.
-function HeroStage({ isShort, stage }: { isShort: boolean; stage: StageSize }) {
-  const styles = useStyles();
-  const ringSize = Math.round(clamp(stage.height * 0.4, 112, 184));
-  const peopleBottom = ringSize * 0.46;
-  const peopleWidth = Math.min(stage.width * 0.94, (stage.height - peopleBottom) * heroPeopleRatio);
-  const peopleHeight = peopleWidth / heroPeopleRatio;
-  const peopleTop = stage.height - peopleBottom - peopleHeight;
-  const wordWidth = stage.width * 0.94;
-
-  // Os painéis ficam acima dos chips do anel e dentro das zonas livres da foto: à esquerda
-  // o cabelo da moça começa mais baixo; à direita o punho erguido do rapaz ocupa o alto.
-  const cardWidth = Math.round(clamp(stage.width * 0.25, 84, 108));
-  const cardHeight = Math.round(cardWidth * CARD_RATIO);
-  const chipsLimit = stage.height - ringSize * 1.16 - 8;
-  const bands = {
-    left: Math.min(chipsLimit, peopleTop + peopleHeight * 0.32),
-    right: Math.min(chipsLimit, peopleTop + peopleHeight * 0.26),
-  };
-
-  function cardsFor(side: 'left' | 'right') {
-    if (isShort) return 0;
-    if (bands[side] >= cardHeight * 2 + CARD_GAP) return 2;
-    return bands[side] >= cardHeight ? 1 : 0;
-  }
-
-  // A coluna da direita desce um pouco (como no mockup), sem sair da sua faixa.
-  const rightCount = cardsFor('right');
-  const rightStagger = clamp(
-    bands.right - cardHeight * rightCount - CARD_GAP * Math.max(rightCount - 1, 0),
-    0,
-    cardHeight * 0.2,
-  );
-
-  return (
-    <View
-      accessibilityLabel="Duas pessoas treinando e um exemplo do painel de evolução: pontuação 78, 12 dias seguidos, mais 18 por cento de força e 7 horas e 40 minutos de sono."
-      accessible
-      style={styles.fill}>
-      {(['left', 'right'] as const).map((side) =>
-        benefitColumns[side].slice(0, cardsFor(side)).map((benefit, index) => {
-          const Entering = side === 'left' ? FadeInLeft : FadeInRight;
-          const offset = side === 'right' ? rightStagger : 0;
-
-          return (
-            <Animated.View
-              entering={Entering.delay(450 + index * 120 + (side === 'right' ? 60 : 0)).duration(600)}
-              key={benefit.label}
-              style={[
-                styles.benefit,
-                side === 'left' ? { left: 10 } : { right: 10 },
-                { top: index * (cardHeight + CARD_GAP) + offset },
-              ]}>
-              <BenefitCard
-                floatDelay={index * 400 + (side === 'right' ? 200 : 0)}
-                height={cardHeight}
-                icon={benefit.icon}
-                label={benefit.label}
-                side={side}
-                width={cardWidth}
-              />
-            </Animated.View>
-          );
-        }),
-      )}
-
-      <Animated.View
-        entering={FadeIn.delay(500).duration(900)}
-        style={[styles.word, { bottom: ringSize * 0.16, left: (stage.width - wordWidth) / 2 }]}>
-        <OutlineWord width={wordWidth} />
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInUp.delay(150).duration(700)}
-        style={[
-          styles.people,
-          {
-            bottom: peopleBottom,
-            height: peopleHeight,
-            left: (stage.width - peopleWidth) / 2,
-            width: peopleWidth,
-          },
-        ]}>
-        <Image contentFit="contain" source={heroPeopleImage} style={styles.fill} transition={0} />
-      </Animated.View>
-
-      <View style={[styles.ringRow, { height: ringSize }]}>
-        <Animated.View entering={FadeIn.delay(600).duration(400)}>
-          <EvolutionRing
-            delay={700}
-            label={ringSize < 140 ? 'hoje' : 'evolução hoje'}
-            rings={exampleRings}
-            score={78}
-            size={ringSize}
-          />
-        </Animated.View>
-
-        <Animated.View
-          entering={ZoomIn.delay(1100).springify().damping(14)}
-          style={[styles.chip, { left: '55%', top: -ringSize * 0.14 }]}>
-          <GlassChip domain="conquista" float icon="flame" label="12 dias seguidos" />
-        </Animated.View>
-        <Animated.View
-          entering={ZoomIn.delay(1220).springify().damping(14)}
-          style={[styles.chip, { right: '58%', top: ringSize * 0.4 }]}>
-          <GlassChip domain="treino" float floatDelay={600} icon="trending-up" label="+18% de força" />
-        </Animated.View>
-        {isShort ? null : (
-          <Animated.View
-            entering={ZoomIn.delay(1340).springify().damping(14)}
-            style={[styles.chip, { bottom: -ringSize * 0.04, left: '58%' }]}>
-            <GlassChip domain="sono" float floatDelay={1200} icon="moon" label="7h40 de sono" />
-          </Animated.View>
-        )}
-      </View>
     </View>
   );
 }
@@ -306,29 +309,13 @@ const useStyles = makeStyles((theme) => ({
     height: 2,
     width: 22,
   },
+  pager: {
+    flex: 1,
+  },
   stage: {
     flex: 1,
     marginTop: 10,
     minHeight: 200,
-  },
-  benefit: {
-    position: 'absolute',
-  },
-  word: {
-    position: 'absolute',
-  },
-  people: {
-    position: 'absolute',
-  },
-  ringRow: {
-    alignItems: 'center',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  chip: {
-    position: 'absolute',
   },
   tagline: {
     alignItems: 'center',
@@ -346,7 +333,7 @@ const useStyles = makeStyles((theme) => ({
   copy: {
     alignItems: 'center',
     gap: 8,
-    paddingBottom: 18,
+    paddingBottom: 8,
     paddingHorizontal: 24,
   },
   overline: {
@@ -378,6 +365,10 @@ const useStyles = makeStyles((theme) => ({
   subtitleShort: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  dots: {
+    paddingBottom: 10,
+    paddingTop: 6,
   },
   actions: {
     alignItems: 'center',

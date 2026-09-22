@@ -2,23 +2,32 @@ import Svg, { Text as SvgText } from 'react-native-svg';
 
 import { fonts, useTheme, withAlpha } from '@/src/theme';
 
-// Caixa dos glifos de "EVOLUA" na Plus Jakarta Sans ExtraBold Italic com fonte 100
-// (x 0–418, y 28–105). Com essa viewBox a palavra ocupa exatamente a largura pedida.
-const VIEW_BOX = { height: 86, width: 436, x: -6, y: 24 };
+// Largura dos glifos de cada palavra na Plus Jakarta Sans ExtraBold Italic com fonte 100
+// (os glifos ocupam y 28–105). Com a viewBox exata, a palavra preenche a largura pedida.
+const wordWidths = {
+  CORPO: 388,
+  EVOLUA: 418,
+  MENTE: 343,
+};
+
+export type OutlineWordName = keyof typeof wordWidths;
+
+const VIEW_BOX = { height: 86, padding: 6, y: 24 };
 
 type OutlineWordProps = {
   width: number;
-  word?: string;
+  word: OutlineWordName;
 };
 
-// Palavra gigante vazada (só contorno), usada como textura atrás das pessoas no hero.
-export function OutlineWord({ width, word = 'EVOLUA' }: OutlineWordProps) {
+// Palavra gigante vazada (só contorno), usada como textura atrás do visual do hero.
+export function OutlineWord({ width, word }: OutlineWordProps) {
   const { theme } = useTheme();
+  const viewBoxWidth = wordWidths[word] + VIEW_BOX.padding * 3;
 
   return (
     <Svg
-      height={(width * VIEW_BOX.height) / VIEW_BOX.width}
-      viewBox={`${VIEW_BOX.x} ${VIEW_BOX.y} ${VIEW_BOX.width} ${VIEW_BOX.height}`}
+      height={(width * VIEW_BOX.height) / viewBoxWidth}
+      viewBox={`${-VIEW_BOX.padding} ${VIEW_BOX.y} ${viewBoxWidth} ${VIEW_BOX.height}`}
       width={width}>
       <SvgText
         fill={withAlpha(theme.accent.primary, 0.05)}

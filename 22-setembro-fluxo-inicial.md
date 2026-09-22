@@ -166,7 +166,7 @@ A tela mostra o produto **funcionando**: um anel de evolução se desenhando, co
 - **Sem imagem bitmap pesada**: tudo em SVG + Reanimated. Na v2, a única imagem é o recorte das pessoas em WebP (~100 KB), pré-carregado na splash.
 - **Haptics** leve (`expo-haptics`) ao tocar nos CTAs.
 - **Telas baixas** (altura ≤ 700): anel menor e só 2 chips.
-- **Fase 2 (opcional)**: carrossel de 3 cenas (Evolução, Corpo, Bem-estar) com paginação por pontos e CTAs sempre fixos.
+- ✅ **Fase 2 (feita em 22/09)**: carrossel de 3 cenas (Evolução, Corpo, Bem-estar) com paginação por pontos e CTAs sempre fixos. Detalhes em **Carrossel do hero** no Registro de execução.
 
 ---
 
@@ -832,6 +832,18 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - **Observação**: o emulador `lume_test` vinha com as animações do sistema desligadas (escala 0), o que o app trata como "reduzir movimento". Para ver as animações, elas foram ligadas durante o teste e depois voltaram para 0. O Expo Go ficou instalado no emulador.
 - **Teste de fluxo no web**: 20 de 20, incluindo as rotas protegidas (`/home` e `/start` sem sessão caem no hero) e o cadastro completo até o onboarding.
 
+**Carrossel do hero: fase 2 (22/09)**
+
+- **Três cenas**, todas desenhadas em código (só a cena 1 usa a foto):
+  - **Evolução**: pessoas, anel e chips, como antes. Palavra ao fundo: EVOLUA.
+  - **Corpo**: cartão com o gráfico de carga (45 kg → 53 kg em 8 semanas, os mesmos +18% da cena 1), chips de recorde e de medidas. Palavra ao fundo: CORPO.
+  - **Bem-estar**: cartões de sono (barras da semana), água (nível enchendo) e humor (escala de 5 pontos). Palavra ao fundo: MENTE.
+- **Fixos na tela**: marca, lema, pontos de paginação, botões e rodapé. Só o visual e o texto deslizam.
+- **Avanço automático** de 6,5 s por cena, que **para no primeiro toque**, não recomeça e não roda com "reduzir movimento". Carrossel que gira sem parar atrapalha a leitura e reprova no WCAG 2.2.2.
+- **Acessibilidade**: os pontos são abas (`tablist`/`tab` com `aria-selected`), com rótulo "Cena 2 de 3: Corpo". A cena fora de foco é escondida dos leitores de tela.
+- **Montagem**: o texto de todas as cenas é montado de início (o palco não muda de tamanho); o visual entra quando a cena aparece pela primeira vez, para a animação tocar à vista. As cenas 2 e 3 entram mais rápido que a 1, que é a da abertura do app.
+- **Validação**: 21 verificações no web (tamanho normal, "reduzir movimento" e iPhone SE) e conferência no Android, deslizando entre as cenas.
+
 **Builds nativas Android: debug e release (22/09)**
 
 - **Como foi feito**: `npx expo run:android` (debug, 12 min na primeira vez) e `--variant release` (17 min) no emulador `lume_test`.
@@ -844,7 +856,7 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - Testar em **iPhone**, além de VoiceOver/TalkBack e fonte grande. Haptics só dá para sentir em aparelho físico.
 - ✅ **Identificadores das lojas decididos (22/09)**: pacote Android e bundle iOS `com.sebsolucoes.gynflow`, gravados no `app.json`. O `slug` (`gym-flow`) e o `scheme` de deep link (`gymflow`) continuam como estavam. Se quiser alinhá-los ao nome Gyn Flow, faça isso antes de publicar, porque eles mudam URLs e links.
 - **Foto do hero**: o recorte tem um leve halo verde-azulado no cabelo, herdado do fundo do mockup. No fundo escuro ele parece luz de contorno. Para produção, o ideal é gerar a mesma foto sem os elementos de interface (fundo liso ou transparente) e trocar só o arquivo `hero-people.webp`.
-- Fase 2 do hero (carrossel), tema claro "Dia", recuperação de senha real e links dos Termos e da Política.
+- Tema claro "Dia", recuperação de senha real e links dos Termos e da Política.
 
 ---
 
@@ -854,7 +866,6 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - Troca do mock pela API real (continua concentrada em `src/services`).
 - Paywall e planos.
 - Tema claro "Dia" (fica só a especificação inicial acima).
-- Carrossel de 3 cenas no hero (fase 2 da etapa 7).
 
 ## Fontes da pesquisa
 
