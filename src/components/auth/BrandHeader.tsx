@@ -1,49 +1,25 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 
-import { colors } from '@/src/constants/colors';
-import { spacing } from '@/src/constants/spacing';
+import { BrandMark } from '@/src/components/brand/BrandMark';
+import { BrandWordmark } from '@/src/components/brand/BrandWordmark';
+import { makeStyles } from '@/src/theme';
 
-type BrandHeaderProps = {
-  compact?: boolean;
-};
+// Marca compacta usada no topo das telas de autenticação.
+export function BrandHeader() {
+  const styles = useStyles();
 
-export function BrandHeader({ compact = false }: BrandHeaderProps) {
   return (
-    <View style={[styles.container, compact ? styles.compact : null]}>
-      <View style={styles.logoRow}>
-        <MaterialCommunityIcons name="dumbbell" size={42} color={colors.primary} />
-        <Text style={styles.title}>Ignite Gym</Text>
-      </View>
-      <Text style={styles.subtitle}>Treine sua mente e o seu corpo</Text>
+    <View style={styles.container}>
+      <BrandMark width={46} />
+      <BrandWordmark align="left" size="sm" />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   container: {
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xxl,
-    marginTop: spacing.xl,
-  },
-  compact: {
-    marginBottom: spacing.xl,
-    marginTop: spacing.md,
-  },
-  logoRow: {
-    alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: 10,
   },
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: 18,
-    textAlign: 'center',
-  },
-});
+}));

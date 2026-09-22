@@ -1,48 +1,33 @@
 import type { PropsWithChildren } from 'react';
-import {
-  Image,
-  SafeAreaView,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors } from '@/src/constants/colors';
+import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
+import { makeStyles } from '@/src/theme';
 
 type AuthBackgroundProps = PropsWithChildren<{
   contentStyle?: StyleProp<ViewStyle>;
+  intensity?: 'hero' | 'subtle';
 }>;
 
-export function AuthBackground({ children, contentStyle }: AuthBackgroundProps) {
+export function AuthBackground({ children, contentStyle, intensity = 'subtle' }: AuthBackgroundProps) {
+  const styles = useStyles();
+
   return (
     <View style={styles.container}>
-      <Image source={require('../../../assets/images/icon.png')} style={styles.watermark} />
-      <View style={styles.overlay} />
+      <AuroraBackground intensity={intensity} />
       <SafeAreaView style={[styles.content, contentStyle]}>{children}</SafeAreaView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.bg.base,
     flex: 1,
     overflow: 'hidden',
-  },
-  watermark: {
-    height: 520,
-    opacity: 0.08,
-    position: 'absolute',
-    right: -210,
-    top: -90,
-    width: 520,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(18, 18, 20, 0.94)',
   },
   content: {
     flex: 1,
   },
-});
+}));

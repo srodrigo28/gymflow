@@ -1,47 +1,165 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Easing,
+  FadeInDown,
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { AuthBackground } from '@/src/components/auth/AuthBackground';
-import { colors } from '@/src/constants/colors';
+import { BrandMark, brandMarkRatio } from '@/src/components/brand/BrandMark';
+import { BrandWordmark } from '@/src/components/brand/BrandWordmark';
+import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
+import { getSession } from '@/src/services/auth';
+import { hasCompletedOnboarding } from '@/src/services/onboarding';
+import { makeStyles, nativeSplashBackground, radius, useTheme } from '@/src/theme';
+
+const MIN_DURATION = 1800;
+const TIMEOUT = 4000;
+const EXIT_DURATION = 350;
+// 62,5% do imageWidth (200) do app.json: mesmo tamanho do halter na splash nativa.
+const MARK_WIDTH = 125;
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function resolveDestination(): Promise<Href> {
+  const session = await getSession();
+
+  if (!session) {
+    return '/(auth)/welcome';
+  }
+
+  return (await hasCompletedOnboarding(session.user.id)) ? '/(app)/home' : '/(onboarding)/start';
+}
 
 export default function SplashScreen() {
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      router.replace('/(auth)/login');
-    }, 1200);
+  const styles = useStyles();
+  const { theme } = useTheme();
+  const { height } = useWindowDimensions();
+  const appear = useSharedValue(0);
+  const progress = useSharedValue(0);
+  const exit = useSharedValue(0);
 
-    return () => clearTimeout(timeout);
-  }, []);
+  useEffect(() => {
+    let isActive = true;
+    let navigationTimer: ReturnType<typeof setTimeout> | undefined;
+
+    appear.value = withDelay(300, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) }));
+    // A barra avança com o tempo, mas só completa quando o carregamento real termina.
+    progress.value = withDelay(
+      1100,
+      withTiming(0.9, { duration: MIN_DURATION, easing: Easing.out(Easing.quad) }),
+    );
+
+    // Se algo travar, segue para o hero em vez de prender a pessoa na splash.
+    const destination = Promise.race([
+      resolveDestination(),
+      wait(TIMEOUT).then((): Href => '/(auth)/welcome'),
+    ]);
+
+    Promise.all([destination, wait(MIN_DURATION)]).then(([href]) => {
+      if (!isActive) {
+        return;
+      }
+
+      progress.value = withTiming(1, { duration: 220 });
+      exit.value = withDelay(220, withTiming(1, { duration: EXIT_DURATION, easing: Easing.in(Easing.cubic) }));
+      navigationTimer = setTimeout(() => router.replace(href), 220 + EXIT_DURATION);
+    });
+
+    return () => {
+      isActive = false;
+      clearTimeout(navigationTimer);
+    };
+  }, [appear, exit, progress]);
+
+  const backgroundStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(appear.value, [0, 1], [nativeSplashBackground, theme.bg.base]),
+  }));
+
+  const auroraStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(appear.value, [0.3, 1], [0, 1], 'clamp'),
+    transform: [{ scale: interpolate(appear.value, [0, 1], [0.6, 1]) }],
+  }));
+
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: 1 - exit.value,
+  }));
+
+  const markStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -24 * exit.value }, { scale: 1 - 0.12 * exit.value }],
+  }));
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+  }));
+
+  const markHeight = MARK_WIDTH * brandMarkRatio;
 
   return (
-    <AuthBackground contentStyle={styles.container}>
-      <View style={styles.brand}>
-        <MaterialCommunityIcons name="dumbbell" size={58} color={colors.primary} />
-        <Text style={styles.title}>Ignite Gym</Text>
-        <Text style={styles.subtitle}>Treine sua mente e o seu corpo</Text>
-      </View>
-    </AuthBackground>
+    <Animated.View style={[styles.container, backgroundStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, auroraStyle]}>
+        <AuroraBackground intensity="hero" />
+      </Animated.View>
+
+      <Animated.View style={[StyleSheet.absoluteFill, contentStyle]}>
+        <View style={styles.center}>
+          <Animated.View style={markStyle}>
+            <BrandMark animateIntro delay={300} width={MARK_WIDTH} />
+          </Animated.View>
+        </View>
+
+        <View style={[styles.below, { top: height / 2 + markHeight / 2 + 28 }]}>
+          <Animated.View entering={FadeInDown.delay(900).duration(500)}>
+            <BrandWordmark size="lg" tagline />
+          </Animated.View>
+          <Animated.View
+            accessibilityLabel="Carregando"
+            accessibilityRole="progressbar"
+            entering={FadeInDown.delay(1100).duration(400)}
+            style={styles.track}>
+            <Animated.View style={[styles.fill, progressStyle]} />
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   container: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  center: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brand: {
+  below: {
     alignItems: 'center',
-    gap: 12,
+    gap: 28,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
-  title: {
-    color: colors.text,
-    fontSize: 42,
-    fontWeight: '700',
+  track: {
+    backgroundColor: theme.bg.raised,
+    borderRadius: radius.pill,
+    height: 3,
+    overflow: 'hidden',
+    width: 120,
   },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: 18,
+  fill: {
+    backgroundColor: theme.accent.primary,
+    borderRadius: radius.pill,
+    height: '100%',
   },
-});
+}));

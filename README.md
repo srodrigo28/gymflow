@@ -1,6 +1,6 @@
-# Gym Flow
+# Gyn Flow
 
-Aplicativo mobile em Expo/React Native para acompanhamento de treinos, com fluxo inicial de splash, login, cadastro e uma base preparada para integração com API.
+Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-estar, com fluxo inicial de splash, hero, login e cadastro, temas de cores e uma base preparada para integração com API.
 
 ## Treino em Dia
 - melhor equilíbrio entre clareza e disponibilidade aparente.
@@ -23,9 +23,11 @@ Aplicativo mobile em Expo/React Native para acompanhamento de treinos, com fluxo
 
 Base inicial criada com:
 
-- Splash screen
-- Login
-- Cadastro
+- Splash animada com carregamento real (sessão, tema e fontes)
+- Hero de boas-vindas (`welcome`)
+- Login e cadastro
+- Sessão persistida (SecureStore; AsyncStorage no web)
+- Temas de cores: Flow, Meia-noite, Aurora e Brasa (tela Aparência)
 - Home mínima pós-autenticação
 - Componentes reutilizáveis de UI
 - Validação de formulários com `react-hook-form` e `zod`
@@ -51,19 +53,24 @@ app/
   (auth)/
     _layout.tsx
     splash.tsx
+    welcome.tsx
     login.tsx
     sign-up.tsx
   (app)/
     _layout.tsx
     home.tsx
+    appearance.tsx
 
 src/
   components/
     auth/
+    brand/
     ui/
+    visual/
   config/
   constants/
   services/
+  theme/
   types/
 
 preview/

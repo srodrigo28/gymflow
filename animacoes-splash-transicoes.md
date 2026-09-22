@@ -1,5 +1,7 @@
 # Plano: Splash, animações e transições
 
+> **Atualização (22/09):** a meta de splash de 10 segundos foi substituída pelo plano `22-setembro-fluxo-inicial.md`. A splash agora é guiada por carregamento real (mínimo de 1,8 s e máximo de 4 s) e leva ao hero `welcome`. As demais ideias deste documento (microinterações, entrada em cascata e transições) foram aplicadas lá.
+
 ## Objetivo
 
 Melhorar a percepção de qualidade do fluxo inicial do app com:

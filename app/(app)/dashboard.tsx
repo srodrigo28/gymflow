@@ -1,17 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/ui/Screen';
-import { colors } from '@/src/constants/colors';
 import { spacing } from '@/src/constants/spacing';
+import { fonts, makeStyles, radius, useTheme, withAlpha } from '@/src/theme';
 
 type Exercise = {
   icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
   title: string;
   subtitle: string;
-  tone: string;
 };
 
 const categories = ['Costas', 'Bíceps', 'Tríceps', 'Ombro'];
@@ -21,29 +20,30 @@ const exercises: Exercise[] = [
     icon: 'arm-flex-outline',
     subtitle: '3 séries x 12 repetições',
     title: 'Puxada frontal',
-    tone: '#0E7490',
   },
   {
     icon: 'rowing',
     subtitle: '3 séries x 12 repetições',
     title: 'Remada curvada',
-    tone: '#7C3AED',
   },
   {
     icon: 'dumbbell',
     subtitle: '3 séries x 12 repetições',
     title: 'Remada unilateral',
-    tone: '#2563EB',
   },
   {
     icon: 'weight-lifter',
     subtitle: '3 séries x 12 repetições',
     title: 'Levantamento terra',
-    tone: '#B7791F',
   },
 ];
 
 export default function DashboardScreen() {
+  const styles = useStyles();
+  const { theme } = useTheme();
+  // Todos os exercícios são do domínio treino: mesma cor, um único significado.
+  const exerciseColor = theme.domain.treino;
+
   return (
     <Screen edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={styles.header}>
@@ -57,7 +57,7 @@ export default function DashboardScreen() {
           accessibilityRole="button"
           onPress={() => router.back()}
           style={({ pressed }) => [styles.headerAction, pressed ? styles.pressed : null]}>
-          <MaterialCommunityIcons color={colors.textSecondary} name="logout" size={30} />
+          <MaterialCommunityIcons color={theme.text.secondary} name="logout" size={30} />
         </Pressable>
       </View>
 
@@ -91,14 +91,14 @@ export default function DashboardScreen() {
               accessibilityRole="button"
               key={exercise.title}
               style={({ pressed }) => [styles.exerciseCard, pressed ? styles.pressed : null]}>
-              <View style={[styles.exerciseImage, { backgroundColor: exercise.tone }]}>
-                <MaterialCommunityIcons color={colors.text} name={exercise.icon} size={34} />
+              <View style={[styles.exerciseImage, { backgroundColor: withAlpha(exerciseColor, 0.16) }]}>
+                <MaterialCommunityIcons color={exerciseColor} name={exercise.icon} size={32} />
               </View>
               <View style={styles.exerciseText}>
                 <Text style={styles.exerciseName}>{exercise.title}</Text>
                 <Text style={styles.exerciseSubtitle}>{exercise.subtitle}</Text>
               </View>
-              <MaterialCommunityIcons color={colors.placeholder} name="chevron-right" size={30} />
+              <MaterialCommunityIcons color={theme.text.muted} name="chevron-right" size={30} />
             </Pressable>
           ))}
         </View>
@@ -106,37 +106,37 @@ export default function DashboardScreen() {
 
       <View style={styles.bottomNav}>
         <Pressable accessibilityLabel="Início" accessibilityRole="button" style={styles.navItem}>
-          <MaterialCommunityIcons color={colors.primary} name="home" size={34} />
+          <MaterialCommunityIcons color={theme.accent.primary} name="home" size={34} />
         </Pressable>
         <Pressable accessibilityLabel="Histórico" accessibilityRole="button" style={styles.navItem}>
-          <MaterialCommunityIcons color={colors.textSecondary} name="history" size={34} />
+          <MaterialCommunityIcons color={theme.text.secondary} name="history" size={34} />
         </Pressable>
         <Pressable
           accessibilityLabel="Abrir perfil"
           accessibilityRole="button"
           onPress={() => router.back()}
           style={styles.navItem}>
-          <MaterialCommunityIcons color={colors.textSecondary} name="account-circle-outline" size={34} />
+          <MaterialCommunityIcons color={theme.text.secondary} name="account-circle-outline" size={34} />
         </Pressable>
       </View>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   screen: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.bg.base,
   },
   header: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: theme.bg.surface,
     flexDirection: 'row',
     gap: spacing.md,
     minHeight: 132,
     paddingHorizontal: spacing.xl,
   },
   avatar: {
-    borderColor: colors.surfaceStrong,
+    borderColor: theme.bg.raised,
     borderRadius: 999,
     borderWidth: 2,
     height: 78,
@@ -147,13 +147,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   greeting: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
     fontSize: 20,
   },
   name: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 24,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
   },
   headerAction: {
     alignItems: 'center',
@@ -172,9 +173,9 @@ const styles = StyleSheet.create({
   },
   categoryButton: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: theme.bg.surface,
     borderColor: 'transparent',
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     height: 58,
     justifyContent: 'center',
@@ -182,16 +183,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   categoryButtonActive: {
-    borderColor: colors.primary,
+    borderColor: theme.accent.primary,
   },
   categoryText: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
     fontSize: 17,
-    fontWeight: '800',
+    fontFamily: fonts.bold,
     textTransform: 'uppercase',
   },
   categoryTextActive: {
-    color: colors.primary,
+    color: theme.accent.primary,
   },
   exerciseHeader: {
     alignItems: 'center',
@@ -200,12 +201,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   exerciseTitle: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
     fontSize: 24,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
   },
   exerciseCount: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
     fontSize: 22,
   },
   exerciseList: {
@@ -214,8 +216,8 @@ const styles = StyleSheet.create({
   },
   exerciseCard: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: 8,
+    backgroundColor: theme.bg.raised,
+    borderRadius: radius.md,
     flexDirection: 'row',
     gap: spacing.md,
     minHeight: 104,
@@ -223,7 +225,7 @@ const styles = StyleSheet.create({
   },
   exerciseImage: {
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: radius.md,
     height: 72,
     justifyContent: 'center',
     width: 72,
@@ -233,17 +235,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   exerciseName: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 22,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
   },
   exerciseSubtitle: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
     fontSize: 17,
   },
   bottomNav: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: theme.bg.surface,
     flexDirection: 'row',
     height: 86,
     justifyContent: 'space-around',
@@ -258,4 +261,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.78,
   },
-});
+}));

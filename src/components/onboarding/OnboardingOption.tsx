@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
-import { colors } from '@/src/constants/colors';
 import { spacing } from '@/src/constants/spacing';
+import { fonts, makeStyles, radius, useTheme } from '@/src/theme';
 
 type OnboardingOptionProps = {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -12,9 +12,13 @@ type OnboardingOptionProps = {
 };
 
 export function OnboardingOption({ icon, label, onPress, selected }: OnboardingOptionProps) {
+  const styles = useStyles();
+  const { theme } = useTheme();
+
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
         styles.container,
@@ -22,19 +26,19 @@ export function OnboardingOption({ icon, label, onPress, selected }: OnboardingO
         pressed ? styles.pressed : null,
       ]}>
       {icon ? (
-        <Ionicons color={selected ? colors.primary : colors.textSecondary} name={icon} size={22} />
+        <Ionicons color={selected ? theme.accent.primary : theme.text.secondary} name={icon} size={22} />
       ) : null}
       <Text style={[styles.label, selected ? styles.selectedLabel : null]}>{label}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   container: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: 'transparent',
-    borderRadius: 8,
+    backgroundColor: theme.bg.surface,
+    borderColor: theme.border.subtle,
+    borderRadius: radius.md,
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.md,
@@ -43,20 +47,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   selected: {
-    backgroundColor: '#13231E',
-    borderColor: colors.primary,
+    backgroundColor: theme.accent.soft,
+    borderColor: theme.accent.primary,
   },
   label: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
     flex: 1,
+    fontFamily: fonts.semibold,
     fontSize: 15,
-    fontWeight: '600',
     lineHeight: 20,
   },
   selectedLabel: {
-    color: colors.text,
+    color: theme.text.primary,
   },
   pressed: {
     opacity: 0.86,
   },
-});
+}));

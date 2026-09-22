@@ -1,11 +1,11 @@
 import type { PropsWithChildren } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { OnboardingIllustration } from '@/src/components/onboarding/OnboardingIllustration';
 import { OnboardingProgress } from '@/src/components/onboarding/OnboardingProgress';
 import { Screen } from '@/src/components/ui/Screen';
-import { colors } from '@/src/constants/colors';
 import { spacing } from '@/src/constants/spacing';
+import { fonts, makeStyles } from '@/src/theme';
 
 type IllustrationName = Parameters<typeof OnboardingIllustration>[0]['name'];
 
@@ -27,6 +27,7 @@ export function OnboardingLayout({
   title,
   totalSteps,
 }: OnboardingLayoutProps) {
+  const styles = useStyles();
   const { height, width } = useWindowDimensions();
   const isCompact = height < 720;
   const isNarrow = width < 390;
@@ -61,7 +62,7 @@ export function OnboardingLayout({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   screen: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
@@ -117,9 +118,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    color: colors.text,
+    color: theme.text.primary,
+    fontFamily: fonts.extrabold,
     fontSize: 26,
-    fontWeight: '800',
+    letterSpacing: -0.3,
     lineHeight: 32,
   },
   titleCompact: {
@@ -127,7 +129,8 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   description: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 24,
   },
@@ -138,4 +141,4 @@ const styles = StyleSheet.create({
   body: {
     gap: spacing.sm,
   },
-});
+}));

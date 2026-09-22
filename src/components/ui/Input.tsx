@@ -4,14 +4,13 @@ import {
   Animated,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   type TextInputProps,
   View,
 } from 'react-native';
 
-import { colors } from '@/src/constants/colors';
+import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
 
 type InputProps = TextInputProps & {
   error?: string;
@@ -39,6 +38,8 @@ export function Input({
   style,
   ...props
 }: InputProps) {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const [isHidden, setIsHidden] = useState(Boolean(secureTextEntry));
   const [isFocused, setIsFocused] = useState(false);
   const focusAnimation = useRef(new Animated.Value(0)).current;
@@ -53,8 +54,9 @@ export function Input({
 
   const borderColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [error ? colors.danger : 'transparent', colors.primary],
+    outputRange: [error ? theme.status.danger : theme.border.subtle, theme.border.focus],
   });
+  const iconColor = isFocused ? theme.accent.primary : theme.text.muted;
 
   return (
     <View style={styles.wrapper}>
@@ -66,13 +68,13 @@ export function Input({
             borderColor,
             shadowOpacity: focusAnimation.interpolate({
               inputRange: [0, 1],
-              outputRange: [0, 0.22],
+              outputRange: [0, 0.28],
             }),
           },
         ]}>
-        {icon ? <Ionicons color={colors.placeholder} name={icon} size={22} style={styles.icon} /> : null}
+        {icon ? <Ionicons color={iconColor} name={icon} size={20} style={styles.icon} /> : null}
         <TextInput
-          cursorColor={colors.primary}
+          cursorColor={theme.accent.primary}
           onBlur={(event) => {
             setIsFocused(false);
             props.onBlur?.(event);
@@ -81,78 +83,85 @@ export function Input({
             setIsFocused(true);
             props.onFocus?.(event);
           }}
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={theme.text.muted}
           secureTextEntry={secureTextEntry ? isHidden : false}
-          selectionColor={colors.primary}
+          selectionColor={theme.accent.primary}
           style={[styles.input, webInputReset, style]}
           {...props}
         />
         {secureTextEntry ? (
           <Pressable
             accessibilityLabel={isHidden ? 'Mostrar senha' : 'Ocultar senha'}
-            hitSlop={10}
+            accessibilityRole="button"
+            hitSlop={12}
             onPress={() => setIsHidden((current) => !current)}>
             <Ionicons
-              color={colors.placeholder}
+              color={theme.text.muted}
               name={isHidden ? 'eye-outline' : 'eye-off-outline'}
-              size={22}
+              size={20}
             />
           </Pressable>
         ) : null}
         {rightText ? <Text style={styles.rightText}>{rightText}</Text> : null}
       </Animated.View>
       {helperText && !error ? <Text style={styles.helper}>{helperText}</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   wrapper: {
     gap: 6,
   },
   label: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
+    ...typography.caption,
+    color: theme.text.primary,
   },
   container: {
     alignItems: 'center',
-    backgroundColor: colors.backgroundSoft,
+    backgroundColor: theme.bg.surface,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderRadius: 6,
     flexDirection: 'row',
-    height: 64,
-    paddingLeft: 20,
+    height: 56,
+    paddingLeft: 18,
     paddingRight: 16,
-    shadowColor: colors.primary,
+    shadowColor: theme.accent.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 10,
+    shadowRadius: 12,
   },
   icon: {
     marginRight: 12,
   },
   input: {
     backgroundColor: 'transparent',
-    color: colors.text,
+    color: theme.text.primary,
     flex: 1,
-    fontSize: 18,
+    fontFamily: fonts.medium,
+    fontSize: 16,
     height: '100%',
     padding: 0,
   },
   rightText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
+    ...typography.caption,
+    color: theme.text.secondary,
     marginLeft: 10,
   },
   helper: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
   },
   error: {
-    color: colors.danger,
+    color: theme.status.danger,
+    fontFamily: fonts.medium,
     fontSize: 13,
+    lineHeight: 18,
   },
-});
+}));

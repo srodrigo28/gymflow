@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { OnboardingFooter } from '@/src/components/onboarding/OnboardingFooter';
 import { OnboardingLayout } from '@/src/components/onboarding/OnboardingLayout';
@@ -9,8 +9,8 @@ import { Input } from '@/src/components/ui/Input';
 import { OnboardingProvider, useOnboarding } from '@/src/contexts/onboarding-context';
 import { bodyMetricsSchema, onboardingSchema } from '@/src/schemas/onboarding';
 import { saveOnboardingProfile } from '@/src/services/onboarding';
-import { colors } from '@/src/constants/colors';
 import { spacing } from '@/src/constants/spacing';
+import { fonts, makeStyles, radius, useTheme, type Theme } from '@/src/theme';
 import type { OnboardingProfile } from '@/src/types/onboarding';
 
 const previousTrainingStepIndex = 18;
@@ -257,6 +257,8 @@ type StepProps = {
 };
 
 function WelcomeStep() {
+  const styles = useStyles();
+
   return <Text style={styles.note}>Prometemos perguntas objetivas. Nada de entrevista de emprego com halter na mão.</Text>;
 }
 
@@ -318,6 +320,8 @@ function MoodStep({ profile, updateProfile }: StepProps) {
 }
 
 function TrainingRoutineStep({ profile, updateProfile }: StepProps) {
+  const styles = useStyles();
+
   return (
     <>
       <QuestionSection title="Pergunta 1: quantos dias por semana?">
@@ -478,6 +482,8 @@ function HistoryStep({ profile, updateProfile }: StepProps) {
 }
 
 function PreviousTrainingStep({ profile, updateProfile }: StepProps) {
+  const styles = useStyles();
+
   if (profile.gymExperience === 'never') {
     return <Text style={styles.note}>Como você nunca treinou, vamos começar do jeito certo: sem pressa e com orientação.</Text>;
   }
@@ -556,8 +562,10 @@ function ProgressPhotosStep({ profile, updateProfile }: StepProps) {
 }
 
 function SummaryStep({ profile }: { profile: OnboardingProfile }) {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const bmi = calculateBmi(profile.weightKg, profile.heightCm);
-  const bmiResult = bmi ? getBmiResult(bmi) : null;
+  const bmiResult = bmi ? getBmiResult(bmi, theme) : null;
   const bmiValue = bmi?.toFixed(1);
   const currentLevel = getCurrentJourneyLevel(profile);
   const [targetLevel, setTargetLevel] = useState<JourneyScaleLevel>(
@@ -641,6 +649,7 @@ function JourneyScale({
   onTargetChange: (level: JourneyScaleLevel) => void;
   targetLevel: JourneyScaleLevel;
 }) {
+  const styles = useStyles();
   const currentIndex = journeyScaleLevels.findIndex((level) => level.value === currentLevel);
   const targetIndex = journeyScaleLevels.findIndex((level) => level.value === targetLevel);
   const current = journeyScaleLevels[currentIndex];
@@ -683,8 +692,12 @@ function JourneyScale({
                   isCurrent ? styles.scaleDotCurrent : null,
                   isTarget ? styles.scaleDotTarget : null,
                 ]}>
-                {isCurrent ? <Text style={styles.scaleDotText}>A</Text> : null}
-                {isTarget && !isCurrent ? <Text style={styles.scaleDotText}>M</Text> : null}
+                {isCurrent ? (
+                  <Text style={[styles.scaleDotText, isTarget ? styles.scaleDotTextOnAccent : null]}>A</Text>
+                ) : null}
+                {isTarget && !isCurrent ? (
+                  <Text style={[styles.scaleDotText, styles.scaleDotTextOnAccent]}>M</Text>
+                ) : null}
               </View>
               <Text style={[styles.scalePointLabel, isTarget ? styles.scalePointLabelActive : null]}>
                 {level.label}
@@ -710,6 +723,8 @@ function JourneyScale({
 }
 
 function SummaryRow({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+  const styles = useStyles();
+
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryEmoji}>{emoji}</Text>
@@ -857,10 +872,10 @@ function getCurrentJourneyLevel(profile: OnboardingProfile): JourneyScaleLevel {
   return 'start';
 }
 
-function getBmiResult(bmi: number) {
+function getBmiResult(bmi: number, theme: Theme) {
   if (bmi < 18.5) {
     return {
-      color: '#F5B041',
+      color: theme.status.warning,
       description: 'Seu corpo pode precisar de mais atenção com energia, força e alimentação.',
       emoji: '🌱',
       scaleWidth: '28%' as const,
@@ -870,7 +885,7 @@ function getBmiResult(bmi: number) {
 
   if (bmi < 25) {
     return {
-      color: colors.primary,
+      color: theme.status.success,
       description: 'Boa base inicial. Agora o foco é consistência, evolução e qualidade de treino.',
       emoji: '✅',
       scaleWidth: '55%' as const,
@@ -880,7 +895,7 @@ function getBmiResult(bmi: number) {
 
   if (bmi < 30) {
     return {
-      color: '#F5B041',
+      color: theme.status.warning,
       description: 'Vale acompanhar evolução com calma e usar treino, sono e rotina a seu favor.',
       emoji: '⚠️',
       scaleWidth: '74%' as const,
@@ -889,7 +904,7 @@ function getBmiResult(bmi: number) {
   }
 
   return {
-    color: '#F75A68',
+    color: theme.status.danger,
     description: 'Vamos avançar com cuidado, metas realistas e acompanhamento consistente.',
     emoji: '🧭',
     scaleWidth: '92%' as const,
@@ -898,6 +913,8 @@ function getBmiResult(bmi: number) {
 }
 
 function QuestionSection({ children, title }: React.PropsWithChildren<{ title: string }>) {
+  const styles = useStyles();
+
   return (
     <View accessibilityRole="summary" style={styles.questionSection}>
       <Text accessibilityRole="header" style={styles.questionTitle}>
@@ -908,9 +925,10 @@ function QuestionSection({ children, title }: React.PropsWithChildren<{ title: s
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   note: {
-    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    color: theme.text.secondary,
     fontSize: 16,
     lineHeight: 24,
   },
@@ -920,18 +938,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionLabel: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     marginTop: spacing.sm,
   },
   questionSection: {
     gap: spacing.sm,
   },
   questionTitle: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 15,
-    fontWeight: '800',
+    fontFamily: fonts.extrabold,
     lineHeight: 20,
   },
   questionContent: {
@@ -943,8 +961,8 @@ const styles = StyleSheet.create({
   },
   summary: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 8,
+    backgroundColor: theme.bg.surface,
+    borderRadius: radius.md,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
@@ -970,21 +988,22 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   summaryLabel: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 14,
-    fontWeight: '800',
+    fontFamily: fonts.extrabold,
     textAlign: 'center',
   },
   summaryValue: {
-    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    color: theme.text.secondary,
     fontSize: 14,
     lineHeight: 18,
     textAlign: 'center',
   },
   scaleCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.surfaceStrong,
-    borderRadius: 8,
+    backgroundColor: theme.bg.surface,
+    borderColor: theme.bg.high,
+    borderRadius: radius.md,
     borderWidth: 1,
     gap: spacing.md,
     padding: spacing.md,
@@ -995,13 +1014,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   scaleTitle: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 16,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
     textAlign: 'center',
   },
   scaleSubtitle: {
-    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    color: theme.text.secondary,
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
@@ -1013,8 +1033,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   scaleLine: {
-    backgroundColor: colors.backgroundSoft,
-    borderRadius: 999,
+    backgroundColor: theme.bg.raised,
+    borderRadius: radius.pill,
     height: 6,
     left: 18,
     position: 'absolute',
@@ -1022,8 +1042,8 @@ const styles = StyleSheet.create({
     top: 15,
   },
   scaleLineFill: {
-    backgroundColor: colors.primary,
-    borderRadius: 999,
+    backgroundColor: theme.accent.primary,
+    borderRadius: radius.pill,
     height: 6,
     position: 'absolute',
     top: 15,
@@ -1036,37 +1056,40 @@ const styles = StyleSheet.create({
   },
   scaleDot: {
     alignItems: 'center',
-    backgroundColor: colors.backgroundSoft,
-    borderColor: colors.surfaceStrong,
-    borderRadius: 999,
+    backgroundColor: theme.bg.raised,
+    borderColor: theme.bg.high,
+    borderRadius: radius.pill,
     borderWidth: 2,
     height: 36,
     justifyContent: 'center',
     width: 36,
   },
   scaleDotActive: {
-    borderColor: colors.primary,
+    borderColor: theme.accent.primary,
   },
   scaleDotCurrent: {
-    backgroundColor: colors.surfaceStrong,
+    backgroundColor: theme.bg.high,
   },
   scaleDotTarget: {
-    backgroundColor: colors.primaryDark,
+    backgroundColor: theme.accent.primary,
   },
   scaleDotText: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 12,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
+  },
+  scaleDotTextOnAccent: {
+    color: theme.accent.onPrimary,
   },
   scalePointLabel: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     lineHeight: 14,
     textAlign: 'center',
   },
   scalePointLabelActive: {
-    color: colors.text,
+    color: theme.text.primary,
   },
   scaleLegend: {
     flexDirection: 'row',
@@ -1074,35 +1097,36 @@ const styles = StyleSheet.create({
   },
   scaleLegendItem: {
     alignItems: 'center',
-    backgroundColor: colors.backgroundSoft,
-    borderRadius: 8,
+    backgroundColor: theme.bg.raised,
+    borderRadius: radius.md,
     flex: 1,
     gap: 2,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   scaleLegendKicker: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     textTransform: 'uppercase',
   },
   scaleLegendValue: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 14,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
     textAlign: 'center',
   },
   scaleDescription: {
-    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    color: theme.text.secondary,
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
   },
   bmiCard: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 8,
+    backgroundColor: theme.bg.surface,
+    borderRadius: radius.md,
     borderWidth: 1,
     gap: spacing.sm,
     padding: spacing.md,
@@ -1121,38 +1145,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bmiTitle: {
-    color: colors.textSecondary,
+    color: theme.text.secondary,
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     textAlign: 'center',
   },
   bmiValue: {
-    color: colors.text,
+    color: theme.text.primary,
     fontSize: 28,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
     textAlign: 'center',
   },
   bmiStatus: {
     fontSize: 16,
-    fontWeight: '900',
+    fontFamily: fonts.extrabold,
     textAlign: 'center',
   },
   bmiDescription: {
-    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    color: theme.text.secondary,
     fontSize: 14,
     lineHeight: 20,
     maxWidth: 360,
     textAlign: 'center',
   },
   bmiScale: {
-    backgroundColor: colors.backgroundSoft,
-    borderRadius: 999,
+    backgroundColor: theme.bg.raised,
+    borderRadius: radius.pill,
     height: 8,
     overflow: 'hidden',
     width: '100%',
   },
   bmiScaleFill: {
-    borderRadius: 999,
+    borderRadius: radius.pill,
     height: '100%',
   },
-});
+}));

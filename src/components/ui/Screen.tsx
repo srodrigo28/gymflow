@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '@/src/constants/colors';
+import { makeStyles } from '@/src/theme';
 
 type ScreenProps = PropsWithChildren<{
   edges?: ('top' | 'right' | 'bottom' | 'left')[];
@@ -10,6 +10,7 @@ type ScreenProps = PropsWithChildren<{
 }>;
 
 export function Screen({ children, edges = ['top', 'right', 'bottom', 'left'], style }: ScreenProps) {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
 
   return (
@@ -29,9 +30,9 @@ export function Screen({ children, edges = ['top', 'right', 'bottom', 'left'], s
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((theme) => ({
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: theme.bg.base,
     flex: 1,
   },
-});
+}));

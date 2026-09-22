@@ -1,29 +1,33 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
-import { colors } from '@/src/constants/colors';
+import { useTheme } from '@/src/theme';
 
-const styleId = 'gym-flow-input-reset';
+const styleId = 'gyn-flow-input-reset';
 
 export function WebInputStyleReset() {
+  const { theme } = useTheme();
+
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') {
       return;
     }
 
-    if (document.getElementById(styleId)) {
-      return;
+    let style = document.getElementById(styleId);
+
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      document.head.appendChild(style);
     }
 
-    const style = document.createElement('style');
-    style.id = styleId;
     style.textContent = `
       input,
       textarea {
         outline: none !important;
         background-color: transparent !important;
-        color: ${colors.text} !important;
-        caret-color: ${colors.primary} !important;
+        color: ${theme.text.primary} !important;
+        caret-color: ${theme.accent.primary} !important;
       }
 
       input:focus,
@@ -38,15 +42,13 @@ export function WebInputStyleReset() {
       textarea:-webkit-autofill,
       textarea:-webkit-autofill:hover,
       textarea:-webkit-autofill:focus {
-        -webkit-text-fill-color: ${colors.text} !important;
-        box-shadow: 0 0 0 1000px ${colors.backgroundSoft} inset !important;
-        caret-color: ${colors.primary} !important;
+        -webkit-text-fill-color: ${theme.text.primary} !important;
+        box-shadow: 0 0 0 1000px ${theme.bg.surface} inset !important;
+        caret-color: ${theme.accent.primary} !important;
         transition: background-color 9999s ease-out 0s !important;
       }
     `;
-
-    document.head.appendChild(style);
-  }, []);
+  }, [theme]);
 
   return null;
 }

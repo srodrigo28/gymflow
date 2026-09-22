@@ -1,22 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { z } from 'zod';
 
-import { AuthBackground } from '@/src/components/auth/AuthBackground';
-import { BrandHeader } from '@/src/components/auth/BrandHeader';
+import { AuthScreenLayout } from '@/src/components/auth/AuthScreenLayout';
+import { PasswordStrength } from '@/src/components/auth/PasswordStrength';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
-import { colors } from '@/src/constants/colors';
-import { spacing } from '@/src/constants/spacing';
 import { signUp } from '@/src/services/auth';
+import { fonts, makeStyles } from '@/src/theme';
 import type { SignUpPayload } from '@/src/types/auth';
 
 const signUpSchema = z
   .object({
-    name: z.string().min(2, 'Informe seu nome.'),
-    email: z.string().min(1, 'Informe seu e-mail.').email('Informe um e-mail valido.'),
+    name: z.string().trim().min(2, 'Informe seu nome.'),
+    email: z.string().trim().toLowerCase().min(1, 'Informe seu e-mail.').email('Informe um e-mail válido.'),
     password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres.'),
     passwordConfirmation: z.string().min(1, 'Confirme sua senha.'),
   })
@@ -26,11 +26,13 @@ const signUpSchema = z
   });
 
 export default function SignUpScreen() {
+  const styles = useStyles();
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
+    watch,
   } = useForm<SignUpPayload>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -40,6 +42,7 @@ export default function SignUpScreen() {
       passwordConfirmation: '',
     },
   });
+  const password = watch('password');
 
   async function handleSignUp(payload: SignUpPayload) {
     try {
@@ -53,130 +56,146 @@ export default function SignUpScreen() {
   }
 
   return (
-    <AuthBackground>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboard}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          <BrandHeader compact />
+    <AuthScreenLayout
+      footerAction="Entrar"
+      footerText="Já tem conta?"
+      onFooterPress={() => router.replace('/(auth)/login')}
+      subtitle="Leva menos de um minuto."
+      title="Comece sua evolução">
+      <View style={styles.form}>
+        <Animated.View entering={FadeInDown.delay(160).duration(450)}>
+          <Controller
+            control={control}
+            name="name"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <Input
+                autoCapitalize="words"
+                autoComplete="name"
+                error={errors.name?.message}
+                icon="person-outline"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                placeholder="Nome"
+                textContentType="name"
+                value={value}
+              />
+            )}
+          />
+        </Animated.View>
 
-          <View style={styles.form}>
-            <Text style={styles.heading}>Crie sua conta</Text>
+        <Animated.View entering={FadeInDown.delay(210).duration(450)}>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <Input
+                autoCapitalize="none"
+                autoComplete="email"
+                error={errors.email?.message}
+                icon="mail-outline"
+                keyboardType="email-address"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                placeholder="E-mail"
+                textContentType="emailAddress"
+                value={value}
+              />
+            )}
+          />
+        </Animated.View>
 
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  autoCapitalize="words"
-                  error={errors.name?.message}
-                  icon="person-outline"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  placeholder="Nome"
-                  value={value}
-                />
-              )}
-            />
+        <Animated.View entering={FadeInDown.delay(260).duration(450)} style={styles.passwordGroup}>
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <Input
+                autoCapitalize="none"
+                autoComplete="new-password"
+                error={errors.password?.message}
+                icon="lock-closed-outline"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                placeholder="Senha"
+                secureTextEntry
+                textContentType="newPassword"
+                value={value}
+              />
+            )}
+          />
+          <PasswordStrength password={password} />
+        </Animated.View>
 
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  error={errors.email?.message}
-                  icon="mail-outline"
-                  keyboardType="email-address"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  placeholder="E-mail"
-                  value={value}
-                />
-              )}
-            />
+        <Animated.View entering={FadeInDown.delay(310).duration(450)}>
+          <Controller
+            control={control}
+            name="passwordConfirmation"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <Input
+                autoCapitalize="none"
+                autoComplete="new-password"
+                error={errors.passwordConfirmation?.message}
+                icon="shield-checkmark-outline"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                onSubmitEditing={handleSubmit(handleSignUp)}
+                placeholder="Confirme a senha"
+                returnKeyType="go"
+                secureTextEntry
+                textContentType="newPassword"
+                value={value}
+              />
+            )}
+          />
+        </Animated.View>
 
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  autoCapitalize="none"
-                  error={errors.password?.message}
-                  icon="lock-closed-outline"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  placeholder="Senha"
-                  secureTextEntry
-                  value={value}
-                />
-              )}
-            />
+        {errors.root?.message ? (
+          <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.error}>
+            {errors.root.message}
+          </Animated.Text>
+        ) : null}
 
-            <Controller
-              control={control}
-              name="passwordConfirmation"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  autoCapitalize="none"
-                  error={errors.passwordConfirmation?.message}
-                  icon="shield-checkmark-outline"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  placeholder="Confirme a senha"
-                  secureTextEntry
-                  value={value}
-                />
-              )}
-            />
-
-            {errors.root?.message ? <Text style={styles.error}>{errors.root.message}</Text> : null}
-
-            <Button
-              disabled={isSubmitting}
-              icon="person-add-outline"
-              loading={isSubmitting}
-              onPress={handleSubmit(handleSignUp)}
-              title="Criar e acessar"
-            />
-          </View>
-
-          <Link href="/(auth)/login" asChild>
-            <Button icon="arrow-back-outline" title="Voltar para o login" variant="outline" />
-          </Link>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </AuthBackground>
+        <Animated.View entering={FadeInDown.delay(360).duration(450)} style={styles.submit}>
+          <Button
+            disabled={isSubmitting}
+            haptic
+            icon="arrow-forward"
+            iconPosition="right"
+            loading={isSubmitting}
+            onPress={handleSubmit(handleSignUp)}
+            title="Criar minha conta"
+          />
+          <Text style={styles.terms}>
+            Ao criar a conta você concorda com os Termos de Uso e a Política de Privacidade.
+          </Text>
+        </Animated.View>
+      </View>
+    </AuthScreenLayout>
   );
 }
 
-const styles = StyleSheet.create({
-  keyboard: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
-  },
+const useStyles = makeStyles((theme) => ({
   form: {
-    gap: spacing.md,
+    gap: 14,
   },
-  heading: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
+  passwordGroup: {
+    gap: 10,
+  },
+  submit: {
+    gap: 12,
+    marginTop: 6,
+  },
+  terms: {
+    color: theme.text.muted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: 'center',
   },
   error: {
-    color: colors.danger,
+    color: theme.status.danger,
+    fontFamily: fonts.medium,
     fontSize: 14,
     textAlign: 'center',
   },
-});
+}));
