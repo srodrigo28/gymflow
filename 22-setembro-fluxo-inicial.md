@@ -106,6 +106,8 @@ flowchart TD
 
 A tela mostra o produto **funcionando**: um anel de evolução se desenhando, com um número subindo e pequenos cartões de conquistas flutuando sobre uma luz aurora. A pessoa não lê sobre evolução, ela **vê** a evolução.
 
+> **Hero v2 (22/09):** a partir do mockup `image/image.png`, o hero ganhou a foto de duas pessoas treinando, painéis de vidro com benefícios, a palavra "EVOLUA" vazada ao fundo, um lema no topo e um rodapé. O wireframe abaixo é a v1; os detalhes da v2 estão em **Hero v2** no Registro de execução.
+
 ### Wireframe
 
 ```txt
@@ -161,7 +163,7 @@ A tela mostra o produto **funcionando**: um anel de evolução se desenhando, co
 - Os valores do anel e dos chips são **ilustrativos**. Para leitores de tela, o conjunto é marcado como decorativo ("Exemplo do painel de evolução").
 - Métricas **inclusivas**: força, sono e sequência. Nada de "−5 kg" como promessa.
 - Com **Reduzir movimento** ativado (`useReducedMotion`), tudo aparece já no estado final, só com fade.
-- **Sem imagem bitmap pesada**: tudo em SVG + Reanimated.
+- **Sem imagem bitmap pesada**: tudo em SVG + Reanimated. Na v2, a única imagem é o recorte das pessoas em WebP (~100 KB), pré-carregado na splash.
 - **Haptics** leve (`expo-haptics`) ao tocar nos CTAs.
 - **Telas baixas** (altura ≤ 700): anel menor e só 2 chips.
 - **Fase 2 (opcional)**: carrossel de 3 cenas (Evolução, Corpo, Bem-estar) com paginação por pontos e CTAs sempre fixos.
@@ -802,12 +804,26 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - **Assets regenerados** a partir da geometria do `BrandMark`: `icon.png` (halter + "Gyn Flow" + tagline), `splash-icon.png` (só o halter), ícones Android e `favicon.png`. `app.json`: nome exibido "Gyn Flow" e fundos `#151A23`.
 - `src/constants/colors.ts` foi removido depois da migração. Tudo usa `@/src/theme`.
 
+**Hero v2 (a partir do mockup `image/image.png`)**
+
+- **Foto das pessoas**: o mockup é uma composição única (pessoas, cards, anel e textos na mesma imagem). As pessoas foram recortadas com segmentação de pessoas (`rembg`, modelo `u2net_human_seg`, com *alpha matting*). A base tem um degradê para sumir atrás do anel. Resultado: `assets/images/hero/hero-people.webp`, com 900×664 e 98 KB. Ela é pré-carregada na splash (`expo-asset`), dentro do mesmo limite de 4 s.
+- **Camadas do palco** (de trás para a frente): aurora, painéis de vidro (`BenefitCard`, inclinados em 3D), "EVOLUA" vazado (`OutlineWord`, SVG na Plus Jakarta Sans ExtraBold Italic), pessoas, anel e chips.
+- **Posições calculadas pela geometria real do palco**: os painéis só aparecem na faixa livre acima dos chips e nas zonas livres da foto. À esquerda, o cabelo da moça começa mais baixo; à direita, o punho erguido do rapaz ocupa o alto. O resultado por tela:
+  - Em 375×667 e 360×780 não aparecem painéis.
+  - Em 390×844 e 430×932 aparece um painel de cada lado.
+  - Em telas mais altas podem aparecer dois por lado.
+- **Anel menor que 140 px**: o rótulo vira "hoje" para caber no miolo.
+- **Texto novo**: lema "Disciplina hoje, resultados sempre" (escondido em telas baixas), "Corpo · Mente · Uma vida melhor" e o rodapé "Pessoas mais saudáveis · Dias mais felizes" (escondido em telas baixas). O "Grátis para começar" saiu, como no mockup.
+- **Fora da v2**: os pontos de paginação do mockup ficaram de fora porque ainda não existe carrossel. Pontos sem carrossel enganariam quem tenta arrastar.
+- **Validado no web** em 375×667, 360×780, 390×844 e 430×932, nos temas Flow e Brasa e com "reduzir movimento". O teste de fluxo continua 15/15.
+
 **Pendências**
 
 - Testar em **aparelho iOS e Android**: troca splash nativa → animada, haptics, SecureStore, 60 fps, VoiceOver/TalkBack e fonte grande.
 - `Stack.Protected` (opcional): hoje a splash decide o destino. Rotas abertas por link direto não são protegidas.
 - Os identificadores técnicos continuam `gym-flow` (pacote, slug e scheme `gymflow`). Renomear muda URLs e deep links, então decida antes de publicar.
 - O Expo avisa versões desatualizadas (`expo`, `expo-constants`, `expo-font`, `expo-router`). Isso já existia antes; corrija com `npx expo install --fix`.
+- **Foto do hero**: o recorte tem um leve halo verde-azulado no cabelo, herdado do fundo do mockup. No fundo escuro ele parece luz de contorno. Para produção, o ideal é gerar a mesma foto sem os elementos de interface (fundo liso ou transparente) e trocar só o arquivo `hero-people.webp`.
 - Fase 2 do hero (carrossel), tema claro "Dia", recuperação de senha real e links dos Termos e da Política.
 
 ---

@@ -45,7 +45,9 @@ export function EvolutionRing({
   const styles = useStyles();
   const progress = useSharedValue(0);
   const [displayScore, setDisplayScore] = useState(0);
-  const stroke = Math.round(size * 0.065);
+  const stroke = Math.round(size * 0.058);
+  // O rótulo acompanha o tamanho do anel para caber no miolo.
+  const labelSize = Math.min(Math.max(size * 0.068, 10), 13);
   const gap = Math.round(stroke * 0.4);
 
   useEffect(() => {
@@ -86,7 +88,7 @@ export function EvolutionRing({
       </Svg>
       <View style={styles.center}>
         <Text style={[styles.score, { fontSize: size * 0.2, lineHeight: size * 0.23 }]}>{displayScore}</Text>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { fontSize: labelSize, lineHeight: labelSize * 1.35 }]}>{label}</Text>
       </View>
     </View>
   );

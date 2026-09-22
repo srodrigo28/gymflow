@@ -1,3 +1,4 @@
+import { Asset } from 'expo-asset';
 import { router, type Href } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -15,6 +16,7 @@ import Animated, {
 import { BrandMark, brandMarkRatio } from '@/src/components/brand/BrandMark';
 import { BrandWordmark } from '@/src/components/brand/BrandWordmark';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
+import { heroPeopleImage } from '@/src/constants/images';
 import { getSession } from '@/src/services/auth';
 import { hasCompletedOnboarding } from '@/src/services/onboarding';
 import { makeStyles, nativeSplashBackground, radius, useTheme } from '@/src/theme';
@@ -58,9 +60,10 @@ export default function SplashScreen() {
       withTiming(0.9, { duration: MIN_DURATION, easing: Easing.out(Easing.quad) }),
     );
 
-    // Se algo travar, segue para o hero em vez de prender a pessoa na splash.
+    // Carrega a sessão e a arte do hero. Se algo travar, segue para o hero em vez de prender a pessoa aqui.
+    const heroArt = Asset.loadAsync(heroPeopleImage).catch(() => undefined);
     const destination = Promise.race([
-      resolveDestination(),
+      Promise.all([resolveDestination(), heroArt]).then(([href]) => href),
       wait(TIMEOUT).then((): Href => '/(auth)/welcome'),
     ]);
 

@@ -4,6 +4,7 @@ import {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
+  PlusJakartaSans_800ExtraBold_Italic,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import type { TextStyle } from 'react-native';
 
@@ -13,6 +14,7 @@ export const fontAssets = {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
+  PlusJakartaSans_800ExtraBold_Italic,
 };
 
 // Com fonte customizada o peso vem da família; não combine com fontWeight
@@ -23,6 +25,7 @@ export const fonts = {
   semibold: 'PlusJakartaSans_600SemiBold',
   bold: 'PlusJakartaSans_700Bold',
   extrabold: 'PlusJakartaSans_800ExtraBold',
+  extraboldItalic: 'PlusJakartaSans_800ExtraBold_Italic',
 } as const;
 
 export const typography = {
