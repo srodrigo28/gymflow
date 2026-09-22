@@ -27,7 +27,7 @@ Este documento tem quatro partes:
 - **O motor viral**: nada de ranking global de "quem é mais forte". Três laços: **desafio entre amigos por link**, **ranking da sua academia** e **o personal que traz os alunos**. Somados a cards compartilháveis de conquista e ao resumo mensal.
 - **Ranking justo é regra de produto**: ligas por nível, força relativa (DOTS) em vez de carga bruta, e uma categoria de **evolução relativa** para que iniciante também possa ganhar.
 - **Recomendação em três estágios**: regras → heurísticas com seus dados → IA (Claude) gerando o plano semanal e a explicação. O custo de infraestrutura fica em torno de **US$ 0,08 a 0,16 por usuário ativo por mês**, e cai com cache e processamento em lote.
-- **Valores zerados nesta fase (22/09)**: nada de preço, plano pago, cupom ou campanha no app. Tudo liberado e gratuito; monetização e marketing viram um documento à parte quando for a hora (seção 5).
+- **100% grátis até 200 usuários (22/09)**: nenhum preço, plano pago, cupom ou campanha no app. Ao bater 200 cadastros, revisamos e abrimos campanhas de valor simbólico (R$ 1,00 ou R$ 5,00) em documento próprio (seção 5).
 - **O que nunca entra**: ranking de menor peso, de percentual de gordura, feed público de fotos corporais e comparação entre corpos. Isso protege as pessoas e protege o app.
 
 ---
@@ -210,25 +210,45 @@ Peso, medidas, percentual de gordura e **foto corporal com finalidade de saúde*
 
 ---
 
-## 5. Planos e valores — congelado em 22/09
+## 5. Planos e valores — 100% grátis até 200 usuários
 
-**Decisão: todos os valores estão zerados.** Nesta fase o app é inteiro gratuito, sem cobrança, sem plano pago e sem campanha. Preço, receita e marketing entram depois, num documento próprio.
+**Regra de hoje (22/09): o app é 100% gratuito, sem exceção.** Nenhum recurso trancado, nenhum preço em tela, nenhuma campanha.
 
 | Plano | Valor | O que entrega |
 | --- | --- | --- |
 | **Grátis** | **R$ 0,00** | Tudo o que existir no app. |
-| **Premium** | **R$ 0,00** (a definir) | Sem diferença enquanto os valores estiverem zerados. |
+| **Premium** | **R$ 0,00** (a definir) | Sem diferença enquanto o app for gratuito. |
 | **Personal** | **R$ 0,00** (a definir) | Painel de alunos, prescrição, relatórios e página do profissional, liberados. |
 | **Academia** | **R$ 0,00** (a definir) | Ranking da unidade, mural, check-in integrado e relatórios, liberados. |
 
-**O que isso muda no produto agora**
+### 5.1 O gatilho: 200 usuários
 
-- Nenhuma tela mostra preço, plano, assinatura, "grátis por tempo limitado" ou botão de compra.
-- Nenhum recurso fica trancado atrás de pagamento. Se existir, está liberado.
-- Prêmio de campanha, cupom, parceria e indicação premiada ficam **fora** por enquanto; o que motiva é ponto, selo e troféu.
-- Quando a monetização voltar à mesa, ela nasce em um documento separado (`22-campanhas.md`, quando chegar a hora), e só então as telas ganham preço.
+**Enquanto não houver 200 usuários cadastrados, nada é cobrado.** Ao bater essa marca, paramos e decidimos as campanhas em um documento próprio (`22-campanhas.md`). Até lá, o assunto não volta.
 
-**Por que separar assim**: o gratuito é o que alimenta ranking, desafio e convite. É ele que gera o número de usuários que dá sentido a qualquer preço depois. O Hevy mostra que dá para crescer com plano grátis realmente utilizável.
+- **A conta é de usuários cadastrados**, porque é o número mais simples de medir e de conferir. Vale acompanhar também quantos estão ativos por semana: 200 cadastros com 20 ativos não significa a mesma coisa que 200 com 120.
+- O app precisa **mostrar esse número para você** (um painel simples de administração já na fase 1), senão o gatilho não é verificável.
+
+### 5.2 Depois dos 200: campanhas de valor simbólico
+
+A ideia é **R$ 1,00 ou R$ 5,00**, valores de apoio, não de assinatura cara. Três formatos que combinam com isso:
+
+| Formato | Como seria | Cuidado |
+| --- | --- | --- |
+| **Apoiador** | R$ 5,00 uma vez, com selo de apoiador no perfil. Não desbloqueia nada. | É o mais simples e o que menos mexe no produto. |
+| **Campanha pontual** | R$ 1,00 numa temporada específica (ex.: "Desafio de verão"), revertido em prêmio da própria temporada. | Precisa de regra clara de destino do dinheiro. |
+| **Extra cosmético** | R$ 1,00 por tema extra ou moldura de card. | Nunca cobrar por tema que já existe de graça hoje. |
+
+**Princípio que não muda**: registro, histórico, evolução, fotos e ranking continuam gratuitos. O valor simbólico é apoio ou enfeite, nunca pedágio no que a pessoa já usava.
+
+### 5.3 O que a loja exige (para não travar na hora de cobrar)
+
+- **Play Store**: o preço mínimo no Brasil é **R$ 0,99**, então R$ 1,00 é viável. Antes de publicar, confirme a faixa vigente no Play Console.
+- **App Store**: use a faixa mais baixa disponível em reais no momento; a Apple trabalha com faixas de preço próprias.
+- **Conteúdo digital passa pela compra da loja.** Se o valor desbloqueia qualquer coisa dentro do app (selo, tema, temporada), tem que ser compra no app, com a comissão da loja. Pix direto no app para liberar recurso digital é o caminho mais rápido para a remoção.
+- **Pix faz sentido para serviço fora do app** (a consultoria do personal, por exemplo), e aí entram regras fiscais próprias.
+- **Cobrança exige base legal e nota**: CNPJ, política de reembolso e termos atualizados. Isso entra no `22-campanhas.md`, não aqui.
+
+**Por que essa ordem**: o gratuito é o que alimenta ranking, desafio e convite. É ele que gera os 200 primeiros usuários, que por sua vez dão sentido a qualquer valor depois. O Hevy mostra que dá para crescer com plano grátis realmente utilizável.
 
 ---
 
@@ -242,7 +262,8 @@ Peso, medidas, percentual de gordura e **foto corporal com finalidade de saúde*
 | **% com foto do mês** | 30% | É o que gera o "uau" do antes e depois. |
 | **% em desafio ativo** | 35% | Desafio é o que mais puxa retorno. |
 | **Alunos por personal** | 12+ | Mede o laço B2B2C. |
-| **Custo de infraestrutura de IA por usuário ativo** | < US$ 0,20/mês | É gasto nosso, não preço para o usuário. Segura a conta enquanto o app é gratuito. |
+| **Usuários cadastrados** | **200** | É o gatilho combinado: até lá, 100% grátis (seção 5). Precisa estar visível num painel. |
+| **Custo de infraestrutura de IA por usuário ativo** | < US$ 0,20/mês | É gasto nosso, não preço para o usuário. Com 200 usuários, isso é da ordem de US$ 40/mês no pior caso. |
 
 ---
 
@@ -259,6 +280,7 @@ Peso, medidas, percentual de gordura e **foto corporal com finalidade de saúde*
 - Funciona offline com fila de sincronização.
 - Histórico semanal e mensal, com volume por grupo muscular.
 - Detecção automática de recorde.
+- **Contador de usuários cadastrados e ativos na semana**, visível só para você. É o que mede o gatilho dos 200 (seção 5.1).
 
 **Critérios de aceite**: registrar um treino de 6 exercícios em menos de 90 segundos de interação; funcionar em modo avião; o histórico bate com o que foi registrado.
 
@@ -392,4 +414,5 @@ e prompts prontos para executar cada fase.
 - [LGPD: fotos, inferências e a sensibilidade de dados pessoais](https://www.linkedin.com/pulse/lgpd-fotos-infer%C3%AAncias-e-sensibilidade-de-dados-cesar-ferreira-mcf)
 - [DOTS: pontuação de força relativa (Lift Vault)](https://liftvault.com/resources/powerlifting-calculator/) · [Wilks coefficient (Wikipedia)](https://en.wikipedia.org/wiki/Wilks_coefficient)
 - [Behind the Design: Gentler Streak (Apple)](https://developer.apple.com/news/?id=3m0ht22s)
+- [Configurar os preços do app (Ajuda do Play Console)](https://support.google.com/googleplay/android-developer/answer/6334373?hl=pt-BR) · [Google reduz o preço mínimo de apps em 17 países](https://baixarplaystore.com.br/google-reduz-o-preco-minimo-de-apps-099-em-17-paises/)
 - [Runna: Running Plans & Coach (Play Store)](https://play.google.com/store/apps/details?id=com.runbuddy.prod) e [Strava (Play Store)](https://play.google.com/store/apps/details?id=com.strava) — links enviados por você
