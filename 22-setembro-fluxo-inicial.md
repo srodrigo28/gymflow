@@ -842,7 +842,7 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 **Pendências**
 
 - Testar em **iPhone**, além de VoiceOver/TalkBack e fonte grande. Haptics só dá para sentir em aparelho físico.
-- **Identificadores técnicos**: decidir o pacote Android e o bundle iOS (a pré-build sugeriu `com.sebastiao.gymflow`) e se o slug e o scheme continuam `gym-flow`/`gymflow`. Renomear muda URLs e deep links, então decida antes de publicar.
+- ✅ **Identificadores das lojas decididos (22/09)**: pacote Android e bundle iOS `com.sebsolucoes.gynflow`, gravados no `app.json`. O `slug` (`gym-flow`) e o `scheme` de deep link (`gymflow`) continuam como estavam. Se quiser alinhá-los ao nome Gyn Flow, faça isso antes de publicar, porque eles mudam URLs e links.
 - **Foto do hero**: o recorte tem um leve halo verde-azulado no cabelo, herdado do fundo do mockup. No fundo escuro ele parece luz de contorno. Para produção, o ideal é gerar a mesma foto sem os elementos de interface (fundo liso ou transparente) e trocar só o arquivo `hero-people.webp`.
 - Fase 2 do hero (carrossel), tema claro "Dia", recuperação de senha real e links dos Termos e da Política.
 
