@@ -19,6 +19,7 @@ import {
 } from '@/src/theme';
 
 const FADE_OUT = 120;
+const PREVIEW_SIZE = 92;
 
 export default function AppearanceScreen() {
   const styles = useStyles();
@@ -103,7 +104,13 @@ function ThemeOption({
         pressed ? styles.pressed : null,
       ]}>
       <View style={[styles.preview, { backgroundColor: preview.bg.base }]}>
-        <Svg height="100%" preserveAspectRatio="none" style={styles.previewGlow} viewBox="0 0 100 100" width="100%">
+        {/* Tamanho fixo: no Android, 100% dentro de um container com padding mede só a área interna. */}
+        <Svg
+          height={PREVIEW_SIZE}
+          preserveAspectRatio="none"
+          style={styles.previewGlow}
+          viewBox="0 0 100 100"
+          width={PREVIEW_SIZE}>
           <Defs>
             <LinearGradient id={gradientId} x1="0" x2="1" y1="0" y2="1">
               <Stop offset="0" stopColor={preview.gradient.aurora[0]} stopOpacity={0.5} />
@@ -188,11 +195,11 @@ const useStyles = makeStyles((theme) => ({
   },
   preview: {
     borderRadius: radius.md,
-    height: 92,
+    height: PREVIEW_SIZE,
     justifyContent: 'flex-end',
     overflow: 'hidden',
     padding: 10,
-    width: 92,
+    width: PREVIEW_SIZE,
   },
   previewGlow: {
     left: 0,

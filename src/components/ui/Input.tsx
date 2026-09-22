@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import {
   Animated,
   Platform,
@@ -17,6 +17,7 @@ type InputProps = TextInputProps & {
   helperText?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   label?: string;
+  ref?: Ref<TextInput>;
   rightText?: string;
 };
 
@@ -33,6 +34,8 @@ export function Input({
   helperText,
   icon,
   label,
+  onBlur,
+  onFocus,
   rightText,
   secureTextEntry,
   style,
@@ -73,21 +76,23 @@ export function Input({
           },
         ]}>
         {icon ? <Ionicons color={iconColor} name={icon} size={20} style={styles.icon} /> : null}
+        {/* Os manipuladores de foco vêm depois do spread para não serem sobrescritos
+            (o onBlur do react-hook-form apagava o estado de foco). */}
         <TextInput
           cursorColor={theme.accent.primary}
+          placeholderTextColor={theme.text.muted}
+          selectionColor={theme.accent.primary}
+          {...props}
           onBlur={(event) => {
             setIsFocused(false);
-            props.onBlur?.(event);
+            onBlur?.(event);
           }}
           onFocus={(event) => {
             setIsFocused(true);
-            props.onFocus?.(event);
+            onFocus?.(event);
           }}
-          placeholderTextColor={theme.text.muted}
           secureTextEntry={secureTextEntry ? isHidden : false}
-          selectionColor={theme.accent.primary}
           style={[styles.input, webInputReset, style]}
-          {...props}
         />
         {secureTextEntry ? (
           <Pressable

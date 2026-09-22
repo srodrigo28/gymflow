@@ -1,6 +1,6 @@
 import { Asset } from 'expo-asset';
 import { router, type Href } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -17,9 +17,10 @@ import { BrandMark, brandMarkRatio } from '@/src/components/brand/BrandMark';
 import { BrandWordmark } from '@/src/components/brand/BrandWordmark';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { heroPeopleImage } from '@/src/constants/images';
-import { getSession } from '@/src/services/auth';
+import { useSession } from '@/src/contexts/session-context';
 import { hasCompletedOnboarding } from '@/src/services/onboarding';
 import { makeStyles, nativeSplashBackground, radius, useTheme } from '@/src/theme';
+import type { AuthResponse } from '@/src/types/auth';
 
 const MIN_DURATION = 1800;
 const TIMEOUT = 4000;
@@ -31,9 +32,7 @@ function wait(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-async function resolveDestination(): Promise<Href> {
-  const session = await getSession();
-
+async function destinationFor(session: AuthResponse | null): Promise<Href> {
   if (!session) {
     return '/(auth)/welcome';
   }
@@ -44,30 +43,37 @@ async function resolveDestination(): Promise<Href> {
 export default function SplashScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
+  const { isLoading, session } = useSession();
   const { height } = useWindowDimensions();
   const appear = useSharedValue(0);
   const progress = useSharedValue(0);
   const exit = useSharedValue(0);
+  const startedAt = useRef(Date.now());
+  const heroArt = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
-    let isActive = true;
-    let navigationTimer: ReturnType<typeof setTimeout> | undefined;
-
     appear.value = withDelay(300, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) }));
     // A barra avança com o tempo, mas só completa quando o carregamento real termina.
     progress.value = withDelay(
       1100,
       withTiming(0.9, { duration: MIN_DURATION, easing: Easing.out(Easing.quad) }),
     );
+    // Arte do hero pré-carregada; se travar, segue sem ela em vez de prender a pessoa aqui.
+    heroArt.current = Promise.race([Asset.loadAsync(heroPeopleImage).catch(() => undefined), wait(TIMEOUT)]);
+  }, [appear, progress]);
 
-    // Carrega a sessão e a arte do hero. Se algo travar, segue para o hero em vez de prender a pessoa aqui.
-    const heroArt = Asset.loadAsync(heroPeopleImage).catch(() => undefined);
-    const destination = Promise.race([
-      Promise.all([resolveDestination(), heroArt]).then(([href]) => href),
-      wait(TIMEOUT).then((): Href => '/(auth)/welcome'),
-    ]);
+  // A sessão vem do SessionProvider (que já tem timeout próprio), assim o destino
+  // e o guard do Stack.Protected enxergam o mesmo estado.
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
 
-    Promise.all([destination, wait(MIN_DURATION)]).then(([href]) => {
+    let isActive = true;
+    let navigationTimer: ReturnType<typeof setTimeout> | undefined;
+    const remaining = Math.max(MIN_DURATION - (Date.now() - startedAt.current), 0);
+
+    Promise.all([destinationFor(session), heroArt.current, wait(remaining)]).then(([href]) => {
       if (!isActive) {
         return;
       }
@@ -81,7 +87,7 @@ export default function SplashScreen() {
       isActive = false;
       clearTimeout(navigationTimer);
     };
-  }, [appear, exit, progress]);
+  }, [exit, isLoading, progress, session]);
 
   const backgroundStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(appear.value, [0, 1], [nativeSplashBackground, theme.bg.base]),

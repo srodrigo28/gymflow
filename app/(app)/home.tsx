@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Screen } from '@/src/components/ui/Screen';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { spacing } from '@/src/constants/spacing';
-import { signOut } from '@/src/services/auth';
+import { useSession } from '@/src/contexts/session-context';
 import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from '@/src/theme';
 
 type ProfileMenuItem = {
@@ -92,6 +92,7 @@ export default function HomeScreen() {
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { signOut } = useSession();
   const coverImageUri = previewImageUri ?? profileImageUri;
 
   function openImageUpload() {
@@ -128,8 +129,10 @@ export default function HomeScreen() {
 
   async function handleSignOut() {
     setIsSigningOut(true);
-    await signOut();
+    // Sai da rota protegida antes de limpar a sessão; senão o Stack.Protected
+    // redirecionaria para o início e a pessoa veria a splash de novo.
     router.replace('/(auth)/welcome');
+    await signOut();
   }
 
   return (

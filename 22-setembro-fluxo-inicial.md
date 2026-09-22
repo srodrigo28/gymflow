@@ -36,7 +36,7 @@ Cada etapa tem status, entregas, critérios de aceite e um **prompt pronto** par
 | 12 | Migração das demais telas para tokens | ✅ | 1 |
 | 13 | QA: acessibilidade, movimento e performance | 🟨 | todas |
 
-> Execução em 22/09: etapas 0 a 12 concluídas. A etapa 13 foi validada no web e falta testar em aparelho (ver **Registro de execução** no fim do documento).
+> Execução em 22/09: etapas 0 a 12 concluídas, mais o hero v2 (a partir do mockup) e a proteção de rotas. A etapa 13 foi validada no web e no Android (emulador); falta o iPhone (ver **Registro de execução** no fim do documento).
 
 > Por que os tokens vêm antes da splash: splash, hero e auth vão nascer já no tema novo. Se fizermos as telas primeiro, teremos que refazê-las na migração.
 
@@ -603,7 +603,7 @@ evolução"). Não invente números de usuários. Rode typecheck e lint.
 
 ### Etapa 8: Roteamento e transições
 
-**Status:** ✅ Concluído (22/09) (o `Stack.Protected` opcional ficou de fora) · **Depende de:** 7
+**Status:** ✅ Concluído (22/09), com `Stack.Protected` · **Depende de:** 7
 
 **Entregas**
 
@@ -762,7 +762,7 @@ grep -rnE "#[0-9A-Fa-f]{6}" app src só encontra src/theme/. Rode typecheck e li
 
 ### Etapa 13: QA de acessibilidade, movimento e performance
 
-**Status:** 🟨 Parcial: validado no web, falta aparelho iOS/Android · **Depende de:** todas
+**Status:** 🟨 Parcial: validado no web e no Android (emulador, Expo Go); falta iOS e build de desenvolvimento · **Depende de:** todas
 
 **Checklist**
 
@@ -775,7 +775,8 @@ grep -rnE "#[0-9A-Fa-f]{6}" app src só encontra src/theme/. Rode typecheck e li
 - [ ] Hero a 60 fps em Android intermediário; nenhum bitmap pesado.
 - [x] Pilha de navegação: hero → login ↔ cadastro nunca passa de 2 telas. *(teste de clique no web)*
 - [ ] Modo avião e storage falhando: o app sobe com os padrões. *(tratado no código com try/catch e timeout de 4 s; não simulado)*
-- [ ] iOS, Android e web verificados com `npm run start` / `npm run web`. *(web verificado; iOS e Android pendentes)*
+- [ ] iOS, Android e web verificados com `npm run start` / `npm run web`. *(web e Android verificados; iOS pendente)*
+- [x] Teclado não cobre o botão de enviar no Android. *(corrigido em 22/09: ele cobria)*
 
 **Prompt**
 
@@ -817,12 +818,24 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - **Fora da v2**: os pontos de paginação do mockup ficaram de fora porque ainda não existe carrossel. Pontos sem carrossel enganariam quem tenta arrastar.
 - **Validado no web** em 375×667, 360×780, 390×844 e 430×932, nos temas Flow e Brasa e com "reduzir movimento". O teste de fluxo continua 15/15.
 
+**Teste no Android e proteção de rotas (22/09)**
+
+- **Onde rodou**: emulador Android 16 (`lume_test`, 1080×1920) com Expo Go SDK 54, depois de `npx expo install --fix` (patches de `expo`, `expo-constants`, `expo-font` e `expo-router`).
+- **Funcionou no nativo**: fontes, anel começando às 12h, "EVOLUA" em SVG com fonte itálica, animação da splash, login com sessão no **SecureStore**, sessão persistindo depois de fechar o app, troca e persistência de tema, "Sair da conta" e rotas protegidas.
+- **Bugs encontrados e corrigidos**:
+  - **O teclado cobria o botão de enviar.** Com edge-to-edge (Android 15+), o `KeyboardAvoidingView` sem `behavior` no Android não fazia nada. Agora usa `padding` nas duas plataformas, e o foco no último campo rola a tela até o botão (`revealSubmit`).
+  - **A borda de foco do `Input` ficava presa.** O `{...props}` vinha depois dos manipuladores de foco e o `onBlur` do react-hook-form os sobrescrevia. Esse bug já existia antes deste plano.
+  - **O degradê das miniaturas de tema ficava cortado.** No Android, `100%` dentro de um container com `padding` mede só a área interna; agora o tamanho é fixo.
+- **Melhoria de uso**: a tecla "próximo" do teclado passa ao campo seguinte (e-mail → senha no login; nome → e-mail → senha → confirmação no cadastro).
+- **Rotas protegidas**: novo `SessionProvider` (`src/contexts/session-context.tsx`) com a sessão como estado do React. `(app)` e `(onboarding)` ficam dentro de `Stack.Protected`, e sem sessão um link direto volta ao início. Depois do login ou do cadastro, a navegação espera a sessão existir (`useRedirectAfterSignIn`), porque o guard só libera a rota no render seguinte. Ao sair, a home navega antes de limpar a sessão, para não passar de novo pela splash.
+- **Limites do Expo Go**: ele mostra o carregador próprio (fundo branco com o ícone), e não a splash do `app.json`, e ignora `SplashScreen.setOptions`, que agora só roda fora dele. A troca "splash nativa → animada sem pulo" só pode ser conferida numa **build de desenvolvimento** (`npx expo run:android` ou EAS).
+- **Observação**: o emulador `lume_test` vinha com as animações do sistema desligadas (escala 0), o que o app trata como "reduzir movimento". Para ver as animações, elas foram ligadas durante o teste e depois voltaram para 0. O Expo Go ficou instalado no emulador.
+- **Teste de fluxo no web**: 20 de 20, incluindo as rotas protegidas (`/home` e `/start` sem sessão caem no hero) e o cadastro completo até o onboarding.
+
 **Pendências**
 
-- Testar em **aparelho iOS e Android**: troca splash nativa → animada, haptics, SecureStore, 60 fps, VoiceOver/TalkBack e fonte grande.
-- `Stack.Protected` (opcional): hoje a splash decide o destino. Rotas abertas por link direto não são protegidas.
+- Testar em **iPhone** e numa **build de desenvolvimento** Android (splash nativa → animada, haptics), além de VoiceOver/TalkBack e fonte grande.
 - Os identificadores técnicos continuam `gym-flow` (pacote, slug e scheme `gymflow`). Renomear muda URLs e deep links, então decida antes de publicar.
-- O Expo avisa versões desatualizadas (`expo`, `expo-constants`, `expo-font`, `expo-router`). Isso já existia antes; corrija com `npx expo install --fix`.
 - **Foto do hero**: o recorte tem um leve halo verde-azulado no cabelo, herdado do fundo do mockup. No fundo escuro ele parece luz de contorno. Para produção, o ideal é gerar a mesma foto sem os elementos de interface (fundo liso ou transparente) e trocar só o arquivo `hero-people.webp`.
 - Fase 2 do hero (carrossel), tema claro "Dia", recuperação de senha real e links dos Termos e da Política.
 
