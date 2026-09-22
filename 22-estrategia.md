@@ -26,7 +26,8 @@ Este documento tem quatro partes:
 - **O coração do produto**: cada treino registrado vira **evolução visível** (pontuação diária, gráfico, foto do mês) e **evidência do que está faltando** (volume por grupo muscular, frequência, equilíbrio).
 - **O motor viral**: nada de ranking global de "quem é mais forte". Três laços: **desafio entre amigos por link**, **ranking da sua academia** e **o personal que traz os alunos**. Somados a cards compartilháveis de conquista e ao resumo mensal.
 - **Ranking justo é regra de produto**: ligas por nível, força relativa (DOTS) em vez de carga bruta, e uma categoria de **evolução relativa** para que iniciante também possa ganhar.
-- **Recomendação em três estágios**: regras → heurísticas com seus dados → IA (Claude) gerando o plano semanal e a explicação. O custo estimado de IA fica em torno de **US$ 0,08 a 0,16 por usuário ativo por mês**, e cai com cache e processamento em lote.
+- **Recomendação em três estágios**: regras → heurísticas com seus dados → IA (Claude) gerando o plano semanal e a explicação. O custo de infraestrutura fica em torno de **US$ 0,08 a 0,16 por usuário ativo por mês**, e cai com cache e processamento em lote.
+- **Valores zerados nesta fase (22/09)**: nada de preço, plano pago, cupom ou campanha no app. Tudo liberado e gratuito; monetização e marketing viram um documento à parte quando for a hora (seção 5).
 - **O que nunca entra**: ranking de menor peso, de percentual de gordura, feed público de fotos corporais e comparação entre corpos. Isso protege as pessoas e protege o app.
 
 ---
@@ -42,12 +43,15 @@ Este documento tem quatro partes:
 | **Fitbod** | **Gera o treino** conforme equipamento, recuperação e histórico. 1.600+ exercícios. | É um gerador, não um diário social. | A lógica de sugerir o treino do dia com base no histórico. |
 | **Jefit / SensAI** | Biblioteca e planos. | Interface pesada. | Nada essencial. |
 
+> Os links de referência que você reuniu estão em `image/concorrencia/link-concorrencia.md` (Strava e Runna). Eles entraram nas tabelas abaixo.
+
 ### 1.2 Social e desafio
 
 | App | Mecânica central | Lição |
 | --- | --- | --- |
 | **Strava** | Segmentos com **leaderboards**, Local Legend (quem mais repete um trecho em 90 dias), kudos, clubes e desafios. Clubes dão contexto de grupo sem precisar combinar nada na vida real. | Competição **local e por trecho** vale mais que ranking global. Clube é o que segura a pessoa. |
 | **GymRats** | Você cria um desafio, convida o grupo, **posta foto do treino** e compete em um placar com pontuação configurável. | O **convite por link para um grupo fechado** é o laço viral mais fácil de copiar. A foto vira prova social e moderação natural. |
+| **Runna** (`com.runbuddy.prod`, link que você mandou) | **Plano personalizado por objetivo** (5K, 10K, meia, maratona), com ritmo calculado para cada tipo de treino, parte de força e sincronia com Garmin, COROS, Apple Watch e Fitbit. Modelo de assinatura. | É a prova de que **plano personalizado é o que a pessoa valoriza**, mais que o registro em si. Nossa fase 6 (recomendação) precisa entregar isso para musculação, que é onde ninguém fez bem ainda. |
 | **Duolingo** (fora do fitness) | Streak com proteção, XP, **ligas semanais** com promoção e rebaixamento. Ligas aumentaram muito o uso diário e a conclusão de tarefas. | Liga por nível, não ranking global. Streak com rede de proteção, senão a quebra vira desistência. |
 
 ### 1.3 Personal e academia
@@ -132,7 +136,7 @@ Quando o aluno tem personal, o app tem que **fazer o nome do profissional**:
 - Modelo padrão: **`claude-opus-5`** (US$ 5 por milhão de tokens de entrada, US$ 25 de saída). Se o custo apertar, meça antes de trocar: `claude-sonnet-5` (US$ 2 / US$ 10) e `claude-haiku-4-5` (US$ 1 / US$ 5) existem, mas a escolha é sua e precisa de comparação de qualidade.
 - **Cache de prompt**: a parte fixa (instruções, biblioteca de exercícios, regras de segurança) fica em cache e a leitura sai por cerca de um décimo do preço.
 - **Processamento em lote**: planos semanais gerados de madrugada pela Batch API custam **metade**.
-- **Estimativa por usuário**: um plano semanal com ~3 mil tokens de entrada e ~1 mil de saída dá cerca de **US$ 0,04 por semana**. Com cache e lote, algo perto de **US$ 0,02**. Ou seja, **US$ 0,08 a 0,16 por usuário ativo por mês**, o que cabe num plano pago de R$ 19,90.
+- **Estimativa por usuário** (isto é **custo de infraestrutura**, não preço; os valores cobrados estão zerados, ver seção 5): um plano semanal com ~3 mil tokens de entrada e ~1 mil de saída dá cerca de **US$ 0,04 por semana**. Com cache e lote, algo perto de **US$ 0,02**. Ou seja, da ordem de **US$ 0,08 a 0,16 por usuário ativo por mês** — o teto que o desenho da feature precisa respeitar.
 - **Nunca** deixe a IA definir carga sozinha sem os limites das regras. Ela sugere e explica; a regra impede o absurdo.
 
 ---
@@ -148,7 +152,7 @@ Quando o aluno tem personal, o app tem que **fazer o nome do profissional**:
 | 3 | **Ranking da academia** | Quem treina na mesma academia aparece num ranking local, com pódio semanal. | Pertencimento local vale mais que ranking global, como os clubes do Strava. |
 | 4 | **Card de conquista** | Recorde, sequência, resumo da semana e **retrospectiva mensal** viram imagem bonita com a marca, pronta para o story. | A imagem circula onde estão os amigos que ainda não usam o app. |
 
-**Convite premiado**: quem convida e quem entra ganham 1 mês de Premium ou um multiplicador de pontos por uma semana. Simples, mensurável, e cria o hábito de convidar.
+**Convite reconhecido**: quem convida e quem entra ganham **XP em dobro por uma semana** e um selo de "trouxe gente para treinar". Sem prêmio em dinheiro, cupom ou mês grátis: valores e campanhas estão zerados nesta fase (seção 5).
 
 ### 3.2 Ligas, pontos e temporada
 
@@ -170,7 +174,7 @@ Quando o aluno tem personal, o app tem que **fazer o nome do profissional**:
 | **Em evolução** | Maior progresso **relativo** no mês | Protege quem está começando: quem sai de 20 kg para 26 kg evolui 30%, e isso vale tanto quanto o avançado que sobe 3%. |
 | **Equilíbrio** | Sono, água e humor registrados + treino | Recompensa cuidado, não só esforço. |
 
-**Premiação**: troféu da temporada no perfil, selo permanente ("Campeão de Constância, março"), destaque no mural da academia, Premium grátis para o pódio, e parcerias locais (suplemento, avaliação física, aula experimental) quando houver.
+**Premiação (só reconhecimento, sem valor financeiro)**: troféu da temporada no perfil, selo permanente ("Campeão de Constância, março"), destaque no mural da academia e card de campeão para compartilhar. Prêmio físico, cupom e parceria com marca ficam para quando houver campanha (seção 5).
 
 ### 3.4 Antifraude
 
@@ -206,16 +210,25 @@ Peso, medidas, percentual de gordura e **foto corporal com finalidade de saúde*
 
 ---
 
-## 5. Modelo de negócio
+## 5. Planos e valores — congelado em 22/09
 
-| Plano | Preço sugerido | O que entrega |
+**Decisão: todos os valores estão zerados.** Nesta fase o app é inteiro gratuito, sem cobrança, sem plano pago e sem campanha. Preço, receita e marketing entram depois, num documento próprio.
+
+| Plano | Valor | O que entrega |
 | --- | --- | --- |
-| **Grátis** | R$ 0 | Registro ilimitado de treinos, histórico, 1 foto por mês, 1 desafio ativo, ranking da academia. |
-| **Premium** | R$ 19,90/mês ou R$ 149/ano | Recomendação com IA, fotos e comparações ilimitadas, análises avançadas, temas extras, desafios ilimitados, retrospectiva mensal. |
-| **Personal** | R$ 59 a 99/mês | Painel de alunos, prescrição, relatórios, página do profissional, selo verificado. |
-| **Academia** | Sob consulta | Ranking da unidade, mural, check-in integrado, relatórios de engajamento. |
+| **Grátis** | **R$ 0,00** | Tudo o que existir no app. |
+| **Premium** | **R$ 0,00** (a definir) | Sem diferença enquanto os valores estiverem zerados. |
+| **Personal** | **R$ 0,00** (a definir) | Painel de alunos, prescrição, relatórios e página do profissional, liberados. |
+| **Academia** | **R$ 0,00** (a definir) | Ranking da unidade, mural, check-in integrado e relatórios, liberados. |
 
-O gratuito precisa ser bom de verdade: é ele que alimenta o ranking, os desafios e os convites. O Hevy mostra que dá para crescer com plano grátis utilizável e Pro barato.
+**O que isso muda no produto agora**
+
+- Nenhuma tela mostra preço, plano, assinatura, "grátis por tempo limitado" ou botão de compra.
+- Nenhum recurso fica trancado atrás de pagamento. Se existir, está liberado.
+- Prêmio de campanha, cupom, parceria e indicação premiada ficam **fora** por enquanto; o que motiva é ponto, selo e troféu.
+- Quando a monetização voltar à mesa, ela nasce em um documento separado (`22-campanhas.md`, quando chegar a hora), e só então as telas ganham preço.
+
+**Por que separar assim**: o gratuito é o que alimenta ranking, desafio e convite. É ele que gera o número de usuários que dá sentido a qualquer preço depois. O Hevy mostra que dá para crescer com plano grátis realmente utilizável.
 
 ---
 
@@ -229,7 +242,7 @@ O gratuito precisa ser bom de verdade: é ele que alimenta o ranking, os desafio
 | **% com foto do mês** | 30% | É o que gera o "uau" do antes e depois. |
 | **% em desafio ativo** | 35% | Desafio é o que mais puxa retorno. |
 | **Alunos por personal** | 12+ | Mede o laço B2B2C. |
-| **Custo de IA por usuário ativo** | < US$ 0,20/mês | Mantém o Premium saudável. |
+| **Custo de infraestrutura de IA por usuário ativo** | < US$ 0,20/mês | É gasto nosso, não preço para o usuário. Segura a conta enquanto o app é gratuito. |
 
 ---
 
@@ -379,3 +392,4 @@ e prompts prontos para executar cada fase.
 - [LGPD: fotos, inferências e a sensibilidade de dados pessoais](https://www.linkedin.com/pulse/lgpd-fotos-infer%C3%AAncias-e-sensibilidade-de-dados-cesar-ferreira-mcf)
 - [DOTS: pontuação de força relativa (Lift Vault)](https://liftvault.com/resources/powerlifting-calculator/) · [Wilks coefficient (Wikipedia)](https://en.wikipedia.org/wiki/Wilks_coefficient)
 - [Behind the Design: Gentler Streak (Apple)](https://developer.apple.com/news/?id=3m0ht22s)
+- [Runna: Running Plans & Coach (Play Store)](https://play.google.com/store/apps/details?id=com.runbuddy.prod) e [Strava (Play Store)](https://play.google.com/store/apps/details?id=com.strava) — links enviados por você
