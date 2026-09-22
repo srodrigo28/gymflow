@@ -72,6 +72,37 @@ const migrations: string[] = [
   CREATE INDEX IF NOT EXISTS idx_sets_session_exercise ON sets (session_exercise_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions (started_at DESC);
   `,
+  `
+  -- Medidas do corpo. Só a data é obrigatória: quem só se pesa registra o peso.
+  CREATE TABLE IF NOT EXISTS measurements (
+    id TEXT PRIMARY KEY NOT NULL,
+    taken_at INTEGER NOT NULL,
+    weight_kg REAL,
+    body_fat_pct REAL,
+    waist_cm REAL,
+    hip_cm REAL,
+    chest_cm REAL,
+    arm_cm REAL,
+    thigh_cm REAL,
+    note TEXT,
+    updated_at INTEGER NOT NULL
+  );
+
+  -- Fotos de evolução. O arquivo fica na pasta privada do app; aqui guardamos o
+  -- caminho, o mês de referência e a pose.
+  CREATE TABLE IF NOT EXISTS photos (
+    id TEXT PRIMARY KEY NOT NULL,
+    uri TEXT NOT NULL,
+    month TEXT NOT NULL,
+    pose TEXT NOT NULL,
+    taken_at INTEGER NOT NULL,
+    note TEXT,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_measurements_taken ON measurements (taken_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_photos_month ON photos (month DESC, pose);
+  `,
 ];
 
 let databasePromise: Promise<SQLiteDatabase> | null = null;

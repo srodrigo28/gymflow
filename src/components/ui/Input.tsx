@@ -78,7 +78,10 @@ export function Input({
         {icon ? <Ionicons color={iconColor} name={icon} size={20} style={styles.icon} /> : null}
         {/* Os manipuladores de foco vêm depois do spread para não serem sobrescritos
             (o onBlur do react-hook-form apagava o estado de foco). */}
+        {/* O rótulo visível também é o nome lido pelo leitor de tela. Sem isto,
+            campos com o mesmo placeholder ("—") ficam indistinguíveis. */}
         <TextInput
+          accessibilityLabel={label ? [label, rightText].filter(Boolean).join(' em ') : undefined}
           cursorColor={theme.accent.primary}
           placeholderTextColor={theme.text.muted}
           selectionColor={theme.accent.primary}

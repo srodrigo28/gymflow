@@ -296,7 +296,7 @@ semanal e mensal com volume por grupo muscular. Use os tokens do tema e as
 cores de domínio. Rode typecheck e lint.
 ```
 
-### Fase 2 — Corpo e fotos ⬜
+### Fase 2 — Corpo e fotos 🟨 (em 22/09)
 
 **Objetivo:** a evolução ficar visível.
 
@@ -306,6 +306,11 @@ cores de domínio. Rode typecheck e lint.
 - Linha do tempo e comparador lado a lado.
 - Privacidade: privado por padrão, tarja opcional, consentimento específico.
 - Integração com Apple Health e Health Connect para peso e cardio.
+
+**Situação em 22/09:** medidas com gráfico, fotos por mês e pose, linha do tempo e comparador
+lado a lado estão prontos e rodando offline. Falta o que depende de servidor (URL assinada,
+tarja, revogação de compartilhamento) e a integração com Health Connect/Apple Health.
+Detalhes em **Registro da Fase 2** no fim do documento.
 
 **Critérios de aceite**: enviar duas fotos de meses diferentes e ver a comparação; revogar o compartilhamento e a foto sumir para o outro lado na hora.
 
@@ -430,6 +435,33 @@ As cargas eram gravadas só quando o campo perdia o foco (`onEndEditing`). Quem 
 **Web**: o `expo-sqlite` no navegador precisa de `SharedArrayBuffer` e de um *worker*, que não sobe no servidor de desenvolvimento do Metro. O registro de treino, por enquanto, é testado no Android e no iOS. Para o site não quebrar no empacotamento, `web.output` passou de `static` para `single` (o `.wasm` do banco não sobrevive à renderização no servidor).
 
 **Fora desta fase**: contador de usuários cadastrados (depende da API real), check-in na academia e a sincronização de verdade — a fila `outbox` já grava o que precisará subir.
+
+## Registro da Fase 2 (22/09)
+
+**O que foi construído**
+
+- **Medidas** (`src/services/body.ts`, `app/(app)/corpo/medidas.tsx`): peso, gordura, cintura, quadril, peito, braço e coxa. Todos os campos são opcionais menos a data — ninguém mede sete circunferências toda semana, e exigir isso faria a pessoa desistir na segunda vez. Uma pesagem sozinha já salva.
+- **Gráfico de peso** (`src/components/body/WeightChart.tsx`): linha com área, ponto destacado no valor mais recente e a variação desde a primeira pesagem. A escala tem faixa mínima de 2 kg, senão uma variação de 200 g viraria um pico dramático.
+- **Fotos** (`app/(app)/corpo/fotos.tsx`): câmera ou galeria, com **mês de referência** (últimos seis meses) e **pose** (frente, lado, costas). A última foto da mesma pose aparece ao lado dos botões como referência de enquadramento — é o substituto barato do guia de contorno na câmera, que ficou para depois.
+- **Comparador** (`app/(app)/corpo/comparar.tsx`): antes e depois lado a lado, com seletor de mês em cada lado. Ao abrir, já vem o mais antigo contra o mais novo, que é a comparação que a pessoa quer ver primeiro.
+- **Privacidade**: a foto escolhida é **copiada para a área privada do app**, e não apenas referenciada — o arquivo da galeria pode sumir. Nada sai do aparelho: as duas telas dizem isso em texto, em vez de deixar implícito.
+
+**Bug de acessibilidade corrigido no caminho**
+
+Os campos do `Input` não tinham nome para o leitor de tela: com sete campos usando o mesmo placeholder (`—`), o TalkBack anunciava sete vezes a mesma coisa. Agora o rótulo visível vira o nome acessível ("Peso em kg", "Cintura em cm"). Isso vale para todas as telas do app, não só para as medidas.
+
+**Como foi validado** (emulador Android 16, Expo Go)
+
+| Verificação | Resultado |
+| --- | --- |
+| Salvar medidas | 82 kg e 88 cm de cintura, no histórico como "22 set · peso 82 kg · cintura 88 cm" |
+| Segunda pesagem desenha a linha | 82 → 80,6 kg, com "−1,4 kg desde o início" |
+| Foto pela câmera, com permissão | salva em setembro, pose frente |
+| Foto em outro mês | agosto, pela mesma tela |
+| Comparador | Antes agosto · Depois setembro, com troca de mês nos dois lados |
+| Nomes para leitor de tela | "Peso em kg", "Gordura corporal em %", "Cintura em cm" |
+
+**Fora desta fase**: guia de contorno na câmera (precisa de câmera própria, não do seletor do sistema), tarja e revogação de compartilhamento (só fazem sentido quando existir o outro lado, na Fase 3), armazenamento com URL assinada (depende da API) e Health Connect/Apple Health.
 
 ## Fontes da pesquisa
 

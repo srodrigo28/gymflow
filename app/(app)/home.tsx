@@ -31,6 +31,15 @@ const menuItems: ProfileMenuItem[] = [
   },
   {
     accessibilityLabel:
+      'Abrir Evolução. Registre peso, medidas e fotos do mês para acompanhar a evolução do corpo.',
+    description: 'Peso, medidas e a foto do mês para ver a evolução acontecer.',
+    href: '/(app)/corpo',
+    icon: 'chart-timeline-variant',
+    title: 'Evolução',
+    tone: 'conquista',
+  },
+  {
+    accessibilityLabel:
       'Abrir Sincronizar dispositivos. Conecte relógios e dispositivos para acompanhar dados de saúde e atividade.',
     description: 'Conecte relógios e dispositivos para acompanhar atividade e saúde.',
     icon: 'watch-variant',

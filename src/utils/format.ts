@@ -70,3 +70,54 @@ export function startOfMonth(reference = new Date()) {
 
   return date.getTime();
 }
+
+const monthNames = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+/** Chave do mês no formato `AAAA-MM`, que é como as fotos são agrupadas. */
+export function monthKey(reference: Date | number = new Date()) {
+  const date = new Date(reference);
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** `2026-09` → "setembro de 2026"; o ano some quando é o ano corrente. */
+export function monthLabel(key: string) {
+  const [year, month] = key.split('-').map(Number);
+  const name = monthNames[month - 1] ?? key;
+
+  return year === new Date().getFullYear() ? name : `${name} de ${year}`;
+}
+
+export function monthShortLabel(key: string) {
+  const [year, month] = key.split('-').map(Number);
+
+  return `${months[month - 1] ?? key}/${String(year).slice(2)}`;
+}
+
+/** 22 de setembro → "22 set". */
+export function formatShortDate(timestamp: number) {
+  const date = new Date(timestamp);
+
+  return `${date.getDate()} ${months[date.getMonth()]}`;
+}
+
+/** Sempre com sinal, porque a leitura é "mudou tanto", não "vale tanto". */
+export function formatDelta(value: number, unit: string, digits = 1) {
+  const rounded = Number(value.toFixed(digits));
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
+
+  return `${sign}${Math.abs(rounded).toFixed(digits).replace('.', ',')} ${unit}`;
+}

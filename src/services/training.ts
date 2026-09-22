@@ -1,4 +1,5 @@
 import { createId, getDatabase } from '@/src/db/client';
+import { queueSync } from '@/src/db/outbox';
 import type {
   Exercise,
   MuscleGroup,
@@ -472,17 +473,3 @@ async function touchSession(sessionId: string) {
 }
 
 // Enquanto não existe API, a fila só registra o que precisará subir depois.
-async function queueSync(entity: string, entityId: string, operation: 'create' | 'update' | 'delete') {
-  const database = await getDatabase();
-  await database.runAsync(
-    'INSERT INTO outbox (entity, entity_id, operation, created_at) VALUES (?, ?, ?, ?)',
-    [entity, entityId, operation, Date.now()],
-  );
-}
-
-export async function countPendingSync() {
-  const database = await getDatabase();
-  const row = await database.getFirstAsync<{ total: number }>('SELECT COUNT(*) AS total FROM outbox');
-
-  return row?.total ?? 0;
-}

@@ -44,7 +44,14 @@
       "expo-secure-store",
       "expo-asset",
       "expo-font",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O Gyn Flow usa a câmera para você tirar a foto de evolução do mês.",
+          "photosPermission": "O Gyn Flow acessa suas fotos para você escolher a imagem de evolução do mês."
+        }
+      ]
     ],
     "extra": {
       "apiUrl": ""
