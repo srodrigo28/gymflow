@@ -762,7 +762,7 @@ grep -rnE "#[0-9A-Fa-f]{6}" app src só encontra src/theme/. Rode typecheck e li
 
 ### Etapa 13: QA de acessibilidade, movimento e performance
 
-**Status:** 🟨 Parcial: validado no web e no Android (emulador, Expo Go); falta iOS e build de desenvolvimento · **Depende de:** todas
+**Status:** 🟨 Parcial: validado no web e no Android (Expo Go, build debug e build release); falta iOS · **Depende de:** todas
 
 **Checklist**
 
@@ -771,7 +771,7 @@ grep -rnE "#[0-9A-Fa-f]{6}" app src só encontra src/theme/. Rode typecheck e li
 - [ ] VoiceOver / TalkBack: ordem de leitura do hero correta e CTAs com rótulo claro.
 - [x] "Reduzir movimento" ligado: splash e hero sem animação de deslocamento. *(web, via `prefers-reduced-motion`)*
 - [ ] Fonte grande do sistema (Dynamic Type / escala de fonte) sem cortar o título do hero.
-- [ ] Splash: sem tela branca e sem pulo; entre 1,8 s e 4 s. *(web ok, inclusive sem flash branco graças ao `app/+html.tsx`; falta ver a troca nativa → animada no aparelho)*
+- [x] Splash: sem tela branca e sem pulo; entre 1,8 s e 4 s. *(web sem flash branco graças ao `app/+html.tsx`; Android release com troca nativa → animada contínua)*
 - [ ] Hero a 60 fps em Android intermediário; nenhum bitmap pesado.
 - [x] Pilha de navegação: hero → login ↔ cadastro nunca passa de 2 telas. *(teste de clique no web)*
 - [ ] Modo avião e storage falhando: o app sobe com os padrões. *(tratado no código com try/catch e timeout de 4 s; não simulado)*
@@ -832,10 +832,17 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - **Observação**: o emulador `lume_test` vinha com as animações do sistema desligadas (escala 0), o que o app trata como "reduzir movimento". Para ver as animações, elas foram ligadas durante o teste e depois voltaram para 0. O Expo Go ficou instalado no emulador.
 - **Teste de fluxo no web**: 20 de 20, incluindo as rotas protegidas (`/home` e `/start` sem sessão caem no hero) e o cadastro completo até o onboarding.
 
+**Builds nativas Android: debug e release (22/09)**
+
+- **Como foi feito**: `npx expo run:android` (debug, 12 min na primeira vez) e `--variant release` (17 min) no emulador `lume_test`.
+- **Release**: a troca da splash nativa para a animada é **contínua**. O halter neutro fica na mesma posição, acende no verde, a marca sobe, a barra corre e o hero entra. O JS esconde a splash nativa 174 ms depois de carregar, e não há nenhum quadro preto.
+- **Debug**: aparecem ~2,5 s de tela preta entre a splash nativa e a animada. A investigação descartou a GPU do emulador, a animação de saída (`setOptions`) e a transição da pilha raiz. O JS termina tudo em ~0,4 s, então é custo da build de desenvolvimento e não chega ao usuário final. Se incomodar no dia a dia, dá para testar a abertura sempre em release.
+- **O que não foi versionado**: a pré-build escolheu sozinha o pacote Android `com.sebastiao.gymflow` e trocou os scripts `android`/`ios` para `expo run:*`. As duas mudanças foram desfeitas depois do teste, e a pasta `android/` gerada foi removida (ela está no `.gitignore`). O app de teste foi desinstalado do emulador.
+
 **Pendências**
 
-- Testar em **iPhone** e numa **build de desenvolvimento** Android (splash nativa → animada, haptics), além de VoiceOver/TalkBack e fonte grande.
-- Os identificadores técnicos continuam `gym-flow` (pacote, slug e scheme `gymflow`). Renomear muda URLs e deep links, então decida antes de publicar.
+- Testar em **iPhone**, além de VoiceOver/TalkBack e fonte grande. Haptics só dá para sentir em aparelho físico.
+- **Identificadores técnicos**: decidir o pacote Android e o bundle iOS (a pré-build sugeriu `com.sebastiao.gymflow`) e se o slug e o scheme continuam `gym-flow`/`gymflow`. Renomear muda URLs e deep links, então decida antes de publicar.
 - **Foto do hero**: o recorte tem um leve halo verde-azulado no cabelo, herdado do fundo do mockup. No fundo escuro ele parece luz de contorno. Para produção, o ideal é gerar a mesma foto sem os elementos de interface (fundo liso ou transparente) e trocar só o arquivo `hero-people.webp`.
 - Fase 2 do hero (carrossel), tema claro "Dia", recuperação de senha real e links dos Termos e da Política.
 
