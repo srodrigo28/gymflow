@@ -1,6 +1,6 @@
 # Gyn Flow
 
-Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-estar: registro de treino que funciona sem internet, evolução do corpo com medidas e fotos, e desafios entre amigos com convite por link. A API própria fica em [`server/`](server/README.md).
+Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-estar: registro de treino que funciona sem internet, evolução do corpo com medidas e fotos, e desafios entre amigos com convite por link. A API própria fica no repositório `gymflow-api`.
 
 ## Treino em Dia
 - melhor equilíbrio entre clareza e disponibilidade aparente.
@@ -74,8 +74,6 @@ src/
   theme/
   types/
 
-server/        (API: Hono, Prisma 7, PostgreSQL; veja server/README.md)
-
 preview/
   login.png
   sign-up.png
@@ -137,7 +135,7 @@ npx tsc --noEmit
 
 O app precisa da API para cadastro, login, desafios e sincronização (o registro de treino funciona sem ela). Para rodar tudo em desenvolvimento:
 
-1. Suba a API seguindo o [`server/README.md`](server/README.md) (Postgres local com `npx prisma dev`, sem Docker).
+1. Suba a API seguindo o README do repositório `gymflow-api` (Postgres local com `npx prisma dev`, sem Docker). Ele também explica a publicação na VPS.
 2. Copie `.env.example` para `.env.local` na raiz e ajuste `EXPO_PUBLIC_API_URL`.
 3. No emulador Android: `adb reverse tcp:3333 tcp:3333`. No celular, use o IP do computador na rede Wi-Fi.
 

@@ -510,7 +510,7 @@ O tamanho e os cantos foram medidos no PNG gerado: durante o teste, um trecho te
 
 **O que foi construído**
 
-- **Servidor** em `server/` (Node, Hono, Prisma 7, PostgreSQL), com 37 testes contra um Postgres de verdade. Como rodar e as decisões estão no `server/README.md`.
+- **Servidor** (Node, Hono, Prisma 7, PostgreSQL), com 37 testes contra um Postgres de verdade. Nasceu em `server/` e, ainda em 23/09, passou para o repositório próprio `gymflow-api`, pronto para a VPS (Docker Compose com Postgres, migrações e Caddy com HTTPS). Como rodar, publicar e as decisões estão no README de lá.
 - **Contas de verdade**: cadastro, login, saída e apagar a conta (a API apaga em cascata; o botão no app ainda não existe). O mock de autenticação saiu. A sessão é conferida ao abrir o app; sem rede, o app segue com a sessão salva.
 - **Banco local por conta**: cada pessoa tem o próprio arquivo no aparelho. Quem entra depois no mesmo celular não vê nem sincroniza os treinos de outra.
 - **Sincronização**: os treinos concluídos sobem sozinhos (ao entrar, ao voltar para o app e segundos depois de terminar). Medidas, fotos e as respostas do onboarding **não sobem**: são dados sensíveis e pedem consentimento específico antes (seção 4).
