@@ -322,11 +322,15 @@ padrão, consentimento específico para dados de saúde, revogação imediata).
 Fotos em armazenamento privado com URL assinada. Rode typecheck e lint.
 ```
 
-### Fase 3 — Social e desafios ⬜
+### Fase 3 — Social e desafios 🟨 (em 23/09)
 
 **Objetivo:** ligar o primeiro laço viral.
 
 **Entregas**: amigos, desafio com link de convite, check-in com foto, placar do desafio, card compartilhável de recorde e de resumo semanal.
+
+**Situação em 23/09:** o card compartilhável de recorde e de resumo semanal está pronto e roda sem
+servidor. Amigos, desafio por link, check-in com foto e placar dependem da API.
+Detalhes em **Registro da Fase 3** no fim do documento.
 
 **Critérios de aceite**: criar um desafio e entrar por link em menos de 30 segundos, sem cadastro prévio obrigatório até o momento de pontuar.
 
@@ -462,6 +466,42 @@ Os campos do `Input` não tinham nome para o leitor de tela: com sete campos usa
 | Nomes para leitor de tela | "Peso em kg", "Gordura corporal em %", "Cintura em cm" |
 
 **Fora desta fase**: guia de contorno na câmera (precisa de câmera própria, não do seletor do sistema), tarja e revogação de compartilhamento (só fazem sentido quando existir o outro lado, na Fase 3), armazenamento com URL assinada (depende da API) e Health Connect/Apple Health.
+
+## Registro da Fase 3 (23/09, parcial)
+
+Por enquanto, só o card compartilhável: é a parte da fase que não depende de servidor.
+
+**O que foi construído**
+
+- **Tela Compartilhar** (`app/(app)/compartilhar.tsx`), aberta pelo botão de compartilhar no topo do hub de Treino. Tem duas abas: **Recorde**, com o recorde mais recente (`listPersonalRecords`), e **Semana**, com treinos, volume e cardio desde segunda-feira. A rota aceita `?tipo=semana` para abrir direto na segunda aba.
+- **Card** (`src/components/share/ShareCard.tsx`) em 4:5 (360 × 450), com a aurora do tema, a marca, o nome da pessoa e o lema "disciplina hoje, resultados sempre". Número zerado não entra na imagem: numa semana sem cardio, o card mostra só o volume.
+- **A imagem é gerada no aparelho** (`react-native-view-shot`) e vai para a folha de compartilhamento do sistema (`expo-sharing`). Nada é publicado sozinho, e a tela diz isso em texto.
+- **Tamanho da imagem**: 360 × 450 vezes a densidade da tela. Num aparelho de densidade 3 isso dá 1080 × 1350, o tamanho que o Instagram recomenda para 4:5.
+
+**Corrigido antes do primeiro commit**
+
+- O card tinha largura fixa de 360 e saía das margens em quase todo celular: sobram 320 dp num Android de 360 dp e 350 pt num iPhone de 390 pt. Agora a **prévia encolhe** para caber, e a imagem exportada continua com o tamanho cheio, porque a captura desenha o card sem a escala aplicada por fora.
+- A imagem saía com **cantos arredondados transparentes**, que viram preto ou branco quando o app de destino converte o arquivo. O arredondamento passou para a moldura da prévia, e a imagem sai como um retângulo cheio.
+- A aba Semana **nunca mostrava o aviso de vazio**: numa semana sem treino, o card aparecia com "0 treinos".
+- O aviso de vazio **piscava** enquanto os dados carregavam, e uma falha na captura virava erro sem tratamento. O botão passou a ser o `Button` do app, que mostra o carregamento e não aceita um segundo toque enquanto a folha abre.
+
+**Como foi validado** (emulador Android `lume_test`, Expo Go)
+
+| Verificação | Resultado |
+| --- | --- |
+| Botão no hub de Treino abre a tela | ✅ |
+| Aba Recorde | Remada curvada, 50 kg × 12 |
+| Aba Semana bate com o hub | 4 treinos e 67,0 t; o cardio (0 min) fica fora da imagem |
+| `?tipo=semana` abre na aba certa | ✅ |
+| Tela de 411 dp | card em tamanho real; imagem de 945 × 1181 |
+| Tela de 360 dp (densidade 480) | prévia com 320 dp, dentro das margens; imagem inteira, 1080 × 1350 |
+| Cantos da imagem exportada | opacos nos quatro cantos |
+| Semana sem treinos (relógio adiantado 7 dias) | "Ainda não há treinos nesta semana." |
+| Folha de compartilhamento do Android | abre com a imagem |
+
+O tamanho e os cantos foram medidos no PNG gerado: durante o teste, um trecho temporário enviou uma cópia da captura para o computador. O trecho foi removido antes do commit.
+
+**Ainda não feito**: comemoração com card logo na tela da sessão, ao bater o recorde; cards de sequência e de retrospectiva mensal; teste em iPhone. Amigos, desafio por link, check-in com foto e placar dependem da API.
 
 ## Fontes da pesquisa
 

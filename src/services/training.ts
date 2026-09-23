@@ -390,6 +390,34 @@ export async function listRecentSessions(limit = 10): Promise<SessionSummary[]> 
   }));
 }
 
+/** Últimos recordes, do mais novo para o mais antigo. Alimenta o card de compartilhar. */
+export async function listPersonalRecords(limit = 10) {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<{
+    created_at: number;
+    id: string;
+    name: string;
+    reps: number;
+    weight_kg: number;
+  }>(
+    `SELECT st.id, st.weight_kg, st.reps, st.created_at, e.name
+     FROM sets st
+     JOIN session_exercises se ON se.id = st.session_exercise_id
+     JOIN exercises e ON e.id = se.exercise_id
+     WHERE st.is_pr = 1 AND st.weight_kg IS NOT NULL AND st.reps IS NOT NULL
+     ORDER BY st.created_at DESC LIMIT ?`,
+    [limit],
+  );
+
+  return rows.map((row) => ({
+    createdAt: row.created_at,
+    exercise: row.name,
+    id: row.id,
+    reps: row.reps,
+    weightKg: row.weight_kg,
+  }));
+}
+
 export async function getPeriodSummary(from: number, to: number): Promise<PeriodSummary> {
   const database = await getDatabase();
   const totals = await database.getFirstAsync<{

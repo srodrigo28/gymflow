@@ -79,6 +79,14 @@ export default function TreinoScreen() {
             Treino
           </Text>
           <Pressable
+            accessibilityLabel="Compartilhar recorde ou resumo da semana"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => router.push('/(app)/compartilhar')}
+            style={({ pressed }) => [styles.iconButton, pressed ? styles.pressed : null]}>
+            <Ionicons color={theme.text.primary} name="share-social-outline" size={18} />
+          </Pressable>
+          <Pressable
             accessibilityLabel="Ver histórico completo"
             accessibilityRole="button"
             hitSlop={8}
