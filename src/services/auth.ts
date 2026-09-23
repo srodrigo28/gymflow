@@ -30,6 +30,15 @@ export async function updateProfile(session: AuthResponse, name: string) {
   return persistSession({ ...session, user });
 }
 
+// O servidor encerra as outras sessões da conta; a deste aparelho continua valendo.
+export async function changePassword(session: AuthResponse, currentPassword: string, newPassword: string) {
+  await apiRequest('/me/password', {
+    body: { currentPassword, newPassword },
+    method: 'PUT',
+    token: session.token,
+  });
+}
+
 export async function getSession(): Promise<AuthResponse | null> {
   const storedSession = await secureStorage.get(storageKeys.session);
 

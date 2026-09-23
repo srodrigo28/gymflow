@@ -6,6 +6,8 @@ export const storageKeys = {
   onboardingCompleted: (userId: string) => `gynflow.onboarding.${userId}`,
   // Respostas do onboarding. Têm dados sensíveis (sono, humor, fumo): ficam no SecureStore.
   profile: (userId: string) => `gynflow.profile.${userId}`,
+  // Onde está a foto de capa (no web, a própria imagem). Fica só neste aparelho.
+  profilePhoto: (userId: string) => `gynflow.profilePhoto.${userId}`,
   session: 'gynflow.session',
   theme: 'gynflow.theme',
 };

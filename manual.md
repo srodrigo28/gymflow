@@ -8,10 +8,10 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
-| **App** (frontend em Expo) | 39 | 3 | 26 | **60%** |
-| **API** (gymflow-api) | 17 | 2 | 10 | **62%** |
-| **Geral**, escopo atual (Fases 1 a 3 e API) | 56 | 5 | 36 | **60%** |
-| Plano completo, com as Fases 4 a 6 | 56 | 5 | 51 | 52% |
+| **App** (frontend em Expo) | 41 | 3 | 25 | **62%** |
+| **API** (gymflow-api) | 19 | 1 | 10 | **65%** |
+| **Geral**, escopo atual (Fases 1 a 3 e API) | 60 | 4 | 35 | **63%** |
+| Plano completo, com as Fases 4 a 6 | 60 | 4 | 50 | 54% |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -49,15 +49,16 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Conta e sessão · Conta
 
-79% · 5 prontas, 1 parcial, 1 a fazer
+94% · 7 prontas, 1 parcial, 0 a fazer
 
 - ✅ **Cadastro e login de verdade, pela API** · As mensagens de erro vêm do servidor. · `src/services/auth.ts`
 - ✅ **Sessão conferida ao abrir, sem travar o app offline** · `src/contexts/session-context.tsx`
 - ✅ **Sair da conta**
 - ✅ **Banco local separado por conta** · Outra pessoa no mesmo celular não vê nem envia os treinos da anterior. · `src/db/client.ts`
 - ✅ **Apagar a conta pelo app** · Pede a senha e confirma. Apaga também os treinos, medidas, fotos e respostas deste aparelho. · `app/(app)/perfil.tsx`
-- 🟨 **Alterar perfil** · O nome já muda (é o que aparece no placar dos desafios). Foto, peso, altura e objetivo ainda não. · `app/(app)/perfil.tsx`
-- ⬜ **Foto de perfil salva** · Hoje só pré-visualiza, e só no web.
+- 🟨 **Alterar perfil** · Nome, foto de capa e senha já mudam. Peso, altura e objetivo (as respostas do questionário) ainda não. · `app/(app)/perfil.tsx`
+- ✅ **Trocar a senha** · Pede a senha atual; os outros aparelhos saem da conta. · `app/(app)/perfil.tsx`
+- ✅ **Foto de capa salva** · Da galeria, recortada na proporção da capa. Fica só neste aparelho e sai junto quando a conta é apagada. · `src/services/profile-photo.ts`
 
 ### Onboarding · Pós-cadastro
 
@@ -142,17 +143,18 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Contas · API
 
-72% · 6 prontas, 1 parcial, 2 a fazer
+80% · 8 prontas, 0 parciais, 2 a fazer
 
 - ✅ **Cadastro, login e saída** · `POST /auth/sign-up · /auth/sign-in · /auth/sign-out`
 - ✅ **Token de sessão de 60 dias, só o hash no banco**
 - ✅ **Senha com scrypt e a mesma resposta para e-mail ou senha errados**
 - ✅ **Limite de tentativas de login e cadastro**
+- ✅ **Limite de chutes de senha para quem tem o token** · Troca de senha e exclusão da conta somam 10 tentativas a cada 15 minutos.
 - ✅ **Apagar a conta com a senha, em cascata** · `DELETE /me`
 - ✅ **Administrador por lista de e-mails** · `ADMIN_EMAILS`
 - ⬜ **Recuperação de senha por e-mail** · Precisa de um serviço de envio de e-mail.
 - ⬜ **Confirmação de e-mail**
-- 🟨 **Alterar nome e senha** · O nome já muda. A senha ainda não. · `PATCH /me`
+- ✅ **Alterar nome e senha** · A troca de senha encerra as outras sessões da conta. · `PATCH /me · PUT /me/password`
 
 ### Sincronização · API
 
@@ -187,7 +189,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 42% · 2 prontas, 1 parcial, 3 a fazer
 
-- ✅ **40 testes automáticos contra um Postgres de verdade** · `npm test`
+- ✅ **44 testes automáticos contra um Postgres de verdade** · `npm test`
 - ✅ **Docker Compose com Postgres, migrações e Caddy (HTTPS)** · Testado localmente; o certificado só sai com o domínio real.
 - 🟨 **CI no GitHub** · Arquivo pronto; roda quando o repositório estiver no GitHub. · `.github/workflows/ci.yml`
 - ⬜ **Publicar na VPS** · Domínio, DNS e o .env de produção.

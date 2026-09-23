@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
-import { Alert, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/ui/Screen';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
@@ -9,6 +9,7 @@ import { spacing } from '@/src/constants/spacing';
 import { useSession } from '@/src/contexts/session-context';
 import { getBodyTrend } from '@/src/services/body';
 import { getOnboardingProfile } from '@/src/services/onboarding';
+import { getProfilePhoto, pickProfilePhoto } from '@/src/services/profile-photo';
 import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from '@/src/theme';
 import type { BodyTrend } from '@/src/types/body';
 import type { OnboardingProfile, TrainingDuration } from '@/src/types/onboarding';
@@ -176,13 +177,11 @@ const adminItem: ProfileMenuItem = {
 export default function HomeScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
-  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
-  const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { session, signOut } = useSession();
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [bodyTrend, setBodyTrend] = useState<BodyTrend | null>(null);
-  const coverImageUri = previewImageUri ?? profileImageUri;
   const summary = profileSummary(profile);
   const userId = session?.user.id;
   const evolutionStatus = evolutionKicker(bodyTrend);
@@ -193,45 +192,33 @@ export default function HomeScreen() {
     }
   }, [userId]);
 
-  // Volta da Evolução com a medida nova já contada.
+  // Volta da Evolução com a medida nova já contada, e do Perfil com a capa nova.
   useFocusEffect(
     useCallback(() => {
       getBodyTrend()
         .then(setBodyTrend)
         .catch(() => {});
-    }, []),
+
+      if (userId) {
+        void getProfilePhoto(userId).then(setCoverUri);
+      }
+    }, [userId]),
   );
 
-  function openImageUpload() {
-    if (Platform.OS !== 'web') {
-      Alert.alert('Upload de imagem', 'A seleção de imagem será conectada para Android e iOS em uma próxima etapa.');
+  async function changeCover() {
+    if (!userId) {
       return;
     }
 
-    const input = document.createElement('input');
-    input.accept = 'image/*';
-    input.type = 'file';
-    input.onchange = () => {
-      const file = input.files?.[0];
+    try {
+      const uri = await pickProfilePhoto(userId);
 
-      if (!file) {
-        return;
+      if (uri) {
+        setCoverUri(uri);
       }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setPreviewImageUri(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
-  }
-
-  function acceptPreviewImage() {
-    setProfileImageUri(previewImageUri);
-    setPreviewImageUri(null);
+    } catch {
+      Alert.alert('Foto de capa', 'Não foi possível usar essa imagem. Tente outra.');
+    }
   }
 
   async function handleSignOut() {
@@ -245,12 +232,12 @@ export default function HomeScreen() {
   return (
     <Screen edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={styles.profileCover}>
-        {coverImageUri ? (
+        {coverUri ? (
           <>
             <Image
               accessibilityIgnoresInvertColors
               resizeMode="cover"
-              source={{ uri: coverImageUri }}
+              source={{ uri: coverUri }}
               style={styles.profileCoverImage}
             />
             <View style={styles.profileCoverOverlay} />
@@ -268,16 +255,16 @@ export default function HomeScreen() {
             <MaterialCommunityIcons color={theme.accent.primary} name="dumbbell" size={25} />
           </Pressable>
           <Pressable
-            accessibilityLabel="Abrir Perfil. Altere seu nome ou apague sua conta."
+            accessibilityLabel="Abrir Perfil. Altere foto de capa, nome e senha, ou apague sua conta."
             accessibilityRole="button"
             onPress={() => router.push('/(app)/perfil')}
             style={({ pressed }) => [styles.coverActionBadge, pressed ? styles.pressed : null]}>
             <MaterialCommunityIcons color={theme.accent.primary} name="account-edit-outline" size={25} />
           </Pressable>
           <Pressable
-            accessibilityLabel="Carregar imagem do perfil"
+            accessibilityLabel="Trocar a foto de capa"
             accessibilityRole="button"
-            onPress={openImageUpload}
+            onPress={changeCover}
             style={({ pressed }) => [styles.coverActionBadge, pressed ? styles.pressed : null]}>
             <MaterialCommunityIcons color={theme.accent.primary} name="camera-outline" size={25} />
           </Pressable>
@@ -287,26 +274,6 @@ export default function HomeScreen() {
             {session?.user.name}
           </Text>
           <Text style={styles.subtitle}>Acompanhe suas escolhas, rotina e evolução.</Text>
-
-          {previewImageUri ? (
-            <View style={styles.uploadActions}>
-              <Pressable
-                accessibilityLabel="Aceitar imagem selecionada para o perfil"
-                accessibilityRole="button"
-                onPress={acceptPreviewImage}
-                style={({ pressed }) => [styles.acceptImageButton, pressed ? styles.pressed : null]}>
-                <MaterialCommunityIcons color={theme.accent.onPrimary} name="check" size={18} />
-                <Text style={styles.acceptImageText}>Aceitar imagem</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Cancelar imagem selecionada"
-                accessibilityRole="button"
-                onPress={() => setPreviewImageUri(null)}
-                style={({ pressed }) => [styles.cancelImageButton, pressed ? styles.pressed : null]}>
-                <Text style={styles.cancelImageText}>Cancelar</Text>
-              </Pressable>
-            </View>
-          ) : null}
         </View>
       </View>
 
@@ -493,42 +460,6 @@ const useStyles = makeStyles((theme) => ({
     textShadowColor: 'rgba(0, 0, 0, 0.45)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
-  },
-  uploadActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  acceptImageButton: {
-    alignItems: 'center',
-    backgroundColor: theme.accent.primary,
-    borderRadius: radius.sm,
-    flexDirection: 'row',
-    gap: 6,
-    height: 42,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  acceptImageText: {
-    color: theme.accent.onPrimary,
-    fontFamily: fonts.bold,
-    fontSize: 14,
-  },
-  cancelImageButton: {
-    alignItems: 'center',
-    backgroundColor: withAlpha(theme.bg.base, 0.7),
-    borderColor: theme.border.strong,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  cancelImageText: {
-    color: theme.text.secondary,
-    fontFamily: fonts.bold,
-    fontSize: 14,
   },
   quickSummary: {
     flexDirection: 'row',
