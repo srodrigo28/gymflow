@@ -123,7 +123,7 @@ export default function SessaoScreen() {
         <View style={styles.headerInfo}>
           <Text style={styles.clock}>{formatDuration(elapsed)}</Text>
           <Text style={styles.headerMeta}>
-            {doneSets} de {totalSets} séries
+            {doneSets} de {totalSets} {totalSets === 1 ? 'série' : 'séries'}
           </Text>
         </View>
         <Pressable

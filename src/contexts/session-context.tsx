@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { setDatabaseUser } from '@/src/db/client';
+import * as account from '@/src/services/account';
 import * as auth from '@/src/services/auth';
 import type { AuthResponse, SignInPayload, SignUpPayload } from '@/src/types/auth';
 
@@ -18,11 +19,13 @@ import type { AuthResponse, SignInPayload, SignUpPayload } from '@/src/types/aut
 const LOAD_TIMEOUT = 4000;
 
 type SessionContextValue = {
+  deleteAccount: (password: string) => Promise<void>;
   isLoading: boolean;
   session: AuthResponse | null;
   signIn: (payload: SignInPayload) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (payload: SignUpPayload) => Promise<void>;
+  updateName: (name: string) => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -92,9 +95,40 @@ export function SessionProvider({ children }: PropsWithChildren) {
     applySession(null);
   }, [applySession]);
 
+  const updateName = useCallback(
+    async (name: string) => {
+      if (!session) {
+        return;
+      }
+
+      const freshSession = await auth.updateProfile(session, name);
+
+      // Só aplica se ninguém saiu nem trocou de conta enquanto salvava.
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
+  // Com a senha errada ou sem rede, lança o erro e nada muda. Deu certo: sai da rota protegida
+  // antes de limpar a sessão (como em "Sair da conta"), senão a pessoa veria a splash de novo.
+  const deleteAccount = useCallback(
+    async (password: string) => {
+      if (!session) {
+        return;
+      }
+
+      await account.deleteAccount(session, password);
+      router.replace('/(auth)/welcome');
+      applySession(null);
+    },
+    [applySession, session],
+  );
+
   const value = useMemo(
-    () => ({ isLoading, session, signIn, signOut, signUp }),
-    [isLoading, session, signIn, signOut, signUp],
+    () => ({ deleteAccount, isLoading, session, signIn, signOut, signUp, updateName }),
+    [deleteAccount, isLoading, session, signIn, signOut, signUp, updateName],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -186,6 +186,26 @@ export function getDatabase() {
   return database;
 }
 
+// Apaga o arquivo de banco de uma conta (usado quando a pessoa apaga a conta). Sem adotar o
+// banco antigo por engano: só apaga o que já pertence a ela.
+export async function deleteLocalDatabase(userId: string) {
+  if (currentUserId === userId) {
+    currentUserId = null;
+  }
+
+  const opened = openedByUser.get(userId);
+  openedByUser.delete(userId);
+  await (await opened?.catch(() => null))?.closeAsync();
+
+  const isFirstOwner = (await storage.get(FIRST_DATABASE_OWNER_KEY)) === userId;
+  const sqlite = await loadSQLite();
+  await sqlite.deleteDatabaseAsync(isFirstOwner ? FIRST_DATABASE_NAME : `gynflow-${userId}.db`);
+
+  if (isFirstOwner) {
+    await storage.remove(FIRST_DATABASE_OWNER_KEY);
+  }
+}
+
 export function createId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }

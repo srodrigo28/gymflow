@@ -13,7 +13,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 
 import { fonts, makeStyles, radius, useTheme } from '@/src/theme';
 
-type ButtonVariant = 'primary' | 'outline' | 'ghost';
+// danger: só para ações que não têm volta (apagar a conta).
+type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'danger';
 
 type ButtonProps = Omit<PressableProps, 'children'> & {
   haptic?: boolean;
@@ -44,6 +45,7 @@ export function Button({
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isDisabled = disabled || loading;
   const contentColor = {
+    danger: theme.bg.base,
     ghost: theme.text.primary,
     outline: theme.accent.primary,
     primary: theme.accent.onPrimary,
@@ -75,7 +77,8 @@ export function Button({
           styles.container,
           styles[variant],
           state.pressed && variant === 'primary' ? styles.primaryPressed : null,
-          state.pressed && variant !== 'primary' ? styles.softPressed : null,
+          state.pressed && variant === 'danger' ? styles.dangerPressed : null,
+          state.pressed && (variant === 'outline' || variant === 'ghost') ? styles.softPressed : null,
           isDisabled ? styles.disabled : null,
           typeof style === 'function' ? style(state) : style,
         ]}
@@ -127,6 +130,12 @@ const useStyles = makeStyles((theme) => ({
   },
   ghost: {
     backgroundColor: 'transparent',
+  },
+  danger: {
+    backgroundColor: theme.status.danger,
+  },
+  dangerPressed: {
+    opacity: 0.85,
   },
   softPressed: {
     backgroundColor: theme.accent.soft,

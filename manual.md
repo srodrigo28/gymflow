@@ -8,10 +8,10 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
-| **App** (frontend em Expo) | 36 | 2 | 30 | **54%** |
-| **API** (gymflow-api) | 17 | 1 | 11 | **60%** |
-| **Geral**, escopo atual (Fases 1 a 3 e API) | 53 | 3 | 41 | **56%** |
-| Plano completo, com as Fases 4 a 6 | 53 | 3 | 56 | 49% |
+| **App** (frontend em Expo) | 39 | 3 | 26 | **60%** |
+| **API** (gymflow-api) | 17 | 2 | 10 | **62%** |
+| **Geral**, escopo atual (Fases 1 a 3 e API) | 56 | 5 | 36 | **60%** |
+| Plano completo, com as Fases 4 a 6 | 56 | 5 | 51 | 52% |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -49,14 +49,14 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Conta e sessão · Conta
 
-57% · 4 prontas, 0 parciais, 3 a fazer
+79% · 5 prontas, 1 parcial, 1 a fazer
 
 - ✅ **Cadastro e login de verdade, pela API** · As mensagens de erro vêm do servidor. · `src/services/auth.ts`
 - ✅ **Sessão conferida ao abrir, sem travar o app offline** · `src/contexts/session-context.tsx`
 - ✅ **Sair da conta**
 - ✅ **Banco local separado por conta** · Outra pessoa no mesmo celular não vê nem envia os treinos da anterior. · `src/db/client.ts`
-- ⬜ **Apagar a conta pelo app** · A API já apaga (DELETE /me). Falta o botão com a confirmação da senha.
-- ⬜ **Alterar perfil** · O botão da home só abre o seletor de imagem.
+- ✅ **Apagar a conta pelo app** · Pede a senha e confirma. Apaga também os treinos, medidas, fotos e respostas deste aparelho. · `app/(app)/perfil.tsx`
+- 🟨 **Alterar perfil** · O nome já muda (é o que aparece no placar dos desafios). Foto, peso, altura e objetivo ainda não. · `app/(app)/perfil.tsx`
 - ⬜ **Foto de perfil salva** · Hoje só pré-visualiza, e só no web.
 
 ### Onboarding · Pós-cadastro
@@ -113,7 +113,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Home e menu do perfil · Perfil
 
-25% · 3 prontas, 0 parciais, 9 a fazer
+42% · 5 prontas, 0 parciais, 7 a fazer
 
 - ✅ **Nome e resumo reais de quem entrou** · `app/(app)/home.tsx`
 - ✅ **Menu com Treino, Evolução, Desafios e Aparência**
@@ -125,8 +125,8 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 - ⬜ **Recomendações**
 - ⬜ **Conquistas**
 - ⬜ **Frase do dia**
-- ⬜ **Tela "dashboard" com dados reais** · Hoje mostra exercícios fixos no código. · `app/(app)/dashboard.tsx`
-- ⬜ **Cartão "Evolução corporal · Em breve"** · A Evolução já existe: apontar o cartão para ela ou tirar.
+- ✅ **Atalho do topo leva ao Treino** · A tela "dashboard" com exercícios fixos no código saiu. · `app/(app)/home.tsx`
+- ✅ **Cartão da Evolução com dado real** · Mostra quanto o peso mudou desde o início (ou quantas medições há) e abre a Evolução. · `app/(app)/home.tsx`
 
 ### Plataformas e loja · Publicação
 
@@ -142,7 +142,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Contas · API
 
-67% · 6 prontas, 0 parciais, 3 a fazer
+72% · 6 prontas, 1 parcial, 2 a fazer
 
 - ✅ **Cadastro, login e saída** · `POST /auth/sign-up · /auth/sign-in · /auth/sign-out`
 - ✅ **Token de sessão de 60 dias, só o hash no banco**
@@ -152,7 +152,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 - ✅ **Administrador por lista de e-mails** · `ADMIN_EMAILS`
 - ⬜ **Recuperação de senha por e-mail** · Precisa de um serviço de envio de e-mail.
 - ⬜ **Confirmação de e-mail**
-- ⬜ **Alterar nome e senha**
+- 🟨 **Alterar nome e senha** · O nome já muda. A senha ainda não. · `PATCH /me`
 
 ### Sincronização · API
 
@@ -187,7 +187,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 42% · 2 prontas, 1 parcial, 3 a fazer
 
-- ✅ **37 testes automáticos contra um Postgres de verdade** · `npm test`
+- ✅ **40 testes automáticos contra um Postgres de verdade** · `npm test`
 - ✅ **Docker Compose com Postgres, migrações e Caddy (HTTPS)** · Testado localmente; o certificado só sai com o domínio real.
 - 🟨 **CI no GitHub** · Arquivo pronto; roda quando o repositório estiver no GitHub. · `.github/workflows/ci.yml`
 - ⬜ **Publicar na VPS** · Domínio, DNS e o .env de produção.

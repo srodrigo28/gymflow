@@ -321,8 +321,8 @@
         { "name": "Sessão conferida ao abrir, sem travar o app offline", "status": "done", "where": "src/contexts/session-context.tsx" },
         { "name": "Sair da conta", "status": "done" },
         { "name": "Banco local separado por conta", "status": "done", "note": "Outra pessoa no mesmo celular não vê nem envia os treinos da anterior.", "where": "src/db/client.ts" },
-        { "name": "Apagar a conta pelo app", "status": "todo", "note": "A API já apaga (DELETE /me). Falta o botão com a confirmação da senha." },
-        { "name": "Alterar perfil", "status": "todo", "note": "O botão da home só abre o seletor de imagem." },
+        { "name": "Apagar a conta pelo app", "status": "done", "note": "Pede a senha e confirma. Apaga também os treinos, medidas, fotos e respostas deste aparelho.", "where": "app/(app)/perfil.tsx" },
+        { "name": "Alterar perfil", "status": "partial", "note": "O nome já muda (é o que aparece no placar dos desafios). Foto, peso, altura e objetivo ainda não.", "where": "app/(app)/perfil.tsx" },
         { "name": "Foto de perfil salva", "status": "todo", "note": "Hoje só pré-visualiza, e só no web." }
       ]
     },
@@ -411,8 +411,8 @@
         { "name": "Recomendações", "status": "todo" },
         { "name": "Conquistas", "status": "todo" },
         { "name": "Frase do dia", "status": "todo" },
-        { "name": "Tela \"dashboard\" com dados reais", "status": "todo", "note": "Hoje mostra exercícios fixos no código.", "where": "app/(app)/dashboard.tsx" },
-        { "name": "Cartão \"Evolução corporal · Em breve\"", "status": "todo", "note": "A Evolução já existe: apontar o cartão para ela ou tirar." }
+        { "name": "Atalho do topo leva ao Treino", "status": "done", "note": "A tela \"dashboard\" com exercícios fixos no código saiu.", "where": "app/(app)/home.tsx" },
+        { "name": "Cartão da Evolução com dado real", "status": "done", "note": "Mostra quanto o peso mudou desde o início (ou quantas medições há) e abre a Evolução.", "where": "app/(app)/home.tsx" }
       ]
     },
     {
@@ -444,7 +444,7 @@
         { "name": "Administrador por lista de e-mails", "status": "done", "where": "ADMIN_EMAILS" },
         { "name": "Recuperação de senha por e-mail", "status": "todo", "note": "Precisa de um serviço de envio de e-mail." },
         { "name": "Confirmação de e-mail", "status": "todo" },
-        { "name": "Alterar nome e senha", "status": "todo" }
+        { "name": "Alterar nome e senha", "status": "partial", "note": "O nome já muda. A senha ainda não.", "where": "PATCH /me" }
       ]
     },
     {
@@ -495,7 +495,7 @@
       "phase": "API",
       "tone": "cyan",
       "items": [
-        { "name": "37 testes automáticos contra um Postgres de verdade", "status": "done", "where": "npm test" },
+        { "name": "40 testes automáticos contra um Postgres de verdade", "status": "done", "where": "npm test" },
         { "name": "Docker Compose com Postgres, migrações e Caddy (HTTPS)", "status": "done", "note": "Testado localmente; o certificado só sai com o domínio real." },
         { "name": "CI no GitHub", "status": "partial", "note": "Arquivo pronto; roda quando o repositório estiver no GitHub.", "where": ".github/workflows/ci.yml" },
         { "name": "Publicar na VPS", "status": "todo", "note": "Domínio, DNS e o .env de produção." },

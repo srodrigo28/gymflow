@@ -207,6 +207,21 @@ export async function listPhotoMonths() {
   return rows;
 }
 
+// Apaga os arquivos de todas as fotos da conta atual (quando a pessoa apaga a conta). A pasta
+// de fotos é do app inteiro; quais arquivos são dela está no banco dela.
+export async function deleteAllPhotoFiles() {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<{ uri: string }>('SELECT uri FROM photos');
+
+  for (const { uri } of rows) {
+    const file = new File(uri);
+
+    if (file.exists) {
+      file.delete();
+    }
+  }
+}
+
 export async function deletePhoto(id: string) {
   const database = await getDatabase();
   const row = await database.getFirstAsync<PhotoRow>('SELECT * FROM photos WHERE id = ?', [id]);

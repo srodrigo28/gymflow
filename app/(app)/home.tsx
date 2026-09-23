@@ -1,16 +1,18 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, type Href } from 'expo-router';
-import type { ComponentProps } from 'react';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { useCallback, useEffect, useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { useEffect, useState } from 'react';
 
 import { Screen } from '@/src/components/ui/Screen';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { spacing } from '@/src/constants/spacing';
 import { useSession } from '@/src/contexts/session-context';
+import { getBodyTrend } from '@/src/services/body';
 import { getOnboardingProfile } from '@/src/services/onboarding';
 import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from '@/src/theme';
+import type { BodyTrend } from '@/src/types/body';
 import type { OnboardingProfile, TrainingDuration } from '@/src/types/onboarding';
+import { formatDelta } from '@/src/utils/format';
 import { currentJourneyLevel, journeyLabel } from '@/src/utils/journey';
 
 const durationLabels: Record<TrainingDuration, string> = {
@@ -41,6 +43,23 @@ function profileSummary(profile: OnboardingProfile | null): SummaryItem[] {
   }
 
   return items;
+}
+
+// O cartão da Evolução mostra o que já mudou, sem número inventado.
+function evolutionKicker(trend: BodyTrend | null) {
+  if (!trend) {
+    return 'Sua evolução';
+  }
+
+  if (trend.deltaKg !== undefined) {
+    return `${formatDelta(trend.deltaKg, 'kg')} desde o início`;
+  }
+
+  if (trend.measurementCount > 0) {
+    return `${trend.measurementCount} ${trend.measurementCount === 1 ? 'medição' : 'medições'}`;
+  }
+
+  return 'Comece pela primeira medição';
 }
 
 type ProfileMenuItem = {
@@ -162,15 +181,26 @@ export default function HomeScreen() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { session, signOut } = useSession();
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [bodyTrend, setBodyTrend] = useState<BodyTrend | null>(null);
   const coverImageUri = previewImageUri ?? profileImageUri;
   const summary = profileSummary(profile);
   const userId = session?.user.id;
+  const evolutionStatus = evolutionKicker(bodyTrend);
 
   useEffect(() => {
     if (userId) {
       void getOnboardingProfile(userId).then(setProfile);
     }
   }, [userId]);
+
+  // Volta da Evolução com a medida nova já contada.
+  useFocusEffect(
+    useCallback(() => {
+      getBodyTrend()
+        .then(setBodyTrend)
+        .catch(() => {});
+    }, []),
+  );
 
   function openImageUpload() {
     if (Platform.OS !== 'web') {
@@ -231,16 +261,16 @@ export default function HomeScreen() {
         )}
         <View style={styles.coverActions}>
           <Pressable
-            accessibilityLabel="Ir para a tela inicial de treinos"
+            accessibilityLabel="Abrir Treino"
             accessibilityRole="button"
-            onPress={() => router.push('/(app)/dashboard')}
+            onPress={() => router.push('/(app)/treino')}
             style={({ pressed }) => [styles.coverActionBadge, pressed ? styles.pressed : null]}>
-            <MaterialCommunityIcons color={theme.accent.primary} name="home-outline" size={25} />
+            <MaterialCommunityIcons color={theme.accent.primary} name="dumbbell" size={25} />
           </Pressable>
           <Pressable
-            accessibilityLabel="Alterar perfil. Atualize foto, nome, objetivo, peso, altura e preferências."
+            accessibilityLabel="Abrir Perfil. Altere seu nome ou apague sua conta."
             accessibilityRole="button"
-            onPress={openImageUpload}
+            onPress={() => router.push('/(app)/perfil')}
             style={({ pressed }) => [styles.coverActionBadge, pressed ? styles.pressed : null]}>
             <MaterialCommunityIcons color={theme.accent.primary} name="account-edit-outline" size={25} />
           </Pressable>
@@ -309,14 +339,17 @@ export default function HomeScreen() {
         </View>
 
         <Pressable
-          accessibilityLabel="Abrir Evolução corporal. Acompanhe peso, medidas, fotos e consistência ao longo do tempo."
+          accessibilityLabel={`Abrir Evolução corporal: ${evolutionStatus}. Peso, medidas e fotos ao longo do tempo.`}
           accessibilityRole="button"
+          onPress={() => router.push('/(app)/corpo')}
           style={({ pressed }) => [styles.evolutionCard, pressed ? styles.pressed : null]}>
           <View style={styles.evolutionIcon}>
             <MaterialCommunityIcons color={theme.accent.primary} name="human-male-height-variant" size={34} />
           </View>
           <View style={styles.evolutionTextGroup}>
-            <Text style={styles.evolutionKicker}>Em breve</Text>
+            <Text numberOfLines={1} style={styles.evolutionKicker}>
+              {evolutionStatus}
+            </Text>
             <Text style={styles.evolutionTitle}>Evolução corporal</Text>
             <Text style={styles.evolutionDescription}>
               Peso, medidas, fotos e progresso em uma linha do tempo visual.

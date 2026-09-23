@@ -169,7 +169,8 @@ export default function TreinoScreen() {
                   .join(' · ')}
               </Text>
               <Text style={styles.sessionMeta}>
-                {session.exerciseCount} exercícios · {session.setCount} séries · {formatVolume(session.volumeKg)}
+                {session.exerciseCount} {session.exerciseCount === 1 ? 'exercício' : 'exercícios'} ·{' '}
+                {session.setCount} {session.setCount === 1 ? 'série' : 'séries'} · {formatVolume(session.volumeKg)}
               </Text>
             </View>
           ))

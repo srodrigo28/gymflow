@@ -20,6 +20,16 @@ export async function signUp({ email, name, password }: SignUpPayload) {
   );
 }
 
+export async function updateProfile(session: AuthResponse, name: string) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/me', {
+    body: { name },
+    method: 'PATCH',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
 export async function getSession(): Promise<AuthResponse | null> {
   const storedSession = await secureStorage.get(storageKeys.session);
 

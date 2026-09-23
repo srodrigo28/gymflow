@@ -148,7 +148,8 @@ export default function FotosScreen() {
           {reference ? (
             <View style={styles.referenceWrapper}>
               <Image contentFit="cover" source={{ uri: reference.uri }} style={styles.reference} transition={150} />
-              <Text style={styles.referenceLabel}>repita o enquadramento</Text>
+              {/* Palavras curtas: a legenda tem a largura da miniatura e não pode quebrar no meio. */}
+              <Text style={styles.referenceLabel}>enquadre igual</Text>
             </View>
           ) : null}
 
