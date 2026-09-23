@@ -22,7 +22,7 @@ Para o banco local voltar depois de reiniciar o computador: `npx prisma dev star
 ## Testes
 
 ```bash
-npm test          # 36 testes, contra o mesmo Postgres, no schema "test"
+npm test          # 37 testes, contra o mesmo Postgres, no schema "test"
 npm run typecheck
 ```
 
@@ -55,7 +55,7 @@ Rotas autenticadas usam `Authorization: Bearer <token>`. Erros vêm como `{ erro
 - **E-mail inexistente e senha errada** respondem igual, no mesmo tempo, para não denunciar quem tem conta.
 - **Limite de tentativas** em memória: login com 10 por e-mail a cada 15 minutos, cadastro com 10 por IP por hora. Serve para uma instância; com várias, a contagem precisa ir para o Redis ou o Postgres. Atrás de proxy, ligue `TRUST_PROXY`.
 - **Administrador** é quem está em `ADMIN_EMAILS`, no cadastro ou no próximo login.
-- **Treinos** sobem inteiros (exercícios e séries). A versão com a data de mudança mais nova vence, e um id que já pertence a outra conta é recusado.
+- **Treinos** sobem inteiros (exercícios e séries). A versão com a data de mudança mais nova vence, e um id que já pertence a outra conta é recusado. Cada treino é validado sozinho: um fora do formato (uma carga de 6000 kg, por exemplo) volta em `invalid` com o motivo e não trava os outros do mesmo envio.
 - **Medidas e fotos não sobem.** São dados sensíveis pela LGPD e só podem ir para o servidor com consentimento específico, que ainda não existe no app.
 - **Placar do desafio**: um ponto por dia com treino concluído e ao menos uma série feita, contado no fuso do desafio. Dois treinos no mesmo dia valem um ponto.
 - **Quem cria o desafio** pode apagar a conta sem apagar o desafio dos outros.

@@ -283,7 +283,9 @@ A ideia é **R$ 1,00 ou R$ 5,00**, valores de apoio, não de assinatura cara. Tr
 - **Contador de usuários cadastrados e ativos na semana**, visível só para você. É o que mede o gatilho dos 200 (seção 5.1).
 
 **Situação em 22/09:** feito tudo, menos o contador de usuários (depende da API real) e o check-in.
-Detalhes em **Registro da Fase 1** no fim do documento.
+**Em 23/09:** o contador existe (painel de administração) e a sincronização é de verdade: os treinos
+concluídos sobem sozinhos para a conta. Falta o check-in.
+Detalhes em **Registro da Fase 1** e **Registro da API** no fim do documento.
 
 **Critérios de aceite**: registrar um treino de 6 exercícios em menos de 90 segundos de interação; funcionar em modo avião; o histórico bate com o que foi registrado.
 
@@ -328,9 +330,10 @@ Fotos em armazenamento privado com URL assinada. Rode typecheck e lint.
 
 **Entregas**: amigos, desafio com link de convite, check-in com foto, placar do desafio, card compartilhável de recorde e de resumo semanal.
 
-**Situação em 23/09:** o card compartilhável de recorde e de resumo semanal está pronto e roda sem
-servidor. Amigos, desafio por link, check-in com foto e placar dependem da API.
-Detalhes em **Registro da Fase 3** no fim do documento.
+**Situação em 23/09:** card compartilhável, desafio com link de convite e placar prontos, com a API.
+Quem não tem conta vê o convite, se cadastra por ele e entra no desafio. Faltam amigos e o check-in
+com foto, que pede armazenamento de fotos no servidor.
+Detalhes em **Registro da Fase 3** e **Registro da API** no fim do documento.
 
 **Critérios de aceite**: criar um desafio e entrar por link em menos de 30 segundos, sem cadastro prévio obrigatório até o momento de pontuar.
 
@@ -501,7 +504,42 @@ Por enquanto, só o card compartilhável: é a parte da fase que não depende de
 
 O tamanho e os cantos foram medidos no PNG gerado: durante o teste, um trecho temporário enviou uma cópia da captura para o computador. O trecho foi removido antes do commit.
 
-**Ainda não feito**: comemoração com card logo na tela da sessão, ao bater o recorde; cards de sequência e de retrospectiva mensal; teste em iPhone. Amigos, desafio por link, check-in com foto e placar dependem da API.
+**Ainda não feito**: comemoração com card logo na tela da sessão, ao bater o recorde; cards de sequência e de retrospectiva mensal; teste em iPhone. Desafio por link e placar saíram com a API (veja **Registro da API**); amigos e check-in com foto continuam pendentes.
+
+## Registro da API (23/09)
+
+**O que foi construído**
+
+- **Servidor** em `server/` (Node, Hono, Prisma 7, PostgreSQL), com 37 testes contra um Postgres de verdade. Como rodar e as decisões estão no `server/README.md`.
+- **Contas de verdade**: cadastro, login, saída e apagar a conta (a API apaga em cascata; o botão no app ainda não existe). O mock de autenticação saiu. A sessão é conferida ao abrir o app; sem rede, o app segue com a sessão salva.
+- **Banco local por conta**: cada pessoa tem o próprio arquivo no aparelho. Quem entra depois no mesmo celular não vê nem sincroniza os treinos de outra.
+- **Sincronização**: os treinos concluídos sobem sozinhos (ao entrar, ao voltar para o app e segundos depois de terminar). Medidas, fotos e as respostas do onboarding **não sobem**: são dados sensíveis e pedem consentimento específico antes (seção 4).
+- **Desafios** (Fase 3): criar com 7, 14 ou 30 dias, convidar pelo compartilhar (o link http abre a página do convite, e ela abre o app), entrar pelo link ou pelo código, ver o placar e sair. Um ponto por dia com treino concluído e ao menos uma série feita, no fuso do desafio.
+- **Painel de administração** (Fase 1): cadastros contra a meta de 200, novos, ativos e treinos da semana. Administrador é quem está em `ADMIN_EMAILS` na API.
+
+**Bugs encontrados no teste e corrigidos**
+
+- Um treino antigo com uma série de mais de 2000 kg fazia a API recusar o lote inteiro, e a fila travava para sempre. A API passou a validar treino a treino, e o app a recusar carga acima de 1000 kg na digitação.
+- Repetição aceitava vírgula ("10,5"), e o servidor só aceita número inteiro. O teclado das repetições agora não tem vírgula.
+- Os campos de carga e repetições perdiam o texto digitado quando o estilo deles mudava (Android, campo não controlado).
+- Sair e entrar de novo sem fechar o app derrubava o banco local (NullPointerException do expo-sqlite ao reabrir o mesmo arquivo).
+- A home mostrava nome, objetivo, nível e rotina fixos no código ("Rodrigo Gonçalves", "Ganho de massa"), e as respostas do onboarding não eram guardadas.
+- Na busca de exercícios, os chips de filtro saíam cortados ao meio.
+
+**Como foi validado** (emulador Android `lume_test`, Expo Go, API local)
+
+| Verificação | Resultado |
+| --- | --- |
+| Cadastro e login pela API | conta criada; senha errada mostra a mensagem do servidor; login leva à home |
+| Sessão revogada no servidor | o app volta para a tela inicial |
+| Treinos antigos ao entrar | 3 subiram; o de mais de 2000 kg ficou só no aparelho, sem travar a fila |
+| Treino novo | no servidor segundos depois de finalizado (82,5 kg × 5, com recorde) |
+| Desafio | criado, convite compartilhado, placar já com o treino do dia |
+| Convite sem conta | prévia do desafio, cadastro pelo convite e entrada no desafio |
+| Duas contas no mesmo aparelho | cada uma vê só os próprios treinos, sem erro na troca |
+| Painel | 2 de 200 cadastros, batendo com o banco |
+
+**Ainda não feito**: publicar a API (hospedagem, banco e o domínio do link de convite); baixar os treinos da conta num aparelho novo; consentimento e envio de medidas e fotos (com URL assinada, tarja e revogação); amigos e check-in com foto; o botão de apagar a conta e a recuperação de senha no app; teste em iPhone.
 
 ## Fontes da pesquisa
 

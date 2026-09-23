@@ -1,6 +1,6 @@
 # Gyn Flow
 
-Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-estar, com fluxo inicial de splash, hero, login e cadastro, temas de cores e uma base preparada para integração com API.
+Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-estar: registro de treino que funciona sem internet, evolução do corpo com medidas e fotos, e desafios entre amigos com convite por link. A API própria fica em [`server/`](server/README.md).
 
 ## Treino em Dia
 - melhor equilíbrio entre clareza e disponibilidade aparente.
@@ -21,17 +21,17 @@ Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-esta
 
 ## Status
 
-Base inicial criada com:
-
-- Splash animada com carregamento real (sessão, tema e fontes)
-- Hero de boas-vindas (`welcome`)
-- Login e cadastro
-- Sessão persistida (SecureStore; AsyncStorage no web)
+- Splash animada, hero de boas-vindas, login e cadastro (contas reais na API)
+- Onboarding de 23 etapas; as respostas ficam só no aparelho
+- Registro de treino offline, com histórico, recordes e "o que está faltando"
+- Treinos concluídos sobem sozinhos para a conta quando há internet
+- Evolução: medidas com gráfico, foto do mês e comparador (só no aparelho)
+- Desafios entre amigos: convite por link, placar de dias com treino
+- Card compartilhável de recorde e de resumo da semana
+- Painel de administração com o total de cadastros (o gatilho dos 200)
 - Temas de cores: Flow, Meia-noite, Aurora e Brasa (tela Aparência)
-- Home mínima pós-autenticação
-- Componentes reutilizáveis de UI
-- Validação de formulários com `react-hook-form` e `zod`
-- Serviços preparados para autenticação via API
+
+O plano de produto e o registro de cada fase estão em [`22-estrategia.md`](22-estrategia.md).
 
 ## Tecnologias
 
@@ -69,9 +69,12 @@ src/
     visual/
   config/
   constants/
+  db/          (banco local: expo-sqlite e fila de sincronização)
   services/
   theme/
   types/
+
+server/        (API: Hono, Prisma 7, PostgreSQL; veja server/README.md)
 
 preview/
   login.png
@@ -132,31 +135,18 @@ npx tsc --noEmit
 
 ## API
 
-A base para integração com API está em:
+O app precisa da API para cadastro, login, desafios e sincronização (o registro de treino funciona sem ela). Para rodar tudo em desenvolvimento:
 
-- `src/config/env.ts`
-- `src/services/api.ts`
-- `src/services/auth.ts`
-- `src/types/auth.ts`
+1. Suba a API seguindo o [`server/README.md`](server/README.md) (Postgres local com `npx prisma dev`, sem Docker).
+2. Copie `.env.example` para `.env.local` na raiz e ajuste `EXPO_PUBLIC_API_URL`.
+3. No emulador Android: `adb reverse tcp:3333 tcp:3333`. No celular, use o IP do computador na rede Wi-Fi.
 
-Hoje o fluxo de autenticação usa mock em `src/services/auth.ts`. Quando a API real estiver pronta, a troca deve ficar concentrada nos serviços, sem espalhar `fetch` pelas telas.
-
-Configure a URL base em `app.json`:
-
-```json
-{
-  "expo": {
-    "extra": {
-      "apiUrl": "https://sua-api.com"
-    }
-  }
-}
-```
+As chamadas ficam em `src/services/` (`api.ts`, `auth.ts`, `sync.ts`, `challenges.ts`, `admin.ts`); as telas não fazem `fetch` direto. Em produção, o endereço vai em `app.json` (`expo.extra.apiUrl`).
 
 ## Próximos passos
 
-- Conectar login e cadastro na API real
-- Persistir sessão do usuário
-- Implementar home completa com treinos
-- Criar histórico de exercícios
-- Criar perfil do usuário
+- Publicar a API (hospedagem e banco) e apontar `apiUrl` para ela
+- Restaurar treinos da conta num aparelho novo (a API já recebe; falta o app baixar)
+- Consentimento específico para medidas e fotos subirem para a conta (LGPD)
+- Recuperação de senha, e o botão de apagar a conta no app (a API já apaga)
+- Amigos e check-in com foto nos desafios (Fase 3)
