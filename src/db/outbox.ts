@@ -1,9 +1,21 @@
 import { getDatabase } from '@/src/db/client';
 
+const listeners = new Set<() => void>();
+
+// Avisado a cada item novo na fila; é o gatilho da sincronização (src/services/sync.ts).
+export function onSyncQueued(listener: () => void) {
+  listeners.add(listener);
+
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 /**
- * Fila de sincronização. Tudo é gravado primeiro no aparelho; aqui fica a lista
- * do que ainda precisa subir para a API quando ela existir. Assim o app funciona
- * inteiro sem rede e nada se perde quando a rede volta.
+ * Fila de sincronização. Tudo é gravado primeiro no aparelho; aqui fica a lista do que
+ * precisa subir para a API. Assim o app funciona inteiro sem rede e nada se perde quando a
+ * rede volta. Hoje só os treinos sobem: medidas e fotos são dados sensíveis e ficam na fila
+ * até existir o consentimento específico para enviá-los.
  */
 export async function queueSync(
   entity: string,
@@ -15,6 +27,10 @@ export async function queueSync(
     'INSERT INTO outbox (entity, entity_id, operation, created_at) VALUES (?, ?, ?, ?)',
     [entity, entityId, operation, Date.now()],
   );
+
+  for (const listener of listeners) {
+    listener();
+  }
 }
 
 export async function countPendingSync() {

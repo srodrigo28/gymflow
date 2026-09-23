@@ -11,7 +11,7 @@ describe('sincronização de treinos', () => {
     const response = await api.request('POST', '/sync/workouts', { body: { workouts: [workout] }, token: account.token });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ rejected: [], synced: [workout.id] });
+    expect(response.body).toEqual({ invalid: [], rejected: [], synced: [workout.id] });
 
     const stored = await prisma.workout.findUniqueOrThrow({
       include: { exercises: { include: { sets: true } } },
@@ -76,7 +76,7 @@ describe('sincronização de treinos', () => {
       token: account.token,
     });
 
-    expect(response.body).toEqual({ rejected: [], synced: ['nunca-subiu'] });
+    expect(response.body).toEqual({ invalid: [], rejected: [], synced: ['nunca-subiu'] });
   });
 
   it('uma conta não mexe no treino de outra com o mesmo id', async () => {
@@ -103,16 +103,31 @@ describe('sincronização de treinos', () => {
     expect(stored.deletedAt).toBeNull();
   });
 
-  it('exige login e recusa dados fora do formato', async () => {
+  it('um treino fora do formato não trava os outros do mesmo envio', async () => {
+    const api = client();
+    const account = await api.signUp('Ana');
+    const valid = workoutPayload();
+    const typo = workoutPayload();
+    typo.exercises[0]!.sets[0]!.weightKg = 6000;
+
+    const response = await api.request('POST', '/sync/workouts', {
+      body: { workouts: [typo, valid] },
+      token: account.token,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.synced).toEqual([valid.id]);
+    expect(response.body.invalid).toEqual([{ id: typo.id, reason: expect.stringContaining('2000') }]);
+    expect(await prisma.workout.count()).toBe(1);
+  });
+
+  it('exige login e recusa envio sem a lista de treinos', async () => {
     const api = client();
     const account = await api.signUp('Ana');
 
     expect((await api.request('POST', '/sync/workouts', { body: { workouts: [] } })).status).toBe(401);
-
-    const invalid = await api.request('POST', '/sync/workouts', {
-      body: { workouts: [{ ...workoutPayload(), id: 'x' }] },
-      token: account.token,
-    });
-    expect(invalid.status).toBe(400);
+    expect((await api.request('POST', '/sync/workouts', { body: { treinos: [] }, token: account.token })).status).toBe(
+      400,
+    );
   });
 });

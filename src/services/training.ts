@@ -499,5 +499,3 @@ async function touchSession(sessionId: string) {
   const database = await getDatabase();
   await database.runAsync('UPDATE sessions SET updated_at = ? WHERE id = ?', [Date.now(), sessionId]);
 }
-
-// Enquanto não existe API, a fila só registra o que precisará subir depois.

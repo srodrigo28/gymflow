@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 
+import { setDatabaseUser } from '@/src/db/client';
 import * as auth from '@/src/services/auth';
 import type { AuthResponse, SignInPayload, SignUpPayload } from '@/src/types/auth';
 
@@ -29,6 +30,15 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const currentToken = useRef<string | null>(null);
+
+  // Toda troca de sessão passa por aqui. O banco local é por conta e precisa trocar antes de
+  // as telas pedirem dados: os efeitos das telas rodam antes dos efeitos deste provider.
+  const applySession = useCallback((next: AuthResponse | null) => {
+    setDatabaseUser(next?.user.id ?? null);
+    currentToken.current = next?.token ?? null;
+    setSession(next);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -39,7 +49,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      setSession(storedSession);
+      applySession(storedSession);
       setIsLoading(false);
 
       if (!storedSession) {
@@ -51,8 +61,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
       auth
         .refreshSession(storedSession)
         .then((freshSession) => {
-          if (isActive) {
-            setSession((current) => (current?.token === storedSession.token ? freshSession : current));
+          if (isActive && currentToken.current === storedSession.token) {
+            applySession(freshSession);
           }
         })
         .catch(() => {});
@@ -61,20 +71,26 @@ export function SessionProvider({ children }: PropsWithChildren) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [applySession]);
 
-  const signIn = useCallback(async (payload: SignInPayload) => {
-    setSession(await auth.signIn(payload));
-  }, []);
+  const signIn = useCallback(
+    async (payload: SignInPayload) => {
+      applySession(await auth.signIn(payload));
+    },
+    [applySession],
+  );
 
-  const signUp = useCallback(async (payload: SignUpPayload) => {
-    setSession(await auth.signUp(payload));
-  }, []);
+  const signUp = useCallback(
+    async (payload: SignUpPayload) => {
+      applySession(await auth.signUp(payload));
+    },
+    [applySession],
+  );
 
   const signOut = useCallback(async () => {
     await auth.signOut();
-    setSession(null);
-  }, []);
+    applySession(null);
+  }, [applySession]);
 
   const value = useMemo(
     () => ({ isLoading, session, signIn, signOut, signUp }),

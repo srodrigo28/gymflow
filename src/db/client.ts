@@ -1,6 +1,7 @@
 import type * as SQLiteTypes from 'expo-sqlite';
 
 import { exercisesSeed } from '@/src/db/exercises-seed';
+import { storage } from '@/src/services/storage';
 
 type SQLiteDatabase = SQLiteTypes.SQLiteDatabase;
 
@@ -14,7 +15,9 @@ async function loadSQLite() {
   return import('expo-sqlite');
 }
 
-const DATABASE_NAME = 'gynflow.db';
+// O banco de antes das contas. Fica com a primeira pessoa que entrar no aparelho.
+const FIRST_DATABASE_NAME = 'gynflow.db';
+const FIRST_DATABASE_OWNER_KEY = 'gynflow.db.firstOwner';
 
 // Cada item é uma migração. Para mudar o banco, acrescente no fim da lista;
 // nunca edite uma migração já publicada.
@@ -105,7 +108,29 @@ const migrations: string[] = [
   `,
 ];
 
-let databasePromise: Promise<SQLiteDatabase> | null = null;
+let currentUserId: string | null = null;
+let opened: { promise: Promise<SQLiteDatabase>; userId: string } | null = null;
+
+// Cada conta tem o próprio arquivo de banco. Quem entra depois no mesmo aparelho não vê nem
+// sincroniza os treinos de outra pessoa, e nada é apagado na troca de conta.
+export function setDatabaseUser(userId: string | null) {
+  currentUserId = userId;
+}
+
+async function databaseNameFor(userId: string) {
+  const firstOwner = await storage.get(FIRST_DATABASE_OWNER_KEY);
+
+  if (firstOwner === userId) {
+    return FIRST_DATABASE_NAME;
+  }
+
+  if (!firstOwner) {
+    await storage.set(FIRST_DATABASE_OWNER_KEY, userId);
+    return FIRST_DATABASE_NAME;
+  }
+
+  return `gynflow-${userId}.db`;
+}
 
 async function migrate(database: SQLiteDatabase) {
   const row = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -129,20 +154,28 @@ async function seedExercises(database: SQLiteDatabase) {
   }
 }
 
-// Abre o banco uma única vez por execução do app.
+async function openDatabase(userId: string) {
+  const sqlite = await loadSQLite();
+  const database = await sqlite.openDatabaseAsync(await databaseNameFor(userId));
+  await database.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+  await migrate(database);
+  await seedExercises(database);
+  return database;
+}
+
+// Abre o banco da conta atual uma única vez por execução do app.
 export function getDatabase() {
-  if (!databasePromise) {
-    databasePromise = (async () => {
-      const sqlite = await loadSQLite();
-      const database = await sqlite.openDatabaseAsync(DATABASE_NAME);
-      await database.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-      await migrate(database);
-      await seedExercises(database);
-      return database;
-    })();
+  const userId = currentUserId;
+
+  if (!userId) {
+    return Promise.reject(new Error('O banco local pertence a uma conta: entre para ver seus treinos.'));
   }
 
-  return databasePromise;
+  if (!opened || opened.userId !== userId) {
+    opened = { promise: openDatabase(userId), userId };
+  }
+
+  return opened.promise;
 }
 
 export function createId() {

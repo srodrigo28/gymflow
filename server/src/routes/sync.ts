@@ -52,15 +52,36 @@ const workoutSchema = z.union([
   }),
 ]);
 
-const pushSchema = z.object({ workouts: z.array(workoutSchema).max(50) });
+// Cada treino é validado sozinho: um registro ruim não pode travar a fila do aparelho.
+const pushSchema = z.object({ workouts: z.array(z.unknown()).max(50) });
+
+function idOf(item: unknown) {
+  return typeof item === 'object' && item !== null && 'id' in item && typeof item.id === 'string' ? item.id : null;
+}
 
 export const syncRoutes = new Hono<AppEnv>().use(requireAuth).post('/workouts', async (c) => {
   const userId = c.get('user').id;
-  const { workouts } = await readJson(c, pushSchema);
+  const { workouts: items } = await readJson(c, pushSchema);
   const synced: string[] = [];
   const rejected: string[] = [];
+  const invalid: { id: string; reason: string }[] = [];
 
-  for (const workout of workouts) {
+  for (const item of items) {
+    const parsed = workoutSchema.safeParse(item);
+
+    // Fora do formato (uma carga digitada errado, por exemplo): volta com o motivo e o app
+    // tira da fila. O treino continua no aparelho.
+    if (!parsed.success) {
+      const id = idOf(item);
+
+      if (id) {
+        invalid.push({ id, reason: parsed.error.issues[0]?.message ?? 'Dados inválidos.' });
+      }
+
+      continue;
+    }
+
+    const workout = parsed.data;
     const existing = await prisma.workout.findUnique({
       select: { clientUpdatedAt: true, userId: true },
       where: { id: workout.id },
@@ -137,5 +158,5 @@ export const syncRoutes = new Hono<AppEnv>().use(requireAuth).post('/workouts', 
     }
   }
 
-  return c.json({ rejected, synced });
+  return c.json({ invalid, rejected, synced });
 });
