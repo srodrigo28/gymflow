@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manual do Gyn Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.3"></script>
+<style>
+  /* Tokens do tema. Claro por padrão; escuro com a paleta Flow do app. */
+  :root {
+    --bg: #F2F5F9;
+    --surface: #FFFFFF;
+    --raised: #E6EBF2;
+    --line: rgba(21, 26, 35, 0.10);
+    --line-strong: rgba(21, 26, 35, 0.18);
+    --ink: #151A23;
+    --ink-2: #3B4558;
+    --muted: #5F697D;
+    --accent: #0F8C6A;
+    --accent-fill: #12B981;
+    --accent-soft: rgba(18, 185, 129, 0.14);
+    --on-accent: #04200F;
+    --done: #0F8C6A;
+    --done-fill: #12B981;
+    --done-soft: rgba(18, 185, 129, 0.14);
+    --partial: #9A6400;
+    --partial-fill: #E8A91E;
+    --partial-soft: rgba(232, 169, 30, 0.18);
+    --todo: #5F697D;
+    --todo-fill: #C5CCD8;
+    --todo-soft: rgba(95, 105, 125, 0.12);
+    --t-mint: #12B981;
+    --t-cyan: #1AA3C2;
+    --t-violet: #7263E0;
+    --t-amber: #D39410;
+    --t-orange: #E07B31;
+    --t-pink: #CC56AB;
+    --t-sky: #3A89DA;
+    --code-bg: #151A23;
+    --code-ink: #E8EEF6;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #151A23;
+      --surface: #1E2531;
+      --raised: #283040;
+      --line: rgba(255, 255, 255, 0.07);
+      --line-strong: rgba(255, 255, 255, 0.14);
+      --ink: #F4F7FB;
+      --ink-2: #B9C1D0;
+      --muted: #8E97AA;
+      --accent: #34E3A4;
+      --accent-fill: #34E3A4;
+      --accent-soft: rgba(52, 227, 164, 0.14);
+      --on-accent: #05231A;
+      --done: #34E3A4;
+      --done-fill: #34E3A4;
+      --done-soft: rgba(52, 227, 164, 0.14);
+      --partial: #FFC23D;
+      --partial-fill: #FFC23D;
+      --partial-soft: rgba(255, 194, 61, 0.16);
+      --todo: #8E97AA;
+      --todo-fill: #3A4458;
+      --todo-soft: rgba(142, 151, 170, 0.14);
+      --t-mint: #34E3A4;
+      --t-cyan: #4FD6F2;
+      --t-violet: #9D8CFF;
+      --t-amber: #FFD35C;
+      --t-orange: #FFA65C;
+      --t-pink: #F58BD8;
+      --t-sky: #6CB8FF;
+      --code-bg: #10141B;
+      --code-ink: #E8EEF6;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #151A23;
+    --surface: #1E2531;
+    --raised: #283040;
+    --line: rgba(255, 255, 255, 0.07);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --ink: #F4F7FB;
+    --ink-2: #B9C1D0;
+    --muted: #8E97AA;
+    --accent: #34E3A4;
+    --accent-fill: #34E3A4;
+    --accent-soft: rgba(52, 227, 164, 0.14);
+    --on-accent: #05231A;
+    --done: #34E3A4;
+    --done-fill: #34E3A4;
+    --done-soft: rgba(52, 227, 164, 0.14);
+    --partial: #FFC23D;
+    --partial-fill: #FFC23D;
+    --partial-soft: rgba(255, 194, 61, 0.16);
+    --todo: #8E97AA;
+    --todo-fill: #3A4458;
+    --todo-soft: rgba(142, 151, 170, 0.14);
+    --t-mint: #34E3A4;
+    --t-cyan: #4FD6F2;
+    --t-violet: #9D8CFF;
+    --t-amber: #FFD35C;
+    --t-orange: #FFA65C;
+    --t-pink: #F58BD8;
+    --t-sky: #6CB8FF;
+    --code-bg: #10141B;
+    --code-ink: #E8EEF6;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 { text-wrap: balance; }
+  .num { font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  summary { list-style: none; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+  details[open] > summary .chev { transform: rotate(180deg); }
+
+  .toolbar { top: env(safe-area-inset-top, 0px); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .chev { transition: transform 160ms ease; }
+    .bar > span { transition: width 400ms ease; }
+  }
+</style>
+<style type="text/tailwindcss">
+  @theme inline {
+    --color-bg: var(--bg);
+    --color-surface: var(--surface);
+    --color-raised: var(--raised);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-ink: var(--ink);
+    --color-ink-2: var(--ink-2);
+    --color-muted: var(--muted);
+    --color-accent: var(--accent);
+    --color-accent-fill: var(--accent-fill);
+    --color-accent-soft: var(--accent-soft);
+    --color-on-accent: var(--on-accent);
+    --color-done: var(--done);
+    --color-done-fill: var(--done-fill);
+    --color-done-soft: var(--done-soft);
+    --color-partial: var(--partial);
+    --color-partial-fill: var(--partial-fill);
+    --color-partial-soft: var(--partial-soft);
+    --color-todo: var(--todo);
+    --color-todo-fill: var(--todo-fill);
+    --color-todo-soft: var(--todo-soft);
+    --color-code: var(--code-bg);
+    --color-code-ink: var(--code-ink);
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+</style>
+</head>
+<body>
+
+<main class="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
+
+  <header class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <svg aria-hidden="true" width="44" height="18" viewBox="0 0 44 18" fill="none">
+        <rect x="0" y="3" width="4" height="12" rx="2" fill="var(--accent-fill)"/>
+        <rect x="6" y="0" width="4" height="18" rx="2" fill="var(--accent-fill)"/>
+        <rect x="10" y="7.5" width="24" height="3" rx="1.5" fill="var(--accent-fill)"/>
+        <rect x="34" y="0" width="4" height="18" rx="2" fill="var(--accent-fill)"/>
+        <rect x="40" y="3" width="4" height="12" rx="2" fill="var(--accent-fill)"/>
+      </svg>
+      <span class="text-sm font-bold tracking-wide text-ink">Gyn <span class="text-accent">Flow</span></span>
+      <span class="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted" id="updated"></span>
+    </div>
+    <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">Manual do projeto</h1>
+    <p class="max-w-[65ch] text-base leading-relaxed text-ink-2">
+      Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o que falta, agrupado do jeito
+      que o app se organiza. Use os filtros para ver só uma área ou só o que falta.
+    </p>
+  </header>
+
+  <section aria-labelledby="resumo-titulo" class="flex flex-col gap-4">
+    <h2 id="resumo-titulo" class="text-sm font-bold uppercase tracking-[0.12em] text-muted">Resumo</h2>
+    <div id="summary" class="grid gap-4 md:grid-cols-3"></div>
+    <p id="summary-note" class="max-w-[75ch] text-sm leading-relaxed text-muted"></p>
+  </section>
+
+  <section aria-labelledby="linha-titulo" class="flex flex-col gap-4">
+    <h2 id="linha-titulo" class="text-sm font-bold uppercase tracking-[0.12em] text-muted">Linha do projeto</h2>
+    <ol id="phases" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"></ol>
+  </section>
+
+  <section aria-labelledby="funcoes-titulo" class="flex flex-col gap-5">
+    <div class="toolbar sticky z-10 -mx-4 flex flex-col gap-3 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="funcoes-titulo" class="text-sm font-bold uppercase tracking-[0.12em] text-muted">Funções por grupo</h2>
+        <p id="count" class="num text-sm text-muted" aria-live="polite"></p>
+      </div>
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div role="group" aria-label="Área" id="area-filter" class="flex flex-wrap gap-1 rounded-xl bg-raised p-1"></div>
+        <div role="group" aria-label="Situação" id="status-filter" class="flex flex-wrap gap-2"></div>
+        <label for="search" class="sr-only">Buscar função</label>
+        <input id="search" type="search" placeholder="Buscar função, tela ou rota"
+          class="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink placeholder:text-muted lg:ml-auto lg:max-w-xs">
+      </div>
+    </div>
+    <div id="groups" class="grid items-start gap-4 lg:grid-cols-2"></div>
+    <p id="empty" class="rounded-xl border border-dashed border-line-strong p-6 text-center text-sm text-muted" hidden>
+      Nenhuma função com esse filtro. Limpe a busca ou escolha outra situação.
+    </p>
+  </section>
+
+  <section aria-labelledby="rodar-titulo" class="flex flex-col gap-4">
+    <h2 id="rodar-titulo" class="text-sm font-bold uppercase tracking-[0.12em] text-muted">Como rodar</h2>
+    <div id="commands" class="grid gap-4 lg:grid-cols-2"></div>
+  </section>
+
+  <section aria-labelledby="metodo-titulo" class="grid gap-6 border-t border-line pt-8 md:grid-cols-2">
+    <div class="flex flex-col gap-3">
+      <h2 id="metodo-titulo" class="text-lg font-bold">Como ler as porcentagens</h2>
+      <p class="max-w-[65ch] text-sm leading-relaxed text-ink-2">
+        Cada função da lista vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta.
+        A porcentagem é a soma dividida pelo total de funções listadas. O número conta funções, não esforço: a
+        Frase do dia pesa o mesmo que o registro de treino.
+      </p>
+      <p class="max-w-[65ch] text-sm leading-relaxed text-ink-2">
+        <strong class="text-ink">Escopo atual</strong> são as Fases 1 a 3, o fluxo de entrada e a API.
+        <strong class="text-ink">Plano completo</strong> soma as Fases 4 a 6 da estratégia, que ainda não começaram.
+      </p>
+    </div>
+    <div class="flex flex-col gap-3">
+      <h2 class="text-lg font-bold">Onde está cada coisa</h2>
+      <dl id="places" class="grid gap-3 text-sm"></dl>
+    </div>
+  </section>
+
+</main>
+
+<script id="manual-data" type="application/json">
+{
+  "updated": "23/09/2026",
+  "places": [
+    { "label": "App (Expo)", "value": "D:\\dev\\gymflow" },
+    { "label": "API (repositório próprio)", "value": "D:\\dev\\gymflow-api" },
+    { "label": "Estratégia e registro das fases", "value": "22-estrategia.md" },
+    { "label": "Fluxo de entrada, temas e marca", "value": "22-setembro-fluxo-inicial.md" },
+    { "label": "Publicação na VPS", "value": "gymflow-api/README.md" }
+  ],
+  "phases": [
+    { "title": "Fluxo inicial", "status": "partial", "note": "Etapas 0 a 12 prontas. A 13 (acessibilidade e desempenho) falta no iPhone." },
+    { "title": "Fase 1 · Registro de treino", "status": "partial", "note": "Pronta e sincronizando com a conta. Falta o check-in na academia." },
+    { "title": "Fase 2 · Corpo e fotos", "status": "partial", "note": "Medidas, fotos e comparador prontos. Falta o que pede consentimento e servidor." },
+    { "title": "Fase 3 · Social e desafios", "status": "partial", "note": "Card, desafios, convite e placar prontos. Faltam amigos e check-in com foto." },
+    { "title": "API · gymflow-api", "status": "partial", "note": "Pronta e testada, inclusive no Docker. Falta publicar na VPS." },
+    { "title": "Fase 4 · Ranking e ligas", "status": "todo", "note": "XP, ligas semanais, categorias de ranking com DOTS e troféus." },
+    { "title": "Fase 5 · Personal e academia", "status": "todo", "note": "Vínculo por convite, painel do personal, prescrição e mural." },
+    { "title": "Fase 6 · Recomendação com IA", "status": "todo", "note": "Plano semanal com explicação, resumo do mês e custo por usuário." }
+  ],
+  "commands": [
+    {
+      "title": "App",
+      "where": "D:\\dev\\gymflow",
+      "lines": [
+        "npm install",
+        "npx expo start --port 8097"
+      ],
+      "note": "A porta 8090 está ocupada neste computador. O .env.local aponta para a API (EXPO_PUBLIC_API_URL); no emulador, rode adb reverse tcp:3333 tcp:3333."
+    },
+    {
+      "title": "API",
+      "where": "D:\\dev\\gymflow-api",
+      "lines": [
+        "npm install",
+        "npx prisma dev start gynflow",
+        "npm run dev",
+        "npm test"
+      ],
+      "note": "Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. Para a VPS: docker compose up -d --build (passo a passo no README)."
+    }
+  ],
+  "groups": [
+    {
+      "id": "entrada",
+      "area": "app",
+      "title": "Primeiros passos",
+      "phase": "Fluxo inicial",
+      "tone": "cyan",
+      "items": [
+        { "name": "Splash animada com carregamento real", "status": "done", "note": "Sessão, tema e fontes carregam enquanto a marca anima.", "where": "app/(auth)/splash.tsx" },
+        { "name": "Boas-vindas com carrossel de três cenas", "status": "done", "where": "app/(auth)/welcome.tsx" },
+        { "name": "Login com foto no topo e formulário em folha", "status": "done", "where": "app/(auth)/login.tsx" },
+        { "name": "Cadastro no mesmo layout, com medidor de força da senha", "status": "done", "where": "app/(auth)/sign-up.tsx" },
+        { "name": "Teclado que acompanha a altura real", "status": "done", "note": "O campo em foco fica sempre acima do teclado." },
+        { "name": "Rotas protegidas", "status": "done", "note": "Sem sessão, a área logada não abre.", "where": "app/_layout.tsx" },
+        { "name": "Quatro temas de cores e tela Aparência", "status": "done", "note": "Flow, Meia-noite, Aurora e Brasa.", "where": "app/(app)/appearance.tsx" },
+        { "name": "Acessibilidade, movimento e desempenho", "status": "partial", "note": "Validado no Android e no web. Falta iPhone, VoiceOver e fonte grande." },
+        { "name": "Tema claro \"Dia\"", "status": "todo" },
+        { "name": "Recuperação de senha", "status": "todo", "note": "O link avisa que chega em breve. Depende de a API mandar e-mail." },
+        { "name": "Termos de Uso e Política de Privacidade", "status": "todo", "note": "O cadastro cita os dois, mas ainda não há link." },
+        { "name": "Fotos definitivas do hero e do login", "status": "todo", "note": "As atuais vêm de mockups gerados." }
+      ]
+    },
+    {
+      "id": "conta",
+      "area": "app",
+      "title": "Conta e sessão",
+      "phase": "Conta",
+      "tone": "sky",
+      "items": [
+        { "name": "Cadastro e login de verdade, pela API", "status": "done", "note": "As mensagens de erro vêm do servidor.", "where": "src/services/auth.ts" },
+        { "name": "Sessão conferida ao abrir, sem travar o app offline", "status": "done", "where": "src/contexts/session-context.tsx" },
+        { "name": "Sair da conta", "status": "done" },
+        { "name": "Banco local separado por conta", "status": "done", "note": "Outra pessoa no mesmo celular não vê nem envia os treinos da anterior.", "where": "src/db/client.ts" },
+        { "name": "Apagar a conta pelo app", "status": "todo", "note": "A API já apaga (DELETE /me). Falta o botão com a confirmação da senha." },
+        { "name": "Alterar perfil", "status": "todo", "note": "O botão da home só abre o seletor de imagem." },
+        { "name": "Foto de perfil salva", "status": "todo", "note": "Hoje só pré-visualiza, e só no web." }
+      ]
+    },
+    {
+      "id": "onboarding",
+      "area": "app",
+      "title": "Onboarding",
+      "phase": "Pós-cadastro",
+      "tone": "violet",
+      "items": [
+        { "name": "Onboarding de 23 etapas com validação", "status": "done", "where": "app/(onboarding)/start.tsx" },
+        { "name": "Painel do ponto de partida (peso, altura e IMC)", "status": "done" },
+        { "name": "Respostas guardadas no aparelho", "status": "done", "note": "No SecureStore, porque há dados sensíveis (sono, humor, fumo)." },
+        { "name": "Resumo da home a partir das respostas", "status": "done", "note": "Fase da jornada, rotina e duração do treino." },
+        { "name": "Levar o perfil para a conta, com consentimento", "status": "todo", "note": "Hoje fica só no aparelho, de propósito." }
+      ]
+    },
+    {
+      "id": "treino",
+      "area": "app",
+      "title": "Treino",
+      "phase": "Fase 1",
+      "tone": "mint",
+      "items": [
+        { "name": "Registro de treino sem internet", "status": "done", "note": "Séries, cronômetro e descanso de 90 s.", "where": "app/(app)/treino/sessao.tsx" },
+        { "name": "Repetir a última série", "status": "done", "note": "Copia a anterior ou a da última vez naquele exercício." },
+        { "name": "Biblioteca de 37 exercícios com busca por grupo", "status": "done", "where": "app/(app)/treino/exercicios.tsx" },
+        { "name": "Recorde automático", "status": "done", "note": "Pela carga ou pela estimativa de uma repetição máxima." },
+        { "name": "Resumo da semana e \"o que está faltando\"", "status": "done", "where": "app/(app)/treino/index.tsx" },
+        { "name": "Histórico semanal e mensal por grupo muscular", "status": "done", "where": "app/(app)/treino/historico.tsx" },
+        { "name": "Limites de digitação", "status": "done", "note": "Carga acima de 1000 kg fica vermelha e não é salva." },
+        { "name": "Treinos sobem sozinhos para a conta", "status": "done", "note": "Ao entrar, ao voltar para o app e segundos depois de terminar.", "where": "src/services/sync.ts" },
+        { "name": "Check-in na academia", "status": "todo" },
+        { "name": "Restaurar os treinos num aparelho novo", "status": "todo", "note": "Precisa de a API devolver os treinos da conta." },
+        { "name": "Comemoração de recorde com card na hora", "status": "todo" }
+      ]
+    },
+    {
+      "id": "corpo",
+      "area": "app",
+      "title": "Evolução do corpo",
+      "phase": "Fase 2",
+      "tone": "amber",
+      "items": [
+        { "name": "Medidas com histórico", "status": "done", "note": "Peso, gordura e cinco circunferências; só a data é obrigatória.", "where": "app/(app)/corpo/medidas.tsx" },
+        { "name": "Gráfico de peso", "status": "done", "note": "Com a variação desde a primeira pesagem.", "where": "app/(app)/corpo/index.tsx" },
+        { "name": "Foto do mês por pose", "status": "done", "note": "Copiada para a área privada do app.", "where": "app/(app)/corpo/fotos.tsx" },
+        { "name": "Comparador antes e depois", "status": "done", "where": "app/(app)/corpo/comparar.tsx" },
+        { "name": "Guia de contorno na câmera", "status": "todo" },
+        { "name": "Consentimento e backup de medidas e fotos na conta", "status": "todo", "note": "Dados sensíveis pela LGPD." },
+        { "name": "Tarja e revogação ao compartilhar fotos", "status": "todo" },
+        { "name": "Health Connect e Apple Health", "status": "todo" }
+      ]
+    },
+    {
+      "id": "social",
+      "area": "app",
+      "title": "Social e desafios",
+      "phase": "Fase 3",
+      "tone": "orange",
+      "items": [
+        { "name": "Card compartilhável de recorde e da semana", "status": "done", "where": "app/(app)/compartilhar.tsx" },
+        { "name": "Criar desafio e convidar pelo WhatsApp", "status": "done", "note": "7, 14 ou 30 dias.", "where": "app/(app)/desafios/novo.tsx" },
+        { "name": "Placar do desafio", "status": "done", "note": "Um ponto por dia com treino concluído.", "where": "app/(app)/desafios/[id].tsx" },
+        { "name": "Entrar pelo link ou pelo código, mesmo sem conta", "status": "done", "note": "O cadastro pelo convite volta direto para ele.", "where": "app/convite/[code].tsx" },
+        { "name": "Sair do desafio", "status": "done" },
+        { "name": "Amigos", "status": "todo" },
+        { "name": "Check-in com foto no desafio", "status": "todo" },
+        { "name": "Cards de sequência e retrospectiva do mês", "status": "todo" }
+      ]
+    },
+    {
+      "id": "home",
+      "area": "app",
+      "title": "Home e menu do perfil",
+      "phase": "Perfil",
+      "tone": "pink",
+      "items": [
+        { "name": "Nome e resumo reais de quem entrou", "status": "done", "where": "app/(app)/home.tsx" },
+        { "name": "Menu com Treino, Evolução, Desafios e Aparência", "status": "done" },
+        { "name": "Painel de administração", "status": "done", "note": "Só para quem está em ADMIN_EMAILS: cadastros contra a meta de 200.", "where": "app/(app)/admin.tsx" },
+        { "name": "Sincronizar dispositivos", "status": "todo" },
+        { "name": "Alimentações diárias", "status": "todo" },
+        { "name": "Alimentação ideal para escolher", "status": "todo" },
+        { "name": "Escolhas de treinos", "status": "todo", "note": "Local, categorias, grupos, equipamentos e exercícios preferidos (menu-profile.md)." },
+        { "name": "Recomendações", "status": "todo" },
+        { "name": "Conquistas", "status": "todo" },
+        { "name": "Frase do dia", "status": "todo" },
+        { "name": "Tela \"dashboard\" com dados reais", "status": "todo", "note": "Hoje mostra exercícios fixos no código.", "where": "app/(app)/dashboard.tsx" },
+        { "name": "Cartão \"Evolução corporal · Em breve\"", "status": "todo", "note": "A Evolução já existe: apontar o cartão para ela ou tirar." }
+      ]
+    },
+    {
+      "id": "plataformas",
+      "area": "app",
+      "title": "Plataformas e loja",
+      "phase": "Publicação",
+      "tone": "cyan",
+      "items": [
+        { "name": "Android", "status": "done", "note": "Testado no emulador com o Expo Go." },
+        { "name": "Web", "status": "partial", "note": "As telas de entrada funcionam. O treino usa SQLite, que não roda no servidor web de desenvolvimento." },
+        { "name": "iPhone", "status": "todo" },
+        { "name": "Build de loja (EAS)", "status": "todo" },
+        { "name": "App apontando para a API publicada", "status": "todo", "note": "expo.extra.apiUrl com https." }
+      ]
+    },
+    {
+      "id": "api-contas",
+      "area": "api",
+      "title": "Contas",
+      "phase": "API",
+      "tone": "sky",
+      "items": [
+        { "name": "Cadastro, login e saída", "status": "done", "where": "POST /auth/sign-up · /auth/sign-in · /auth/sign-out" },
+        { "name": "Token de sessão de 60 dias, só o hash no banco", "status": "done" },
+        { "name": "Senha com scrypt e a mesma resposta para e-mail ou senha errados", "status": "done" },
+        { "name": "Limite de tentativas de login e cadastro", "status": "done" },
+        { "name": "Apagar a conta com a senha, em cascata", "status": "done", "where": "DELETE /me" },
+        { "name": "Administrador por lista de e-mails", "status": "done", "where": "ADMIN_EMAILS" },
+        { "name": "Recuperação de senha por e-mail", "status": "todo", "note": "Precisa de um serviço de envio de e-mail." },
+        { "name": "Confirmação de e-mail", "status": "todo" },
+        { "name": "Alterar nome e senha", "status": "todo" }
+      ]
+    },
+    {
+      "id": "api-sync",
+      "area": "api",
+      "title": "Sincronização",
+      "phase": "API",
+      "tone": "mint",
+      "items": [
+        { "name": "Receber os treinos da fila do app", "status": "done", "note": "Lotes de até 50.", "where": "POST /sync/workouts" },
+        { "name": "Versão mais nova vence; id de outra conta é recusado", "status": "done" },
+        { "name": "Validação treino a treino", "status": "done", "note": "Um registro ruim volta como inválido e não trava os outros." },
+        { "name": "Devolver os treinos da conta", "status": "todo", "note": "Para restaurar num aparelho novo." },
+        { "name": "Medidas e fotos com consentimento", "status": "todo", "note": "Fotos em armazenamento privado, com URL assinada." }
+      ]
+    },
+    {
+      "id": "api-desafios",
+      "area": "api",
+      "title": "Desafios",
+      "phase": "API",
+      "tone": "orange",
+      "items": [
+        { "name": "Criar, listar, detalhar e sair", "status": "done", "where": "/challenges" },
+        { "name": "Entrar pelo código do convite", "status": "done", "where": "POST /challenges/join" },
+        { "name": "Placar por dias com treino, no fuso do desafio", "status": "done" },
+        { "name": "Prévia pública do convite", "status": "done", "where": "GET /invites/:code" },
+        { "name": "Página do link do WhatsApp", "status": "done", "note": "Prévia na conversa e botão que abre o app.", "where": "GET /c/:code" },
+        { "name": "Amigos", "status": "todo" },
+        { "name": "Check-in com foto", "status": "todo" },
+        { "name": "Notificações de lembrete e de placar", "status": "todo", "note": "Pede também o envio de notificações no app." }
+      ]
+    },
+    {
+      "id": "api-admin",
+      "area": "api",
+      "title": "Administração",
+      "phase": "API",
+      "tone": "violet",
+      "items": [
+        { "name": "Métricas da semana", "status": "done", "note": "Cadastros, ativos e treinos concluídos.", "where": "GET /admin/metrics" }
+      ]
+    },
+    {
+      "id": "api-infra",
+      "area": "api",
+      "title": "Qualidade e publicação",
+      "phase": "API",
+      "tone": "cyan",
+      "items": [
+        { "name": "37 testes automáticos contra um Postgres de verdade", "status": "done", "where": "npm test" },
+        { "name": "Docker Compose com Postgres, migrações e Caddy (HTTPS)", "status": "done", "note": "Testado localmente; o certificado só sai com o domínio real." },
+        { "name": "CI no GitHub", "status": "partial", "note": "Arquivo pronto; roda quando o repositório estiver no GitHub.", "where": ".github/workflows/ci.yml" },
+        { "name": "Publicar na VPS", "status": "todo", "note": "Domínio, DNS e o .env de produção." },
+        { "name": "Backup automático do banco", "status": "todo", "note": "O comando está no README; falta agendar." },
+        { "name": "Monitoramento e alertas", "status": "todo" }
+      ]
+    },
+    {
+      "id": "fase4",
+      "area": "future",
+      "title": "Ranking, ligas e premiação",
+      "phase": "Fase 4",
+      "tone": "amber",
+      "items": [
+        { "name": "XP e pontuação", "status": "todo" },
+        { "name": "Ligas semanais e temporada mensal", "status": "todo" },
+        { "name": "Categorias de ranking com força relativa (DOTS)", "status": "todo" },
+        { "name": "Check-in verificado", "status": "todo" },
+        { "name": "Troféus e selos", "status": "todo" }
+      ]
+    },
+    {
+      "id": "fase5",
+      "area": "future",
+      "title": "Personal e academia",
+      "phase": "Fase 5",
+      "tone": "pink",
+      "items": [
+        { "name": "Vínculo por convite, com permissões", "status": "todo" },
+        { "name": "Painel do personal", "status": "todo" },
+        { "name": "Prescrição de treino", "status": "todo" },
+        { "name": "Página do profissional", "status": "todo" },
+        { "name": "Mural da academia", "status": "todo" }
+      ]
+    },
+    {
+      "id": "fase6",
+      "area": "future",
+      "title": "Recomendação com IA",
+      "phase": "Fase 6",
+      "tone": "violet",
+      "items": [
+        { "name": "Plano semanal gerado por IA, com explicação", "status": "todo" },
+        { "name": "Resumo do mês", "status": "todo" },
+        { "name": "Leitura das medidas", "status": "todo" },
+        { "name": "Regras de segurança por cima da IA", "status": "todo" },
+        { "name": "Custo medido por usuário", "status": "todo" }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById('manual-data').textContent);
+
+  const SCORE = { done: 1, partial: 0.5, todo: 0 };
+  const LABEL = { done: 'Pronto', partial: 'Parcial', todo: 'A fazer' };
+  const AREA = { app: 'App', api: 'API', future: 'Próximas fases' };
+  const STORAGE_KEY = 'gynflow-manual-filtros';
+
+  const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+  const breakdown = (stats) =>
+    `${plural(stats.done, 'pronta', 'prontas')} · ${plural(stats.partial, 'parcial', 'parciais')} · ${stats.todo} a fazer`;
+
+  const escape = (value) =>
+    String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+  const fold = (value) => String(value).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+  function tally(items) {
+    const count = { done: 0, partial: 0, todo: 0 };
+    let score = 0;
+
+    for (const item of items) {
+      count[item.status] += 1;
+      score += SCORE[item.status];
+    }
+
+    const total = items.length;
+    return { ...count, pct: total ? Math.round((score / total) * 100) : 0, score, total };
+  }
+
+  const itemsOf = (areas) => data.groups.filter((group) => areas.includes(group.area)).flatMap((group) => group.items);
+
+  const statusIcon = (status) => {
+    if (status === 'done') {
+      return '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="7" fill="currentColor"/><path d="M4 7.2l2 2 4-4.4" fill="none" stroke="var(--surface)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+
+    if (status === 'partial') {
+      return '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 1a6 6 0 0 1 0 12z" fill="currentColor"/></svg>';
+    }
+
+    return '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+  };
+
+  const pill = (status) => `
+    <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-${status}-soft px-2.5 py-1 text-xs font-bold text-${status}">
+      ${statusIcon(status)}${LABEL[status]}
+    </span>`;
+
+  // Barra empilhada: pronto, parcial e a fazer, na proporção da contagem.
+  const bar = (stats, height = 'h-2.5') => {
+    const part = (value) => (stats.total ? (value / stats.total) * 100 : 0);
+
+    return `
+      <div class="bar flex ${height} w-full overflow-hidden rounded-full bg-todo-fill" role="img"
+        aria-label="${breakdown(stats)}">
+        <span class="bg-done-fill" style="width:${part(stats.done)}%"></span>
+        <span class="bg-partial-fill" style="width:${part(stats.partial)}%"></span>
+      </div>`;
+  };
+
+  function renderSummary() {
+    const current = ['app', 'api'];
+    const tiles = [
+      { label: 'App', sub: 'Frontend em Expo', stats: tally(itemsOf(['app'])) },
+      { label: 'API', sub: 'gymflow-api', stats: tally(itemsOf(['api'])) },
+      { label: 'Geral', sub: 'Escopo atual (Fases 1 a 3 e API)', stats: tally(itemsOf(current)) },
+    ];
+    const full = tally(itemsOf(['app', 'api', 'future']));
+
+    document.getElementById('summary').innerHTML = tiles
+      .map(
+        (tile, index) => `
+        <article class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+          <div class="flex items-baseline justify-between gap-3">
+            <div>
+              <h3 class="text-base font-bold">${tile.label}</h3>
+              <p class="text-xs text-muted">${tile.sub}</p>
+            </div>
+            <p class="num text-5xl font-extrabold leading-none tracking-tight ${index === 2 ? 'text-accent' : 'text-ink'}">
+              ${tile.stats.pct}<span class="text-2xl font-bold text-muted">%</span>
+            </p>
+          </div>
+          ${bar(tile.stats)}
+          <dl class="num grid grid-cols-3 gap-2 text-sm">
+            <div><dt class="text-xs text-muted">Prontas</dt><dd class="font-bold text-done">${tile.stats.done}</dd></div>
+            <div><dt class="text-xs text-muted">Parciais</dt><dd class="font-bold text-partial">${tile.stats.partial}</dd></div>
+            <div><dt class="text-xs text-muted">A fazer</dt><dd class="font-bold text-ink-2">${tile.stats.todo}</dd></div>
+          </dl>
+          ${
+            index === 2
+              ? `<p class="num border-t border-line pt-3 text-xs text-muted">Plano completo, com as Fases 4 a 6: <strong class="text-ink">${full.pct}%</strong> de ${full.total} funções.</p>`
+              : ''
+          }
+        </article>`,
+      )
+      .join('');
+
+    const app = tiles[0].stats;
+    const api = tiles[1].stats;
+    document.getElementById('summary-note').textContent =
+      `O app tem ${app.done} de ${app.total} funções prontas e a API, ${api.done} de ${api.total}. ` +
+      'O que puxa o app para baixo são os cartões do menu do perfil que ainda não abrem nada; ' +
+      'na API, o que falta é sobretudo publicar e o que depende de e-mail e armazenamento de fotos.';
+  }
+
+  function renderPhases() {
+    document.getElementById('phases').innerHTML = data.phases
+      .map(
+        (phase, index) => `
+        <li class="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="num text-xs font-bold text-muted">${String(index + 1).padStart(2, '0')}</span>
+            ${pill(phase.status)}
+          </div>
+          <h3 class="text-sm font-bold leading-snug">${escape(phase.title)}</h3>
+          <p class="text-xs leading-relaxed text-ink-2">${escape(phase.note)}</p>
+        </li>`,
+      )
+      .join('');
+  }
+
+  // Filtros: área, situação e busca. Ficam salvos neste navegador (se ele deixar).
+  let filters = { area: 'all', q: '', status: 'all' };
+
+  try {
+    filters = { ...filters, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') };
+  } catch {
+    // Sem armazenamento: começa com tudo à mostra.
+  }
+
+  function saveFilters() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+    } catch {
+      // Filtro não salvo; a página segue funcionando.
+    }
+  }
+
+  function renderFilters() {
+    const areas = [
+      ['all', 'Tudo'],
+      ['app', 'App'],
+      ['api', 'API'],
+      ['future', 'Próximas fases'],
+    ];
+    const statuses = [
+      ['all', 'Todas'],
+      ['done', 'Prontas'],
+      ['partial', 'Parciais'],
+      ['todo', 'A fazer'],
+    ];
+
+    document.getElementById('area-filter').innerHTML = areas
+      .map(
+        ([value, label]) => `
+        <button type="button" data-area="${value}" aria-pressed="${filters.area === value}"
+          class="rounded-lg px-3 py-1.5 text-sm font-semibold ${
+            filters.area === value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'
+          }">${label}</button>`,
+      )
+      .join('');
+
+    document.getElementById('status-filter').innerHTML = statuses
+      .map(
+        ([value, label]) => `
+        <button type="button" data-status="${value}" aria-pressed="${filters.status === value}"
+          class="rounded-full border px-3 py-1.5 text-sm font-semibold ${
+            filters.status === value ? 'border-accent bg-accent-soft text-accent' : 'border-line text-ink-2 hover:border-line-strong'
+          }">${label}</button>`,
+      )
+      .join('');
+
+    document.getElementById('search').value = filters.q;
+  }
+
+  function renderGroups() {
+    const query = fold(filters.q.trim());
+    let shown = 0;
+    const html = [];
+
+    for (const group of data.groups) {
+      if (filters.area !== 'all' && group.area !== filters.area) {
+        continue;
+      }
+
+      const groupText = fold(`${group.title} ${group.phase}`);
+      const items = group.items.filter((item) => {
+        if (filters.status !== 'all' && item.status !== filters.status) {
+          return false;
+        }
+
+        return !query || groupText.includes(query) || fold(`${item.name} ${item.note ?? ''} ${item.where ?? ''}`).includes(query);
+      });
+
+      if (!items.length) {
+        continue;
+      }
+
+      shown += items.length;
+      const stats = tally(group.items);
+
+      html.push(`
+        <details open class="rounded-2xl border border-line bg-surface">
+          <summary class="flex flex-col gap-3 p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex min-w-0 items-center gap-3">
+                <span aria-hidden="true" class="h-3 w-3 shrink-0 rounded-full" style="background:var(--t-${group.tone})"></span>
+                <h3 class="text-base font-bold leading-snug">${escape(group.title)}</h3>
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                <span class="rounded-full border border-line px-2 py-0.5 text-xs font-semibold text-muted">${escape(group.phase)}</span>
+                <span class="rounded-full bg-raised px-2 py-0.5 text-xs font-semibold text-ink-2">${AREA[group.area]}</span>
+                <svg class="chev text-muted" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              ${bar(stats, 'h-1.5')}
+              <span class="num shrink-0 text-xs font-bold text-ink-2">${stats.pct}%</span>
+            </div>
+            <p class="num text-xs text-muted">${breakdown(stats)}</p>
+          </summary>
+          <ul class="flex flex-col border-t border-line">
+            ${items
+              .map(
+                (item) => `
+              <li class="flex flex-col gap-1.5 border-b border-line px-5 py-3 last:border-b-0 sm:flex-row sm:items-start sm:gap-3">
+                ${pill(item.status)}
+                <div class="flex min-w-0 flex-col gap-1">
+                  <p class="text-sm font-semibold leading-snug text-ink">${escape(item.name)}</p>
+                  ${item.note ? `<p class="text-sm leading-relaxed text-ink-2">${escape(item.note)}</p>` : ''}
+                  ${item.where ? `<code class="break-all font-mono text-xs text-muted">${escape(item.where)}</code>` : ''}
+                </div>
+              </li>`,
+              )
+              .join('')}
+          </ul>
+        </details>`);
+    }
+
+    document.getElementById('groups').innerHTML = html.join('');
+    document.getElementById('empty').hidden = shown > 0;
+    document.getElementById('count').textContent = `${shown} ${shown === 1 ? 'função' : 'funções'} na lista`;
+  }
+
+  function renderCommands() {
+    document.getElementById('commands').innerHTML = data.commands
+      .map(
+        (block, index) => `
+        <article class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="text-base font-bold">${escape(block.title)}</h3>
+              <p class="break-all font-mono text-xs text-muted">${escape(block.where)}</p>
+            </div>
+            <button type="button" data-copy="${index}"
+              class="shrink-0 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-2 hover:border-line-strong">Copiar</button>
+          </div>
+          <div class="overflow-x-auto rounded-xl bg-code p-4">
+            <pre id="cmd-${index}" class="font-mono text-sm leading-relaxed text-code-ink">${block.lines.map(escape).join('\n')}</pre>
+          </div>
+          <p class="text-sm leading-relaxed text-ink-2">${escape(block.note)}</p>
+        </article>`,
+      )
+      .join('');
+  }
+
+  function renderPlaces() {
+    document.getElementById('places').innerHTML = data.places
+      .map(
+        (place) => `
+        <div class="flex flex-col gap-0.5">
+          <dt class="text-xs text-muted">${escape(place.label)}</dt>
+          <dd class="break-all font-mono text-sm text-ink">${escape(place.value)}</dd>
+        </div>`,
+      )
+      .join('');
+  }
+
+  document.getElementById('updated').textContent = `Atualizado em ${data.updated}`;
+  renderSummary();
+  renderPhases();
+  renderFilters();
+  renderGroups();
+  renderCommands();
+  renderPlaces();
+
+  document.getElementById('area-filter').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-area]');
+
+    if (button) {
+      filters.area = button.dataset.area;
+      saveFilters();
+      renderFilters();
+      renderGroups();
+    }
+  });
+
+  document.getElementById('status-filter').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-status]');
+
+    if (button) {
+      filters.status = button.dataset.status;
+      saveFilters();
+      renderFilters();
+      renderGroups();
+    }
+  });
+
+  document.getElementById('search').addEventListener('input', (event) => {
+    filters.q = event.target.value;
+    saveFilters();
+    renderGroups();
+  });
+
+  // Copiar comandos: usa a área de transferência; se o navegador recusar, seleciona o texto.
+  document.getElementById('commands').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-copy]');
+
+    if (!button) {
+      return;
+    }
+
+    const pre = document.getElementById(`cmd-${button.dataset.copy}`);
+    const done = () => {
+      button.textContent = 'Copiado';
+      setTimeout(() => (button.textContent = 'Copiar'), 1500);
+    };
+
+    navigator.clipboard.writeText(pre.textContent).then(done, () => {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      button.textContent = 'Selecionado';
+      setTimeout(() => (button.textContent = 'Copiar'), 1500);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
