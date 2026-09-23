@@ -254,14 +254,17 @@
     { "label": "API (repositório próprio)", "value": "D:\\dev\\gymflow-api" },
     { "label": "Estratégia e registro das fases", "value": "22-estrategia.md" },
     { "label": "Fluxo de entrada, temas e marca", "value": "22-setembro-fluxo-inicial.md" },
-    { "label": "Publicação na VPS", "value": "gymflow-api/README.md" }
+    { "label": "API publicada", "value": "https://99dev.pro/gymflow-api" },
+    { "label": "Saúde da API e do banco", "value": "https://99dev.pro/gymflow-api/health" },
+    { "label": "Código da API", "value": "https://github.com/srodrigo28/gymflow-api" },
+    { "label": "Publicação no painel 99dev", "value": "gymflow-api/23-setembro-guia-deploy-api.md" }
   ],
   "phases": [
     { "title": "Fluxo inicial", "status": "partial", "note": "Etapas 0 a 12 prontas. A 13 (acessibilidade e desempenho) falta no iPhone." },
     { "title": "Fase 1 · Registro de treino", "status": "partial", "note": "Pronta e sincronizando com a conta. Falta o check-in na academia." },
     { "title": "Fase 2 · Corpo e fotos", "status": "partial", "note": "Medidas, fotos e comparador prontos. Falta o que pede consentimento e servidor." },
     { "title": "Fase 3 · Social e desafios", "status": "partial", "note": "Card, desafios, convite e placar prontos. Faltam amigos e check-in com foto." },
-    { "title": "API · gymflow-api", "status": "partial", "note": "Pronta e testada, inclusive no Docker. Falta publicar na VPS." },
+    { "title": "API · gymflow-api", "status": "partial", "note": "No ar em 99dev.pro/gymflow-api. Faltam backup agendado, monitoramento e envio de e-mail." },
     { "title": "Fase 4 · Ranking e ligas", "status": "todo", "note": "XP, ligas semanais, categorias de ranking com DOTS e troféus." },
     { "title": "Fase 5 · Personal e academia", "status": "todo", "note": "Vínculo por convite, painel do personal, prescrição e mural." },
     { "title": "Fase 6 · Recomendação com IA", "status": "todo", "note": "Plano semanal com explicação, resumo do mês e custo por usuário." }
@@ -285,7 +288,7 @@
         "npm run dev",
         "npm test"
       ],
-      "note": "Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. Para a VPS: docker compose up -d --build (passo a passo no README)."
+      "note": "Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. A produção sai pelo painel 99dev (guia 23-setembro-guia-deploy-api.md)."
     }
   ],
   "groups": [
@@ -427,7 +430,7 @@
         { "name": "Web", "status": "partial", "note": "As telas de entrada funcionam. O treino usa SQLite, que não roda no servidor web de desenvolvimento." },
         { "name": "iPhone", "status": "todo" },
         { "name": "Build de loja (EAS)", "status": "todo" },
-        { "name": "App apontando para a API publicada", "status": "todo", "note": "expo.extra.apiUrl com https." }
+        { "name": "App apontando para a API publicada", "status": "partial", "note": "expo.extra.apiUrl = https://99dev.pro/gymflow-api. Falta testar o app contra a produção.", "where": "app.json" }
       ]
     },
     {
@@ -499,8 +502,8 @@
       "items": [
         { "name": "44 testes automáticos contra um Postgres de verdade", "status": "done", "where": "npm test" },
         { "name": "Docker Compose com Postgres, migrações e Caddy (HTTPS)", "status": "done", "note": "Testado localmente; o certificado só sai com o domínio real." },
-        { "name": "CI no GitHub", "status": "partial", "note": "Arquivo pronto; roda quando o repositório estiver no GitHub.", "where": ".github/workflows/ci.yml" },
-        { "name": "Publicar na VPS", "status": "todo", "note": "Domínio, DNS e o .env de produção." },
+        { "name": "CI no GitHub", "status": "partial", "note": "O repositório já está no GitHub (privado). Falta conferir as execuções na aba Actions.", "where": ".github/workflows/ci.yml" },
+        { "name": "Publicar na VPS", "status": "done", "note": "Painel 99dev, em https://99dev.pro/gymflow-api. Confira se o painel sonda /health (HEALTHCHECK_PATH), e não /healthz." },
         { "name": "Backup automático do banco", "status": "todo", "note": "O comando está no README; falta agendar." },
         { "name": "Monitoramento e alertas", "status": "todo" }
       ]
@@ -824,7 +827,11 @@
         (place) => `
         <div class="flex flex-col gap-0.5">
           <dt class="text-xs text-muted">${escape(place.label)}</dt>
-          <dd class="break-all font-mono text-sm text-ink">${escape(place.value)}</dd>
+          <dd class="break-all font-mono text-sm text-ink">${
+            place.value.startsWith('https://')
+              ? `<a class="text-accent underline underline-offset-2" href="${escape(place.value)}" rel="noopener" target="_blank">${escape(place.value)}</a>`
+              : escape(place.value)
+          }</dd>
         </div>`,
       )
       .join('');

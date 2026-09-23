@@ -8,10 +8,10 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
-| **App** (frontend em Expo) | 41 | 3 | 25 | **62%** |
-| **API** (gymflow-api) | 19 | 1 | 10 | **65%** |
-| **Geral**, escopo atual (Fases 1 a 3 e API) | 60 | 4 | 35 | **63%** |
-| Plano completo, com as Fases 4 a 6 | 60 | 4 | 50 | 54% |
+| **App** (frontend em Expo) | 41 | 4 | 24 | **62%** |
+| **API** (gymflow-api) | 20 | 1 | 9 | **68%** |
+| **Geral**, escopo atual (Fases 1 a 3 e API) | 61 | 5 | 33 | **64%** |
+| Plano completo, com as Fases 4 a 6 | 61 | 5 | 48 | 56% |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -23,7 +23,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 2. 🟨 **Fase 1 · Registro de treino**: Pronta e sincronizando com a conta. Falta o check-in na academia.
 3. 🟨 **Fase 2 · Corpo e fotos**: Medidas, fotos e comparador prontos. Falta o que pede consentimento e servidor.
 4. 🟨 **Fase 3 · Social e desafios**: Card, desafios, convite e placar prontos. Faltam amigos e check-in com foto.
-5. 🟨 **API · gymflow-api**: Pronta e testada, inclusive no Docker. Falta publicar na VPS.
+5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api. Faltam backup agendado, monitoramento e envio de e-mail.
 6. ⬜ **Fase 4 · Ranking e ligas**: XP, ligas semanais, categorias de ranking com DOTS e troféus.
 7. ⬜ **Fase 5 · Personal e academia**: Vínculo por convite, painel do personal, prescrição e mural.
 8. ⬜ **Fase 6 · Recomendação com IA**: Plano semanal com explicação, resumo do mês e custo por usuário.
@@ -131,13 +131,13 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Plataformas e loja · Publicação
 
-30% · 1 pronta, 1 parcial, 3 a fazer
+40% · 1 pronta, 2 parciais, 2 a fazer
 
 - ✅ **Android** · Testado no emulador com o Expo Go.
 - 🟨 **Web** · As telas de entrada funcionam. O treino usa SQLite, que não roda no servidor web de desenvolvimento.
 - ⬜ **iPhone**
 - ⬜ **Build de loja (EAS)**
-- ⬜ **App apontando para a API publicada** · expo.extra.apiUrl com https.
+- 🟨 **App apontando para a API publicada** · expo.extra.apiUrl = https://99dev.pro/gymflow-api. Falta testar o app contra a produção. · `app.json`
 
 ## API (gymflow-api)
 
@@ -187,12 +187,12 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Qualidade e publicação · API
 
-42% · 2 prontas, 1 parcial, 3 a fazer
+58% · 3 prontas, 1 parcial, 2 a fazer
 
 - ✅ **44 testes automáticos contra um Postgres de verdade** · `npm test`
 - ✅ **Docker Compose com Postgres, migrações e Caddy (HTTPS)** · Testado localmente; o certificado só sai com o domínio real.
-- 🟨 **CI no GitHub** · Arquivo pronto; roda quando o repositório estiver no GitHub. · `.github/workflows/ci.yml`
-- ⬜ **Publicar na VPS** · Domínio, DNS e o .env de produção.
+- 🟨 **CI no GitHub** · O repositório já está no GitHub (privado). Falta conferir as execuções na aba Actions. · `.github/workflows/ci.yml`
+- ✅ **Publicar na VPS** · Painel 99dev, em https://99dev.pro/gymflow-api. Confira se o painel sonda /health (HEALTHCHECK_PATH), e não /healthz.
 - ⬜ **Backup automático do banco** · O comando está no README; falta agendar.
 - ⬜ **Monitoramento e alertas**
 
@@ -248,7 +248,7 @@ npm run dev
 npm test
 ```
 
-Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. Para a VPS: docker compose up -d --build (passo a passo no README).
+Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. A produção sai pelo painel 99dev (guia 23-setembro-guia-deploy-api.md).
 
 ## Onde está cada coisa
 
@@ -256,4 +256,7 @@ Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. 
 - **API (repositório próprio):** `D:\dev\gymflow-api`
 - **Estratégia e registro das fases:** `22-estrategia.md`
 - **Fluxo de entrada, temas e marca:** `22-setembro-fluxo-inicial.md`
-- **Publicação na VPS:** `gymflow-api/README.md`
+- **API publicada:** <https://99dev.pro/gymflow-api>
+- **Saúde da API e do banco:** <https://99dev.pro/gymflow-api/health>
+- **Código da API:** <https://github.com/srodrigo28/gymflow-api>
+- **Publicação no painel 99dev:** `gymflow-api/23-setembro-guia-deploy-api.md`

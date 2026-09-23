@@ -54,7 +54,7 @@
       ]
     ],
     "extra": {
-      "apiUrl": ""
+      "apiUrl": "https://99dev.pro/gymflow-api"
     },
     "experiments": {
       "typedRoutes": true

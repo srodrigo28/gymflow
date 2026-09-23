@@ -86,7 +86,8 @@ for (const block of data.commands) {
 
 out.push('## Onde está cada coisa', '');
 for (const place of data.places) {
-  out.push(`- **${place.label}:** \`${place.value}\``);
+  // Endereço da web vira link; caminho de arquivo continua como código.
+  out.push(`- **${place.label}:** ${place.value.startsWith('https://') ? `<${place.value}>` : `\`${place.value}\``}`);
 }
 out.push('');
 

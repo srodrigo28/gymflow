@@ -29,7 +29,9 @@ Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-esta
 - Desafios entre amigos: convite por link, placar de dias com treino
 - Card compartilhável de recorde e de resumo da semana
 - Painel de administração com o total de cadastros (o gatilho dos 200)
+- Perfil: foto de capa, nome, troca de senha e exclusão da conta
 - Temas de cores: Flow, Meia-noite, Aurora e Brasa (tela Aparência)
+- API publicada em `https://99dev.pro/gymflow-api`
 
 O plano de produto e o registro de cada fase estão em [`22-estrategia.md`](22-estrategia.md).
 
@@ -133,18 +135,33 @@ npx tsc --noEmit
 
 ## API
 
-O app precisa da API para cadastro, login, desafios e sincronização (o registro de treino funciona sem ela). Para rodar tudo em desenvolvimento:
+O app precisa da API para cadastro, login, desafios e sincronização (o registro de treino funciona sem ela).
+
+### Em produção
+
+| O quê | Endereço |
+| --- | --- |
+| API (base de todas as rotas) | https://99dev.pro/gymflow-api |
+| Saúde da API e do banco | https://99dev.pro/gymflow-api/health (responde `{"ok":true}`) |
+| Código da API | https://github.com/srodrigo28/gymflow-api |
+
+A raiz da API responde 404 de propósito: ela não tem rota ali, só em `/health`, `/auth/...`, `/me` e as demais. `/healthz` também dá 404: é o endereço que o painel 99dev testa por padrão, e o painel precisa de `HEALTHCHECK_PATH=/health` (veja o guia de deploy no repositório da API). Os links de convite dos desafios saem como `https://99dev.pro/gymflow-api/c/<código>`.
+
+O app usa a API publicada quando não há `.env.local`: o endereço fica em `app.json` (`expo.extra.apiUrl`).
+
+### Em desenvolvimento
 
 1. Suba a API seguindo o README do repositório `gymflow-api` (Postgres local com `npx prisma dev`, sem Docker). Ele também explica a publicação na VPS.
 2. Copie `.env.example` para `.env.local` na raiz e ajuste `EXPO_PUBLIC_API_URL`.
 3. No emulador Android: `adb reverse tcp:3333 tcp:3333`. No celular, use o IP do computador na rede Wi-Fi.
 
-As chamadas ficam em `src/services/` (`api.ts`, `auth.ts`, `sync.ts`, `challenges.ts`, `admin.ts`); as telas não fazem `fetch` direto. Em produção, o endereço vai em `app.json` (`expo.extra.apiUrl`).
+Com `.env.local`, o app usa o endereço dele em vez do publicado. As chamadas ficam em `src/services/` (`api.ts`, `auth.ts`, `sync.ts`, `challenges.ts`, `admin.ts`); as telas não fazem `fetch` direto.
 
 ## Próximos passos
 
-- Publicar a API (hospedagem e banco) e apontar `apiUrl` para ela
+- Testar o app contra a API publicada e gerar o build de loja (EAS)
+- Editar peso, altura e objetivo no Perfil (hoje só no questionário inicial)
 - Restaurar treinos da conta num aparelho novo (a API já recebe; falta o app baixar)
 - Consentimento específico para medidas e fotos subirem para a conta (LGPD)
-- Recuperação de senha, e o botão de apagar a conta no app (a API já apaga)
+- Recuperação de senha (precisa de um serviço de envio de e-mail)
 - Amigos e check-in com foto nos desafios (Fase 3)
