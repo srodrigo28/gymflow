@@ -61,95 +61,92 @@ export default function LoginScreen() {
       benefits={benefits}
       footerAction="Criar conta"
       footerText="Não tem conta?"
+      // Com o foco em qualquer um dos dois campos, a folha inteira fica acima do teclado.
+      keyboardOffset={200}
       onFooterPress={() => router.replace('/(auth)/sign-up')}
       subtitle="Continue de onde parou."
       title={['Bem-vindo\nde ', 'volta', '']}>
-      {({ revealSubmit }) => (
-        <View style={styles.form}>
-          {/* Os dois campos revelam o botão: a folha inteira cabe acima do teclado. */}
-          <Animated.View entering={FadeInDown.delay(160).duration(450)}>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  error={errors.email?.message}
-                  icon="mail-outline"
-                  keyboardType="email-address"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  onFocus={revealSubmit}
-                  onSubmitEditing={() => passwordRef.current?.focus()}
-                  placeholder="E-mail"
-                  returnKeyType="next"
-                  submitBehavior="submit"
-                  textContentType="emailAddress"
-                  value={value}
-                />
-              )}
-            />
-          </Animated.View>
+      <View style={styles.form}>
+        <Animated.View entering={FadeInDown.delay(160).duration(450)}>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <Input
+                autoCapitalize="none"
+                autoComplete="email"
+                error={errors.email?.message}
+                icon="mail-outline"
+                keyboardType="email-address"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                placeholder="E-mail"
+                returnKeyType="next"
+                submitBehavior="submit"
+                textContentType="emailAddress"
+                value={value}
+              />
+            )}
+          />
+        </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(220).duration(450)}>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <Input
-                  autoCapitalize="none"
-                  autoComplete="current-password"
-                  error={errors.password?.message}
-                  icon="lock-closed-outline"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  onFocus={revealSubmit}
-                  onSubmitEditing={handleSubmit(handleSignIn)}
-                  placeholder="Senha"
-                  ref={passwordRef}
-                  returnKeyType="go"
-                  secureTextEntry
-                  textContentType="password"
-                  value={value}
-                />
-              )}
-            />
-          </Animated.View>
+        <Animated.View entering={FadeInDown.delay(220).duration(450)}>
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <Input
+                autoCapitalize="none"
+                autoComplete="current-password"
+                error={errors.password?.message}
+                icon="lock-closed-outline"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                onSubmitEditing={handleSubmit(handleSignIn)}
+                placeholder="Senha"
+                ref={passwordRef}
+                returnKeyType="go"
+                secureTextEntry
+                textContentType="password"
+                value={value}
+              />
+            )}
+          />
+        </Animated.View>
 
-          <Pressable
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={() => setShowRecoveryNotice(true)}
-            style={styles.forgot}>
-            <Text style={styles.forgotText}>Esqueci minha senha</Text>
-          </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setShowRecoveryNotice(true)}
+          style={styles.forgot}>
+          <Text style={styles.forgotText}>Esqueci minha senha</Text>
+        </Pressable>
 
-          {showRecoveryNotice ? (
-            <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.notice}>
-              A recuperação de senha chega em breve.
-            </Animated.Text>
-          ) : null}
+        {showRecoveryNotice ? (
+          <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.notice}>
+            A recuperação de senha chega em breve.
+          </Animated.Text>
+        ) : null}
 
-          {errors.root?.message ? (
-            <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.error}>
-              {errors.root.message}
-            </Animated.Text>
-          ) : null}
+        {errors.root?.message ? (
+          <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.error}>
+            {errors.root.message}
+          </Animated.Text>
+        ) : null}
 
-          <Animated.View entering={FadeInDown.delay(300).duration(450)} style={styles.ctaGlow}>
-            <Button
-              disabled={isSubmitting}
-              haptic
-              icon="arrow-forward"
-              iconPosition="right"
-              loading={isSubmitting}
-              onPress={handleSubmit(handleSignIn)}
-              title="Entrar"
-            />
-          </Animated.View>
-        </View>
-      )}
+        <Animated.View entering={FadeInDown.delay(300).duration(450)} style={styles.ctaGlow}>
+          <Button
+            disabled={isSubmitting}
+            haptic
+            icon="arrow-forward"
+            iconPosition="right"
+            loading={isSubmitting}
+            onPress={handleSubmit(handleSignIn)}
+            title="Entrar"
+          />
+        </Animated.View>
+      </View>
     </AuthSheetLayout>
   );
 }

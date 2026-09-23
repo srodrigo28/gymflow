@@ -1,14 +1,7 @@
 import { Image } from 'expo-image';
 import { useEffect, type ReactNode } from 'react';
-import {
-  KeyboardAvoidingView,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, {
   Easing,
   FadeIn,
@@ -25,7 +18,6 @@ import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 
 import { AuthTopBar } from '@/src/components/auth/AuthTopBar';
 import { BenefitRow, type Benefit } from '@/src/components/auth/BenefitRow';
-import { useKeyboardReveal, type AuthForm } from '@/src/components/auth/useKeyboardReveal';
 import { clamp } from '@/src/components/hero/stage';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { loginPeopleImage, loginPeopleRatio } from '@/src/constants/images';
@@ -33,9 +25,12 @@ import { fonts, makeStyles, typography, useTheme, withAlpha } from '@/src/theme'
 
 type AuthSheetLayoutProps = {
   benefits?: Benefit[];
-  children: (form: AuthForm) => ReactNode;
+  children: ReactNode;
   footerAction: string;
   footerText: string;
+  // Espaço entre o cursor do campo em foco e o teclado. Mostra o que vem logo abaixo do
+  // campo; no último, o botão de enviar.
+  keyboardOffset?: number;
   onFooterPress: () => void;
   subtitle: string;
   // Título em três partes: a do meio fica na cor de destaque.
@@ -60,13 +55,15 @@ const SHEET_RADIUS = 32;
 const BENEFITS_MIN_HEIGHT = 700;
 const ARC_RADIUS = 150;
 
-// Login no modelo de image/login-modelo.png: foto e boas-vindas no topo,
-// formulário numa folha de bordas arredondadas que sobe por cima da foto.
+// Login e cadastro no modelo de image/login-modelo.png: foto e boas-vindas no topo,
+// formulário numa folha de bordas arredondadas que sobe por cima da foto. As duas telas
+// usam a mesma foto, então trocar entre elas só muda o texto e o formulário.
 export function AuthSheetLayout({
   benefits = [],
   children,
   footerAction,
   footerText,
+  keyboardOffset = 100,
   onFooterPress,
   subtitle,
   title,
@@ -74,7 +71,6 @@ export function AuthSheetLayout({
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
-  const { form, scrollRef } = useKeyboardReveal();
   const columnWidth = Math.min(width, MAX_WIDTH);
   const photoWidth = clamp(
     Math.min(
@@ -90,80 +86,78 @@ export function AuthSheetLayout({
   return (
     <View style={styles.container}>
       <AuroraBackground intensity="subtle" />
-      {/* 'padding' também no Android: com edge-to-edge (Android 15+) a janela não encolhe
-          sozinha quando o teclado abre, e ele cobriria o botão de enviar. */}
-      <KeyboardAvoidingView behavior="padding" style={styles.keyboard}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          ref={scrollRef}
-          showsVerticalScrollIndicator={false}>
-          {/* A sobra de altura fica entre o topo e o título: assim o texto e a foto mantêm a
-              mesma posição relativa (a do modelo) em qualquer altura. Em telas altas, parte dela
-              afasta o rodapé do botão; em telas baixas a folha não cresce, senão corta o topo da foto. */}
-          <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
-            <LoginPhoto
-              fadeRight={width > MAX_WIDTH}
-              height={photoHeight}
-              minTop={insets.top + 4 - photoHeight * MOTTO_TOP}
-              width={photoWidth}
-            />
+      {/* Rola até o campo em foco pela altura real do teclado, que muda sem fechar ao passar
+          do e-mail para a senha (o teclado de senha tem a fileira de números). */}
+      <KeyboardAwareScrollView
+        bottomOffset={keyboardOffset}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        {/* A sobra de altura fica entre o topo e o título: assim o texto e a foto mantêm a
+            mesma posição relativa (a do modelo) em qualquer altura. Em telas altas, parte dela
+            afasta o rodapé do botão; em telas baixas a folha não cresce, senão corta o topo da foto. */}
+        <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
+          <LoginPhoto
+            fadeRight={width > MAX_WIDTH}
+            height={photoHeight}
+            minTop={insets.top + 4 - photoHeight * MOTTO_TOP}
+            width={photoWidth}
+          />
 
-            <AuthTopBar />
+          <AuthTopBar />
 
-            <View style={styles.heading}>
-              <Animated.Text
-                accessibilityRole="header"
-                entering={FadeInDown.delay(80).duration(450)}
-                maxFontSizeMultiplier={1.3}
-                style={styles.title}>
-                {title[0]}
-                <Text style={styles.titleAccent}>{title[1]}</Text>
-                {title[2]}
-              </Animated.Text>
-              <Animated.Text
-                entering={FadeInDown.delay(140).duration(450)}
-                maxFontSizeMultiplier={1.3}
-                style={styles.subtitle}>
-                {subtitle}
-              </Animated.Text>
+          <View style={styles.heading}>
+            <Animated.Text
+              accessibilityRole="header"
+              entering={FadeInDown.delay(80).duration(450)}
+              maxFontSizeMultiplier={1.3}
+              style={styles.title}>
+              {title[0]}
+              <Text style={styles.titleAccent}>{title[1]}</Text>
+              {title[2]}
+            </Animated.Text>
+            <Animated.Text
+              entering={FadeInDown.delay(140).duration(450)}
+              maxFontSizeMultiplier={1.3}
+              style={styles.subtitle}>
+              {subtitle}
+            </Animated.Text>
 
-              {showBenefits ? (
-                <View style={styles.benefits}>
-                  {benefits.map((benefit, index) => (
-                    <Animated.View
-                      entering={FadeInLeft.delay(220 + index * 90).duration(450)}
-                      key={benefit.title}>
-                      <BenefitRow {...benefit} />
-                    </Animated.View>
-                  ))}
-                </View>
-              ) : null}
-            </View>
+            {showBenefits ? (
+              <View style={styles.benefits}>
+                {benefits.map((benefit, index) => (
+                  <Animated.View
+                    entering={FadeInLeft.delay(220 + index * 90).duration(450)}
+                    key={benefit.title}>
+                    <BenefitRow {...benefit} />
+                  </Animated.View>
+                ))}
+              </View>
+            ) : null}
           </View>
+        </View>
 
-          <Animated.View
-            entering={FadeInUp.delay(60).duration(500)}
-            style={[styles.sheet, showBenefits ? styles.sheetTall : null, { paddingBottom: insets.bottom + 12 }]}>
-            <SheetArcs />
+        <Animated.View
+          entering={FadeInUp.delay(60).duration(500)}
+          style={[styles.sheet, showBenefits ? styles.sheetTall : null, { paddingBottom: insets.bottom + 12 }]}>
+          <SheetArcs />
 
-            {children(form)}
+          {children}
 
-            <View style={styles.footer}>
-              <View style={styles.footerLine} />
-              <Text style={styles.footerText}>{footerText}</Text>
-              <Pressable
-                accessibilityRole="button"
-                hitSlop={10}
-                onPress={onFooterPress}
-                style={({ pressed }) => [styles.footerButton, pressed ? styles.pressed : null]}>
-                <Text style={styles.footerAction}>{footerAction}</Text>
-              </Pressable>
-              <View style={styles.footerLine} />
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <View style={styles.footer}>
+            <View style={styles.footerLine} />
+            <Text style={styles.footerText}>{footerText}</Text>
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={10}
+              onPress={onFooterPress}
+              style={({ pressed }) => [styles.footerButton, pressed ? styles.pressed : null]}>
+              <Text style={styles.footerAction}>{footerAction}</Text>
+            </Pressable>
+            <View style={styles.footerLine} />
+          </View>
+        </Animated.View>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -269,9 +263,6 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.bg.base,
     flex: 1,
     overflow: 'hidden',
-  },
-  keyboard: {
-    flex: 1,
   },
   content: {
     alignSelf: 'center',

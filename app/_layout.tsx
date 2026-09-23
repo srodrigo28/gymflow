@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback } from 'react';
 import { View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
@@ -23,11 +24,15 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <SessionProvider>
-          <RootNavigator />
-        </SessionProvider>
-      </ThemeProvider>
+      {/* Mede o teclado de verdade, inclusive quando ele muda de altura sem fechar
+          (no Android 11+ o React Native só avisa quando ele abre ou fecha). */}
+      <KeyboardProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <RootNavigator />
+          </SessionProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

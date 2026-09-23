@@ -674,6 +674,8 @@ Rode typecheck e lint.
 
 **Status:** ✅ Concluído (22/09) · **Depende de:** 1, 8
 
+> **Cadastro v2 (23/09):** passou para o layout do login v2 (foto no topo, formulário numa folha). Detalhes em **Cadastro v2 e teclado** no Registro de execução.
+
 **Entregas**
 
 - Mesmo visual do login. Título "Comece sua evolução" e subtítulo "Leva menos de um minuto."
@@ -860,12 +862,20 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - **Posição calculada**: a largura da foto sai da largura do texto (188 pt, medida) para o rosto nunca ficar embaixo do título; em telas altas a sobra vai para o espaço entre o topo e o título, mantendo texto e foto na mesma relação do modelo; se a foto não couber, ela para logo abaixo da barra de status (o lema nunca fica atrás dela) e o corte acontece na base, escondida pela folha. Os benefícios só aparecem com ≥ 700 pt livres; abaixo disso (iPhone SE, Android 16:9) saem, e o botão continua visível sem rolar.
 - **Peças extraídas** para o cadastro (que segue no layout antigo) não duplicar código: `AuthTopBar` (voltar + marca) e o hook `useKeyboardReveal`. O hook agora vale por 1,5 s depois do foco, em vez de ficar pendente até o próximo teclado abrir.
 - **Validado no web** (390×844, 360×780, 375×667, 430×932 e 1280×800; temas Flow, Meia-noite, Aurora e Brasa; 16 de 16 verificações de fluxo, sem erro no console) e **no Android** (emulador, Expo Go): foto, fontes, arcos, teclado no e-mail e na senha, envio pela tecla do teclado → home, e o cadastro revelando o botão na confirmação de senha.
-- **Limite conhecido do Android 11+**: o React Native só avisa quando o teclado abre ou fecha, não quando ele muda de altura. Ao passar do e-mail para a senha, o teclado de senha (com a fileira de números) é ~33 dp mais alto e cobre o rodapé "Não tem conta?" enquanto se digita; campo e botão Entrar continuam visíveis. Resolver de vez pede `react-native-keyboard-controller`.
+- **Limite conhecido do Android 11+**: o React Native só avisa quando o teclado abre ou fecha, não quando ele muda de altura. Ao passar do e-mail para a senha, o teclado de senha (com a fileira de números) é ~33 dp mais alto e cobre o rodapé "Não tem conta?" enquanto se digita; campo e botão Entrar continuam visíveis. Resolver de vez pede `react-native-keyboard-controller`. **Resolvido em 23/09** (ver **Cadastro v2 e teclado**).
 - **Ambiente**: o `WsToastNotification` (Wondershare NativePush) também escuta a porta **8090** neste computador e responde 501 por IPv4. O navegador funciona (vai por IPv6), mas o Expo Go no emulador (`adb reverse`, IPv4) falha com "Failed to download remote update". Use outra porta (ex.: `npx expo start --port 8097`) ou a padrão (8081).
+
+**Cadastro v2 e teclado (23/09)**
+
+- **Cadastro no layout do login**: o cadastro passou para o `AuthSheetLayout`, com a mesma foto e a mesma folha. Título "Comece sua **evolução**", sem os benefícios, porque os quatro campos não deixam espaço. Trocar entre login e cadastro agora só muda o texto e o formulário. O `AuthScreenLayout` e o `AuthBackground` saíram.
+- **Bug encontrado no teste**: no cadastro, o teclado de senha (mais alto, com a fileira de números) cobria o **próprio campo de senha** e o medidor de força enquanto a pessoa digitava. É o mesmo limite do Android 11+ descrito acima, só que pior.
+- **Correção**: `react-native-keyboard-controller` 1.18.5, que o Expo Go do SDK 54 já traz. O `KeyboardAwareScrollView` segue a altura real do teclado, inclusive quando ela muda sem fechar, e mantém o campo em foco à vista. A prop `keyboardOffset` diz quanto mostrar abaixo do campo: 100 no cadastro (no último campo, o botão) e 200 no login (a folha inteira). O `useKeyboardReveal` saiu.
+- **Validado no Android** (emulador, Expo Go), em 411 × 731 e 360 × 640 dp. No cadastro, nome → e-mail → senha → confirmação pela tecla do teclado, cada campo acima do teclado, o botão à vista na confirmação e o envio pela tecla levando ao onboarding. No login, a folha inteira fica acima do teclado nos dois campos, inclusive o rodapé, e o envio leva à home.
+- Em telas 16:9 (731 dp de altura) o cadastro rola uns 36 dp para mostrar o rodapé "Já tem conta?". Nos celulares atuais, com 800 dp ou mais, cabe sem rolar.
 
 **Pendências**
 
-- **Cadastro no visual do login v2**: hoje ele ainda usa o layout antigo e o contraste com o login novo aparece na troca entre as telas. Aguarda decisão.
+- ✅ **Cadastro no visual do login v2 (23/09)**: feito; ver **Cadastro v2 e teclado**.
 - **Foto do login para produção**: como a do hero, ela vem de um mockup gerado; o ideal é a mesma foto sem elementos de tela. A luz da academia é verde-azulada e se mantém nos temas Aurora e Brasa.
 - Testar em **iPhone**, além de VoiceOver/TalkBack e fonte grande. Haptics só dá para sentir em aparelho físico.
 - ✅ **Identificadores das lojas decididos (22/09)**: pacote Android e bundle iOS `com.sebsolucoes.gynflow`, gravados no `app.json`. O `slug` (`gym-flow`) e o `scheme` de deep link (`gymflow`) continuam como estavam. Se quiser alinhá-los ao nome Gyn Flow, faça isso antes de publicar, porque eles mudam URLs e links.
