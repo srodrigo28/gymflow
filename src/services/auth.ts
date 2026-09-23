@@ -1,46 +1,23 @@
+import { ApiError, apiRequest } from '@/src/services/api';
 import { secureStorage, storageKeys } from '@/src/services/storage';
-import type { AuthResponse, SignInPayload, SignUpPayload } from '@/src/types/auth';
-
-const MOCK_DELAY = 700;
-
-function wait(delay = MOCK_DELAY) {
-  return new Promise((resolve) => setTimeout(resolve, delay));
-}
-
-function createAuthResponse(name: string, email: string): AuthResponse {
-  return {
-    token: 'mock-token',
-    user: {
-      id: 'user-1',
-      name,
-      email,
-    },
-  };
-}
+import type { AuthResponse, AuthUser, SignInPayload, SignUpPayload } from '@/src/types/auth';
 
 async function persistSession(response: AuthResponse) {
   await secureStorage.set(storageKeys.session, JSON.stringify(response));
   return response;
 }
 
-export async function signIn(payload: SignInPayload) {
-  await wait();
-
-  if (payload.email === 'erro@gymflow.com') {
-    throw new Error('E-mail ou senha inválidos.');
-  }
-
-  return persistSession(createAuthResponse('Rodrigo Gonçalves', payload.email));
+export async function signIn({ email, password }: SignInPayload) {
+  return persistSession(
+    await apiRequest<AuthResponse>('/auth/sign-in', { body: { email, password }, method: 'POST' }),
+  );
 }
 
-export async function signUp(payload: SignUpPayload) {
-  await wait();
-
-  if (payload.email === 'erro@gymflow.com') {
-    throw new Error('Este e-mail já está em uso.');
-  }
-
-  return persistSession(createAuthResponse(payload.name, payload.email));
+// A confirmação de senha é checada no formulário; o servidor recebe só a senha.
+export async function signUp({ email, name, password }: SignUpPayload) {
+  return persistSession(
+    await apiRequest<AuthResponse>('/auth/sign-up', { body: { email, name, password }, method: 'POST' }),
+  );
 }
 
 export async function getSession(): Promise<AuthResponse | null> {
@@ -52,13 +29,43 @@ export async function getSession(): Promise<AuthResponse | null> {
 
   try {
     const session = JSON.parse(storedSession) as Partial<AuthResponse>;
-    return session.token && session.user ? (session as AuthResponse) : null;
+
+    if (!session.token || !session.user) {
+      return null;
+    }
+
+    // Sessões gravadas antes de existir o papel entram como pessoa comum.
+    return { token: session.token, user: { ...session.user, role: session.user.role ?? 'user' } };
   } catch {
     return null;
   }
 }
 
+// Confere a sessão salva e traz os dados atuais da pessoa. Devolve null quando o servidor
+// recusa o token (vencido, ou de antes da API). Sem rede, lança o erro e a sessão continua.
+export async function refreshSession(session: AuthResponse): Promise<AuthResponse | null> {
+  try {
+    const { user } = await apiRequest<{ user: AuthUser }>('/me', { token: session.token });
+    return await persistSession({ ...session, user });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      await secureStorage.remove(storageKeys.session);
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 export async function signOut() {
-  await wait(300);
+  const session = await getSession();
+
+  // Encerra a sessão no servidor quando dá. Sem rede, ela sai só do aparelho e vence sozinha.
+  if (session) {
+    await apiRequest('/auth/sign-out', { method: 'POST', timeoutMs: 4000, token: session.token }).catch(
+      () => undefined,
+    );
+  }
+
   await secureStorage.remove(storageKeys.session);
 }

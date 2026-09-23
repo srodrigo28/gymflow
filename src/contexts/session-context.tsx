@@ -41,6 +41,21 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
       setSession(storedSession);
       setIsLoading(false);
+
+      if (!storedSession) {
+        return;
+      }
+
+      // Confere com o servidor depois de abrir, sem segurar a splash. Sem rede, segue com a
+      // sessão salva (o app funciona offline). Só aplica se ninguém trocou de conta no meio.
+      auth
+        .refreshSession(storedSession)
+        .then((freshSession) => {
+          if (isActive) {
+            setSession((current) => (current?.token === storedSession.token ? freshSession : current));
+          }
+        })
+        .catch(() => {});
     });
 
     return () => {

@@ -14,6 +14,8 @@ export type AuthUser = {
   id: string;
   name: string;
   email: string;
+  // Administrador vê o painel com o total de cadastros (o gatilho dos 200).
+  role: 'user' | 'admin';
 };
 
 export type AuthResponse = {

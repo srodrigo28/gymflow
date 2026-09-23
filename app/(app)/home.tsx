@@ -109,7 +109,7 @@ export default function HomeScreen() {
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const { signOut } = useSession();
+  const { session, signOut } = useSession();
   const coverImageUri = previewImageUri ?? profileImageUri;
 
   function openImageUpload() {
@@ -193,7 +193,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         <View style={styles.profileHeader}>
-          <Text style={styles.name}>Rodrigo Gonçalves</Text>
+          <Text numberOfLines={1} style={styles.name}>
+            {session?.user.name}
+          </Text>
           <Text style={styles.subtitle}>Acompanhe suas escolhas, rotina e evolução.</Text>
 
           {previewImageUri ? (
