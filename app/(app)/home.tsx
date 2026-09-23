@@ -39,6 +39,14 @@ const menuItems: ProfileMenuItem[] = [
     tone: 'conquista',
   },
   {
+    accessibilityLabel: 'Abrir Desafios. Crie um desafio, convide amigos e acompanhe o placar.',
+    description: 'Chame amigos para treinar junto: cada dia com treino vale um ponto.',
+    href: '/(app)/desafios',
+    icon: 'flag-checkered',
+    title: 'Desafios',
+    tone: 'treino',
+  },
+  {
     accessibilityLabel:
       'Abrir Sincronizar dispositivos. Conecte relógios e dispositivos para acompanhar dados de saúde e atividade.',
     description: 'Conecte relógios e dispositivos para acompanhar atividade e saúde.',
@@ -102,6 +110,16 @@ const menuItems: ProfileMenuItem[] = [
     tone: 'neutral',
   },
 ];
+
+// Só aparece para administradores (ADMIN_EMAILS na API).
+const adminItem: ProfileMenuItem = {
+  accessibilityLabel: 'Abrir Painel. Veja cadastros, ativos e treinos da semana.',
+  description: 'Cadastros, ativos e treinos da semana: o gatilho dos 200.',
+  href: '/(app)/admin',
+  icon: 'view-dashboard-outline',
+  title: 'Painel',
+  tone: 'neutral',
+};
 
 export default function HomeScreen() {
   const styles = useStyles();
@@ -239,7 +257,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.menuGrid}>
-          {menuItems.map((item) => (
+          {(session?.user.role === 'admin' ? [adminItem, ...menuItems] : menuItems).map((item) => (
             <ProfileMenuCard item={item} key={item.title} />
           ))}
         </View>

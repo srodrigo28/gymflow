@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Text, TextInput, View } from 'react-native';
@@ -49,10 +49,14 @@ export default function SignUpScreen() {
   const confirmationRef = useRef<TextInput>(null);
   const { signUp } = useSession();
   const redirectAfterSignIn = useRedirectAfterSignIn();
+  // Veio de um convite: volta para ele depois do cadastro, e o onboarding fica para depois.
+  const { convite } = useLocalSearchParams<{ convite?: string }>();
 
   async function handleSignUp(payload: SignUpPayload) {
     try {
-      redirectAfterSignIn('/(onboarding)/start');
+      redirectAfterSignIn(
+        convite ? { params: { code: convite }, pathname: '/convite/[code]' } : '/(onboarding)/start',
+      );
       await signUp(payload);
     } catch (error) {
       redirectAfterSignIn(null);
@@ -66,7 +70,9 @@ export default function SignUpScreen() {
     <AuthSheetLayout
       footerAction="Entrar"
       footerText="Já tem conta?"
-      onFooterPress={() => router.replace('/(auth)/login')}
+      onFooterPress={() =>
+        router.replace(convite ? { params: { convite }, pathname: '/(auth)/login' } : '/(auth)/login')
+      }
       subtitle="Leva menos de um minuto."
       title={['Comece sua\n', 'evolução', '']}>
       <View style={styles.form}>

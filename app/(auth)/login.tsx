@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, Text, TextInput, View } from 'react-native';
@@ -31,6 +31,8 @@ export default function LoginScreen() {
   const passwordRef = useRef<TextInput>(null);
   const { signIn } = useSession();
   const redirectAfterSignIn = useRedirectAfterSignIn();
+  // Veio de um convite: volta para ele depois de entrar.
+  const { convite } = useLocalSearchParams<{ convite?: string }>();
   const {
     control,
     handleSubmit,
@@ -46,7 +48,7 @@ export default function LoginScreen() {
 
   async function handleSignIn(payload: SignInPayload) {
     try {
-      redirectAfterSignIn('/(app)/home');
+      redirectAfterSignIn(convite ? { params: { code: convite }, pathname: '/convite/[code]' } : '/(app)/home');
       await signIn(payload);
     } catch (error) {
       redirectAfterSignIn(null);
@@ -63,7 +65,9 @@ export default function LoginScreen() {
       footerText="Não tem conta?"
       // Com o foco em qualquer um dos dois campos, a folha inteira fica acima do teclado.
       keyboardOffset={200}
-      onFooterPress={() => router.replace('/(auth)/sign-up')}
+      onFooterPress={() =>
+        router.replace(convite ? { params: { convite }, pathname: '/(auth)/sign-up' } : '/(auth)/sign-up')
+      }
       subtitle="Continue de onde parou."
       title={['Bem-vindo\nde ', 'volta', '']}>
       <View style={styles.form}>
