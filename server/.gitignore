@@ -1,0 +1,13 @@
+node_modules
+dist
+# Keep environment variables out of version control
+.env
+.env.test
+
+/generated/prisma
+
+# Skills de agentes de IA que o `prisma init` baixa sozinho; não fazem parte do projeto.
+/.agents
+/.claude
+/.windsurf
+/skills-lock.json
