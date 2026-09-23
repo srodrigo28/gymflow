@@ -2,13 +2,46 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Alert, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Screen } from '@/src/components/ui/Screen';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { spacing } from '@/src/constants/spacing';
 import { useSession } from '@/src/contexts/session-context';
+import { getOnboardingProfile } from '@/src/services/onboarding';
 import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from '@/src/theme';
+import type { OnboardingProfile, TrainingDuration } from '@/src/types/onboarding';
+import { currentJourneyLevel, journeyLabel } from '@/src/utils/journey';
+
+const durationLabels: Record<TrainingDuration, string> = {
+  '30_to_45': '30 a 45 min',
+  '45_to_60': '45 a 60 min',
+  over_60: '+60 min',
+  up_to_30: 'até 30 min',
+};
+
+type SummaryItem = { icon: ComponentProps<typeof MaterialCommunityIcons>['name']; label: string; value: string };
+
+// O resumo do topo sai das respostas do onboarding (fase da jornada, rotina e duração).
+function profileSummary(profile: OnboardingProfile | null): SummaryItem[] {
+  if (!profile) {
+    return [];
+  }
+
+  const items: SummaryItem[] = [
+    { icon: 'chart-line', label: 'Fase', value: journeyLabel(currentJourneyLevel(profile)) },
+  ];
+
+  if (profile.trainingDaysPerWeek) {
+    items.push({ icon: 'calendar-check-outline', label: 'Rotina', value: `${profile.trainingDaysPerWeek}x semana` });
+  }
+
+  if (profile.trainingDuration) {
+    items.push({ icon: 'timer-outline', label: 'Treino', value: durationLabels[profile.trainingDuration] });
+  }
+
+  return items;
+}
 
 type ProfileMenuItem = {
   accessibilityLabel: string;
@@ -128,7 +161,16 @@ export default function HomeScreen() {
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { session, signOut } = useSession();
+  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const coverImageUri = previewImageUri ?? profileImageUri;
+  const summary = profileSummary(profile);
+  const userId = session?.user.id;
+
+  useEffect(() => {
+    if (userId) {
+      void getOnboardingProfile(userId).then(setProfile);
+    }
+  }, [userId]);
 
   function openImageUpload() {
     if (Platform.OS !== 'web') {
@@ -243,13 +285,17 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scrollArea}>
-        <View
-          accessibilityLabel="Resumo rápido do perfil: objetivo ganho de massa, nível iniciante e quatro treinos por semana."
-          style={styles.quickSummary}>
-          <SummaryPill icon="target" label="Objetivo" value="Ganho de massa" />
-          <SummaryPill icon="chart-line" label="Nível" value="Iniciante" />
-          <SummaryPill icon="calendar-check-outline" label="Rotina" value="4x semana" />
-        </View>
+        {/* Só com as respostas do onboarding: sem elas, nada de valor inventado. */}
+        {summary.length ? (
+          <View
+            accessibilityLabel={`Resumo do perfil: ${summary.map((item) => `${item.label} ${item.value}`).join(', ')}.`}
+            accessible
+            style={styles.quickSummary}>
+            {summary.map((item) => (
+              <SummaryPill icon={item.icon} key={item.label} label={item.label} value={item.value} />
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Menu do perfil</Text>

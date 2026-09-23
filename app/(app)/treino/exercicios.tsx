@@ -144,8 +144,10 @@ const useStyles = makeStyles((theme) => ({
     height: 46,
     paddingHorizontal: 14,
   },
+  // Sem flexShrink: 0 a lista longa abaixo espremia esta faixa e cortava os chips ao meio.
   filtersRow: {
     flexGrow: 0,
+    flexShrink: 0,
   },
   filters: {
     gap: 8,

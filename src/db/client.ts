@@ -109,7 +109,10 @@ const migrations: string[] = [
 ];
 
 let currentUserId: string | null = null;
-let opened: { promise: Promise<SQLiteDatabase>; userId: string } | null = null;
+// Uma conexão por conta, mantida até o app fechar. Reabrir o mesmo arquivo no Android fazia o
+// coletor de lixo fechar a conexão antiga por baixo da nova (NullPointerException no
+// expo-sqlite) quando alguém saía e voltava a entrar sem fechar o app.
+const openedByUser = new Map<string, Promise<SQLiteDatabase>>();
 
 // Cada conta tem o próprio arquivo de banco. Quem entra depois no mesmo aparelho não vê nem
 // sincroniza os treinos de outra pessoa, e nada é apagado na troca de conta.
@@ -171,11 +174,16 @@ export function getDatabase() {
     return Promise.reject(new Error('O banco local pertence a uma conta: entre para ver seus treinos.'));
   }
 
-  if (!opened || opened.userId !== userId) {
-    opened = { promise: openDatabase(userId), userId };
+  let database = openedByUser.get(userId);
+
+  if (!database) {
+    database = openDatabase(userId);
+    openedByUser.set(userId, database);
+    // Se a abertura falhar, a próxima chamada tenta de novo.
+    database.catch(() => openedByUser.delete(userId));
   }
 
-  return opened.promise;
+  return database;
 }
 
 export function createId() {

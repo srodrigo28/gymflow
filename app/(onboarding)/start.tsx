@@ -13,6 +13,11 @@ import { saveOnboardingProfile } from '@/src/services/onboarding';
 import { spacing } from '@/src/constants/spacing';
 import { fonts, makeStyles, radius, useTheme, type Theme } from '@/src/theme';
 import type { OnboardingProfile } from '@/src/types/onboarding';
+import {
+  currentJourneyLevel as getCurrentJourneyLevel,
+  journeyLevels as journeyScaleLevels,
+  type JourneyLevel as JourneyScaleLevel,
+} from '@/src/utils/journey';
 
 const previousTrainingStepIndex = 18;
 const sodaFrequencyStepIndex = 14;
@@ -613,35 +618,6 @@ function SummaryStep({ profile }: { profile: OnboardingProfile }) {
   );
 }
 
-type JourneyScaleLevel = 'start' | 'consistency' | 'evolution' | 'performance';
-
-const journeyScaleLevels: {
-  description: string;
-  label: string;
-  value: JourneyScaleLevel;
-}[] = [
-  {
-    description: 'Começar com segurança',
-    label: 'Início',
-    value: 'start',
-  },
-  {
-    description: 'Manter rotina',
-    label: 'Constância',
-    value: 'consistency',
-  },
-  {
-    description: 'Evoluir medidas e força',
-    label: 'Evolução',
-    value: 'evolution',
-  },
-  {
-    description: 'Treinar com alta exigência',
-    label: 'Performance',
-    value: 'performance',
-  },
-];
-
 function JourneyScale({
   currentLevel,
   onTargetChange,
@@ -858,21 +834,6 @@ function calculateBmi(weightKg?: number, heightCm?: number) {
   return weightKg / (heightM * heightM);
 }
 
-function getCurrentJourneyLevel(profile: OnboardingProfile): JourneyScaleLevel {
-  if (profile.trainsProfessionally === 'yes' || profile.gymExperience === 'currently_training') {
-    return 'performance';
-  }
-
-  if (profile.gymExperience === 'more_than_1_year' || profile.gymExperience === 'few_months') {
-    return 'evolution';
-  }
-
-  if (profile.gymExperience === 'short_time' || profile.trainingDaysPerWeek && profile.trainingDaysPerWeek >= 4) {
-    return 'consistency';
-  }
-
-  return 'start';
-}
 
 function getBmiResult(bmi: number, theme: Theme) {
   if (bmi < 18.5) {

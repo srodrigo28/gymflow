@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 
 export const storageKeys = {
   onboardingCompleted: (userId: string) => `gynflow.onboarding.${userId}`,
+  // Respostas do onboarding. Têm dados sensíveis (sono, humor, fumo): ficam no SecureStore.
+  profile: (userId: string) => `gynflow.profile.${userId}`,
   session: 'gynflow.session',
   theme: 'gynflow.theme',
 };
