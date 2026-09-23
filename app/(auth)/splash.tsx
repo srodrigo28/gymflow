@@ -16,7 +16,7 @@ import Animated, {
 import { BrandMark, brandMarkRatio } from '@/src/components/brand/BrandMark';
 import { BrandWordmark } from '@/src/components/brand/BrandWordmark';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
-import { heroPeopleImage } from '@/src/constants/images';
+import { heroPeopleImage, loginPeopleImage } from '@/src/constants/images';
 import { useSession } from '@/src/contexts/session-context';
 import { hasCompletedOnboarding } from '@/src/services/onboarding';
 import { makeStyles, nativeSplashBackground, radius, useTheme } from '@/src/theme';
@@ -58,8 +58,11 @@ export default function SplashScreen() {
       1100,
       withTiming(0.9, { duration: MIN_DURATION, easing: Easing.out(Easing.quad) }),
     );
-    // Arte do hero pré-carregada; se travar, segue sem ela em vez de prender a pessoa aqui.
-    heroArt.current = Promise.race([Asset.loadAsync(heroPeopleImage).catch(() => undefined), wait(TIMEOUT)]);
+    // Fotos do hero e do login pré-carregadas; se travar, segue sem elas em vez de prender a pessoa aqui.
+    heroArt.current = Promise.race([
+      Asset.loadAsync([heroPeopleImage, loginPeopleImage]).catch(() => undefined),
+      wait(TIMEOUT),
+    ]);
   }, [appear, progress]);
 
   // A sessão vem do SessionProvider (que já tem timeout próprio), assim o destino

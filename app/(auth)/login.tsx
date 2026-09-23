@@ -6,17 +6,24 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { z } from 'zod';
 
-import { AuthScreenLayout } from '@/src/components/auth/AuthScreenLayout';
+import { AuthSheetLayout } from '@/src/components/auth/AuthSheetLayout';
+import type { Benefit } from '@/src/components/auth/BenefitRow';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { useRedirectAfterSignIn, useSession } from '@/src/contexts/session-context';
-import { fonts, makeStyles } from '@/src/theme';
+import { fonts, makeStyles, radius, withAlpha } from '@/src/theme';
 import type { SignInPayload } from '@/src/types/auth';
 
 const signInSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, 'Informe seu e-mail.').email('Informe um e-mail válido.'),
   password: z.string().min(1, 'Informe sua senha.'),
 });
+
+const benefits: Benefit[] = [
+  { icon: 'chart-bar', subtitle: 'A cada treino', title: 'Mais progresso' },
+  { icon: 'heart-outline', subtitle: 'Todos os dias', title: 'Mais saúde' },
+  { icon: 'lightning-bolt', title: 'Uma versão\nmais forte de você' },
+];
 
 export default function LoginScreen() {
   const styles = useStyles();
@@ -50,14 +57,16 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthScreenLayout
+    <AuthSheetLayout
+      benefits={benefits}
       footerAction="Criar conta"
       footerText="Não tem conta?"
       onFooterPress={() => router.replace('/(auth)/sign-up')}
       subtitle="Continue de onde parou."
-      title="Bem-vindo de volta">
+      title={['Bem-vindo\nde ', 'volta', '']}>
       {({ revealSubmit }) => (
         <View style={styles.form}>
+          {/* Os dois campos revelam o botão: a folha inteira cabe acima do teclado. */}
           <Animated.View entering={FadeInDown.delay(160).duration(450)}>
             <Controller
               control={control}
@@ -71,6 +80,7 @@ export default function LoginScreen() {
                   keyboardType="email-address"
                   onBlur={onBlur}
                   onChangeText={onChange}
+                  onFocus={revealSubmit}
                   onSubmitEditing={() => passwordRef.current?.focus()}
                   placeholder="E-mail"
                   returnKeyType="next"
@@ -127,7 +137,7 @@ export default function LoginScreen() {
             </Animated.Text>
           ) : null}
 
-          <Animated.View entering={FadeInDown.delay(300).duration(450)}>
+          <Animated.View entering={FadeInDown.delay(300).duration(450)} style={styles.ctaGlow}>
             <Button
               disabled={isSubmitting}
               haptic
@@ -140,7 +150,7 @@ export default function LoginScreen() {
           </Animated.View>
         </View>
       )}
-    </AuthScreenLayout>
+    </AuthSheetLayout>
   );
 }
 
@@ -169,5 +179,9 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: fonts.medium,
     fontSize: 14,
     textAlign: 'center',
+  },
+  ctaGlow: {
+    borderRadius: radius.md,
+    boxShadow: `0 10px 28px ${withAlpha(theme.accent.primary, 0.3)}`,
   },
 }));

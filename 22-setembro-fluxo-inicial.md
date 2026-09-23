@@ -637,6 +637,8 @@ Rode typecheck e lint.
 
 **Status:** ✅ Concluído (22/09) · **Depende de:** 1, 8
 
+> **Login v2 (22/09):** refeito a partir do mockup `image/login-modelo.png` (foto no topo, benefícios e formulário numa folha). Detalhes em **Login v2** no Registro de execução.
+
 **Entregas**
 
 - Tema novo via `makeStyles`. `AuthBackground` sutil + `BrandMark` compacto no topo.
@@ -851,8 +853,20 @@ corrija os que forem objetivos. Rode typecheck e lint e me mostre o resultado.
 - **Debug**: aparecem ~2,5 s de tela preta entre a splash nativa e a animada. A investigação descartou a GPU do emulador, a animação de saída (`setOptions`) e a transição da pilha raiz. O JS termina tudo em ~0,4 s, então é custo da build de desenvolvimento e não chega ao usuário final. Se incomodar no dia a dia, dá para testar a abertura sempre em release.
 - **O que não foi versionado**: a pré-build escolheu sozinha o pacote Android `com.sebastiao.gymflow` e trocou os scripts `android`/`ios` para `expo run:*`. As duas mudanças foram desfeitas depois do teste, e a pasta `android/` gerada foi removida (ela está no `.gitignore`). O app de teste foi desinstalado do emulador.
 
+**Login v2 (a partir do mockup `image/login-modelo.png`, 22/09)**
+
+- **Novo layout** `AuthSheetLayout`: topo com foto, "Bem-vindo de **volta**", subtítulo e três benefícios (Mais progresso, Mais saúde, Uma versão mais forte de você); o formulário fica numa **folha** de bordas arredondadas que sobe por cima da foto, com arcos de luz nos cantos e rodapé "Não tem conta? Criar conta" entre linhas. O botão Entrar ganhou o brilho do CTA do hero. A marca continua **Gyn Flow** (o mockup escreve "GymFlow").
+- **Foto** (`assets/images/auth/login-people.webp`, 581×884, 58 KB): recortada do mockup, com o texto da tela que invadia a foto ("Flow", "vindo", "parou.", "você") removido por *inpainting* (OpenCV). As bordas esquerda e de cima já vêm **transparentes**, então ela se funde ao fundo de qualquer tema. O lema da parede ("Disciplina hoje, resultados sempre") faz parte da foto. Pré-carregada na splash junto com a do hero.
+- **Posição calculada**: a largura da foto sai da largura do texto (188 pt, medida) para o rosto nunca ficar embaixo do título; em telas altas a sobra vai para o espaço entre o topo e o título, mantendo texto e foto na mesma relação do modelo; se a foto não couber, ela para logo abaixo da barra de status (o lema nunca fica atrás dela) e o corte acontece na base, escondida pela folha. Os benefícios só aparecem com ≥ 700 pt livres; abaixo disso (iPhone SE, Android 16:9) saem, e o botão continua visível sem rolar.
+- **Peças extraídas** para o cadastro (que segue no layout antigo) não duplicar código: `AuthTopBar` (voltar + marca) e o hook `useKeyboardReveal`. O hook agora vale por 1,5 s depois do foco, em vez de ficar pendente até o próximo teclado abrir.
+- **Validado no web** (390×844, 360×780, 375×667, 430×932 e 1280×800; temas Flow, Meia-noite, Aurora e Brasa; 16 de 16 verificações de fluxo, sem erro no console) e **no Android** (emulador, Expo Go): foto, fontes, arcos, teclado no e-mail e na senha, envio pela tecla do teclado → home, e o cadastro revelando o botão na confirmação de senha.
+- **Limite conhecido do Android 11+**: o React Native só avisa quando o teclado abre ou fecha, não quando ele muda de altura. Ao passar do e-mail para a senha, o teclado de senha (com a fileira de números) é ~33 dp mais alto e cobre o rodapé "Não tem conta?" enquanto se digita; campo e botão Entrar continuam visíveis. Resolver de vez pede `react-native-keyboard-controller`.
+- **Ambiente**: o `WsToastNotification` (Wondershare NativePush) também escuta a porta **8090** neste computador e responde 501 por IPv4. O navegador funciona (vai por IPv6), mas o Expo Go no emulador (`adb reverse`, IPv4) falha com "Failed to download remote update". Use outra porta (ex.: `npx expo start --port 8097`) ou a padrão (8081).
+
 **Pendências**
 
+- **Cadastro no visual do login v2**: hoje ele ainda usa o layout antigo e o contraste com o login novo aparece na troca entre as telas. Aguarda decisão.
+- **Foto do login para produção**: como a do hero, ela vem de um mockup gerado; o ideal é a mesma foto sem elementos de tela. A luz da academia é verde-azulada e se mantém nos temas Aurora e Brasa.
 - Testar em **iPhone**, além de VoiceOver/TalkBack e fonte grande. Haptics só dá para sentir em aparelho físico.
 - ✅ **Identificadores das lojas decididos (22/09)**: pacote Android e bundle iOS `com.sebsolucoes.gynflow`, gravados no `app.json`. O `slug` (`gym-flow`) e o `scheme` de deep link (`gymflow`) continuam como estavam. Se quiser alinhá-los ao nome Gyn Flow, faça isso antes de publicar, porque eles mudam URLs e links.
 - **Foto do hero**: o recorte tem um leve halo verde-azulado no cabelo, herdado do fundo do mockup. No fundo escuro ele parece luz de contorno. Para produção, o ideal é gerar a mesma foto sem os elementos de interface (fundo liso ou transparente) e trocar só o arquivo `hero-people.webp`.

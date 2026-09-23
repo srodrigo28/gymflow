@@ -1,18 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { AuthBackground } from '@/src/components/auth/AuthBackground';
-import { BrandHeader } from '@/src/components/auth/BrandHeader';
-import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
-
-type AuthForm = {
-  // Chame no foco do último campo: a tela rola até o botão de enviar,
-  // que de outro modo ficaria atrás do teclado.
-  revealSubmit: () => void;
-};
+import { AuthTopBar } from '@/src/components/auth/AuthTopBar';
+import { useKeyboardReveal, type AuthForm } from '@/src/components/auth/useKeyboardReveal';
+import { fonts, makeStyles, typography } from '@/src/theme';
 
 type AuthScreenLayoutProps = {
   children: (form: AuthForm) => ReactNode;
@@ -23,19 +16,8 @@ type AuthScreenLayoutProps = {
   title: string;
 };
 
-function goBackToWelcome() {
-  if (router.canGoBack()) {
-    router.back();
-    return;
-  }
-
-  router.replace('/(auth)/welcome');
-}
-
-// Espera o teclado terminar de abrir e o layout encolher antes de rolar.
-const SCROLL_DELAY = 80;
-
-// Estrutura comum de login e cadastro: voltar ao hero, marca, título, formulário e troca de tela.
+// Estrutura do cadastro: voltar ao hero, marca, título, formulário e troca de tela.
+// O login usa o AuthSheetLayout (foto no topo e formulário numa folha).
 export function AuthScreenLayout({
   children,
   footerAction,
@@ -45,45 +27,7 @@ export function AuthScreenLayout({
   title,
 }: AuthScreenLayoutProps) {
   const styles = useStyles();
-  const { theme } = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
-  const isKeyboardVisible = useRef(false);
-  const isRevealPending = useRef(false);
-
-  useEffect(() => {
-    const scrollToSubmit = () =>
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), SCROLL_DELAY);
-    const showListener = Keyboard.addListener('keyboardDidShow', () => {
-      isKeyboardVisible.current = true;
-
-      if (isRevealPending.current) {
-        isRevealPending.current = false;
-        scrollToSubmit();
-      }
-    });
-    const hideListener = Keyboard.addListener('keyboardDidHide', () => {
-      isKeyboardVisible.current = false;
-    });
-
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-  }, []);
-
-  const form = useMemo<AuthForm>(
-    () => ({
-      revealSubmit: () => {
-        if (isKeyboardVisible.current) {
-          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), SCROLL_DELAY);
-          return;
-        }
-
-        isRevealPending.current = true;
-      },
-    }),
-    [],
-  );
+  const { form, scrollRef } = useKeyboardReveal();
 
   return (
     <AuthBackground>
@@ -96,17 +40,7 @@ export function AuthScreenLayout({
           ref={scrollRef}
           showsVerticalScrollIndicator={false}>
           <View style={styles.main}>
-            <Animated.View entering={FadeIn.duration(300)} style={styles.topBar}>
-              <Pressable
-                accessibilityLabel="Voltar"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={goBackToWelcome}
-                style={({ pressed }) => [styles.backButton, pressed ? styles.pressed : null]}>
-                <Ionicons color={theme.text.primary} name="arrow-back" size={20} />
-              </Pressable>
-              <BrandHeader />
-            </Animated.View>
+            <AuthTopBar />
 
             <Animated.View entering={FadeInDown.delay(80).duration(450)} style={styles.heading}>
               <Text accessibilityRole="header" style={styles.title}>
@@ -150,21 +84,6 @@ const useStyles = makeStyles((theme) => ({
   },
   main: {
     gap: 28,
-  },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 16,
-  },
-  backButton: {
-    alignItems: 'center',
-    backgroundColor: theme.bg.overlay,
-    borderColor: theme.border.subtle,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
   },
   heading: {
     gap: 6,
