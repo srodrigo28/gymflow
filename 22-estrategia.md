@@ -284,8 +284,8 @@ A ideia é **R$ 1,00 ou R$ 5,00**, valores de apoio, não de assinatura cara. Tr
 
 **Situação em 22/09:** feito tudo, menos o contador de usuários (depende da API real) e o check-in.
 **Em 23/09:** o contador existe (painel de administração) e a sincronização é de verdade: os treinos
-concluídos sobem sozinhos para a conta. Falta o check-in.
-Detalhes em **Registro da Fase 1** e **Registro da API** no fim do documento.
+concluídos sobem sozinhos para a conta e, num aparelho novo, descem sozinhos. Falta o check-in.
+Detalhes em **Registro da Fase 1**, **Registro da API** e **Registro do Perfil e da restauração** no fim do documento.
 
 **Critérios de aceite**: registrar um treino de 6 exercícios em menos de 90 segundos de interação; funcionar em modo avião; o histórico bate com o que foi registrado.
 
@@ -540,6 +540,38 @@ O tamanho e os cantos foram medidos no PNG gerado: durante o teste, um trecho te
 | Painel | 2 de 200 cadastros, batendo com o banco |
 
 **Ainda não feito**: publicar a API (hospedagem, banco e o domínio do link de convite); baixar os treinos da conta num aparelho novo; consentimento e envio de medidas e fotos (com URL assinada, tarja e revogação); amigos e check-in com foto; o botão de apagar a conta e a recuperação de senha no app; teste em iPhone.
+
+## Registro do Perfil e da restauração (23/09, noite)
+
+A API foi publicada em https://99dev.pro/gymflow-api (documentação em `/doc`), e o botão de apagar a conta já existe. O build de loja ficou para depois das funções que faltam.
+
+**O que foi construído**
+
+- **Corpo e objetivo no Perfil** (`app/(app)/perfil.tsx`): peso, altura e objetivo, com os limites do questionário. O objetivo é a meta da escala da jornada (Início, Constância, Evolução ou Performance). O peso mostrado é o atual, o da última pesagem na Evolução ou, sem nenhuma, o do questionário. Mudar o peso registra a pesagem do dia na Evolução, então o gráfico e o cartão da home acompanham. Tudo fica só no aparelho, como as outras respostas.
+- **A meta do onboarding é salva.** Antes, a escolha na escala do resumo ficava só na tela e se perdia ao finalizar. Sem nenhum toque, vale a meta que a escala mostrava.
+- **Restauração dos treinos**: a API ganhou `GET /sync/workouts`, com páginas de até 50 no formato do envio e sem os treinos apagados. No app (`src/services/sync.ts`), a primeira entrada da conta em cada aparelho baixa os treinos dela, depois de a fila subir: assim, um treino apagado aqui e ainda não enviado não volta. O que já está no aparelho, ou na fila, fica com a versão daqui. Um exercício que saiu do catálogo volta com o nome e o grupo do servidor. A tela de Treino aberta recarrega quando os treinos chegam.
+
+**Corrigido antes do commit**
+
+- Quem salvava peso ou altura pelo Perfil sem ter feito o questionário neste aparelho passava a ver "Fase: Início" na home e uma fase sem base no Perfil. A fase agora só aparece com as respostas sobre a experiência de treino.
+- A tela de Treino aberta durante o download continuava vazia até sair e voltar.
+
+**Como foi validado** (emulador Android `lume_test`, Expo Go, API local)
+
+| Verificação | Resultado |
+| --- | --- |
+| Perfil de quem não fez o questionário | peso de 80,6 kg da última pesagem; altura vazia pede um valor de 100 a 250 cm |
+| Peso mudado para 79,8 kg | pesagem de hoje na Evolução; "−2,2 kg desde o início" na Evolução e na home |
+| Perfil reaberto | 79,8 kg, 172 cm e Performance continuam lá |
+| Onboarding sem tocar na escala | Perfil com a meta padrão (Evolução) e "hoje você está em Constância" |
+| Onboarding com Performance na escala | Perfil com Performance |
+| Conta nova com treinos só no servidor | os 2 treinos descem; o exercício fora do catálogo aparece como Costas; o recorde continua marcado; o apagado não volta |
+| Conta com 60 treinos | duas páginas (`after=`) |
+| Download atrasado 6 s por um proxy, com o Treino aberto | a tela recarrega sozinha: 3 treinos e 1,7 t na semana |
+| Conta que já tinha os treinos no aparelho | nada duplicado; o banco antigo recebeu a migração nova sem erro |
+| API | 51 testes, typecheck e build; em produção desde o commit `5a8f063` |
+
+**Ainda não feito**: testar o app contra a produção; sincronizar dois aparelhos em uso ao mesmo tempo (a restauração roda uma vez por aparelho); consentimento e envio de medidas e fotos; recuperação de senha; amigos e check-in com foto; teste em iPhone.
 
 ## Fontes da pesquisa
 

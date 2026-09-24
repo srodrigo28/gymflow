@@ -8,10 +8,10 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
-| **App** (frontend em Expo) | 41 | 4 | 24 | **62%** |
-| **API** (gymflow-api) | 20 | 1 | 9 | **68%** |
-| **Geral**, escopo atual (Fases 1 a 3 e API) | 61 | 5 | 33 | **64%** |
-| Plano completo, com as Fases 4 a 6 | 61 | 5 | 48 | 56% |
+| **App** (frontend em Expo) | 43 | 3 | 23 | **64%** |
+| **API** (gymflow-api) | 22 | 1 | 8 | **73%** |
+| **Geral**, escopo atual (Fases 1 a 3 e API) | 65 | 4 | 31 | **67%** |
+| Plano completo, com as Fases 4 a 6 | 65 | 4 | 46 | 58% |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -20,10 +20,10 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 ## Linha do projeto
 
 1. 🟨 **Fluxo inicial**: Etapas 0 a 12 prontas. A 13 (acessibilidade e desempenho) falta no iPhone.
-2. 🟨 **Fase 1 · Registro de treino**: Pronta e sincronizando com a conta. Falta o check-in na academia.
+2. 🟨 **Fase 1 · Registro de treino**: Pronta, sincronizando com a conta e restaurando num aparelho novo. Falta o check-in na academia.
 3. 🟨 **Fase 2 · Corpo e fotos**: Medidas, fotos e comparador prontos. Falta o que pede consentimento e servidor.
 4. 🟨 **Fase 3 · Social e desafios**: Card, desafios, convite e placar prontos. Faltam amigos e check-in com foto.
-5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api. Faltam backup agendado, monitoramento e envio de e-mail.
+5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api, com as rotas documentadas em /doc. Faltam backup agendado, monitoramento e envio de e-mail.
 6. ⬜ **Fase 4 · Ranking e ligas**: XP, ligas semanais, categorias de ranking com DOTS e troféus.
 7. ⬜ **Fase 5 · Personal e academia**: Vínculo por convite, painel do personal, prescrição e mural.
 8. ⬜ **Fase 6 · Recomendação com IA**: Plano semanal com explicação, resumo do mês e custo por usuário.
@@ -49,14 +49,14 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Conta e sessão · Conta
 
-94% · 7 prontas, 1 parcial, 0 a fazer
+100% · 8 prontas, 0 parciais, 0 a fazer
 
 - ✅ **Cadastro e login de verdade, pela API** · As mensagens de erro vêm do servidor. · `src/services/auth.ts`
 - ✅ **Sessão conferida ao abrir, sem travar o app offline** · `src/contexts/session-context.tsx`
 - ✅ **Sair da conta**
 - ✅ **Banco local separado por conta** · Outra pessoa no mesmo celular não vê nem envia os treinos da anterior. · `src/db/client.ts`
 - ✅ **Apagar a conta pelo app** · Pede a senha e confirma. Apaga também os treinos, medidas, fotos e respostas deste aparelho. · `app/(app)/perfil.tsx`
-- 🟨 **Alterar perfil** · Nome, foto de capa e senha já mudam. Peso, altura e objetivo (as respostas do questionário) ainda não. · `app/(app)/perfil.tsx`
+- ✅ **Alterar perfil** · Nome, foto de capa, senha, peso, altura e objetivo. Um peso novo entra também na Evolução, como a pesagem do dia. · `app/(app)/perfil.tsx`
 - ✅ **Trocar a senha** · Pede a senha atual; os outros aparelhos saem da conta. · `app/(app)/perfil.tsx`
 - ✅ **Foto de capa salva** · Da galeria, recortada na proporção da capa. Fica só neste aparelho e sai junto quando a conta é apagada. · `src/services/profile-photo.ts`
 
@@ -66,13 +66,13 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 - ✅ **Onboarding de 23 etapas com validação** · `app/(onboarding)/start.tsx`
 - ✅ **Painel do ponto de partida (peso, altura e IMC)**
-- ✅ **Respostas guardadas no aparelho** · No SecureStore, porque há dados sensíveis (sono, humor, fumo).
+- ✅ **Respostas guardadas no aparelho** · No SecureStore, porque há dados sensíveis (sono, humor, fumo). Inclui a meta escolhida na escala do resumo.
 - ✅ **Resumo da home a partir das respostas** · Fase da jornada, rotina e duração do treino.
 - ⬜ **Levar o perfil para a conta, com consentimento** · Hoje fica só no aparelho, de propósito.
 
 ### Treino · Fase 1
 
-73% · 8 prontas, 0 parciais, 3 a fazer
+82% · 9 prontas, 0 parciais, 2 a fazer
 
 - ✅ **Registro de treino sem internet** · Séries, cronômetro e descanso de 90 s. · `app/(app)/treino/sessao.tsx`
 - ✅ **Repetir a última série** · Copia a anterior ou a da última vez naquele exercício.
@@ -83,7 +83,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 - ✅ **Limites de digitação** · Carga acima de 1000 kg fica vermelha e não é salva.
 - ✅ **Treinos sobem sozinhos para a conta** · Ao entrar, ao voltar para o app e segundos depois de terminar. · `src/services/sync.ts`
 - ⬜ **Check-in na academia**
-- ⬜ **Restaurar os treinos num aparelho novo** · Precisa de a API devolver os treinos da conta.
+- ✅ **Restaurar os treinos num aparelho novo** · Na primeira entrada da conta no aparelho, os treinos dela descem sozinhos, depois de a fila subir. · `src/services/sync.ts`
 - ⬜ **Comemoração de recorde com card na hora**
 
 ### Evolução do corpo · Fase 2
@@ -136,7 +136,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 - ✅ **Android** · Testado no emulador com o Expo Go.
 - 🟨 **Web** · As telas de entrada funcionam. O treino usa SQLite, que não roda no servidor web de desenvolvimento.
 - ⬜ **iPhone**
-- ⬜ **Build de loja (EAS)**
+- ⬜ **Build de loja (EAS)** · Adiado em 23/09: primeiro as funções que faltam.
 - 🟨 **App apontando para a API publicada** · expo.extra.apiUrl = https://99dev.pro/gymflow-api. Falta testar o app contra a produção. · `app.json`
 
 ## API (gymflow-api)
@@ -158,12 +158,12 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Sincronização · API
 
-60% · 3 prontas, 0 parciais, 2 a fazer
+80% · 4 prontas, 0 parciais, 1 a fazer
 
 - ✅ **Receber os treinos da fila do app** · Lotes de até 50. · `POST /sync/workouts`
 - ✅ **Versão mais nova vence; id de outra conta é recusado**
 - ✅ **Validação treino a treino** · Um registro ruim volta como inválido e não trava os outros.
-- ⬜ **Devolver os treinos da conta** · Para restaurar num aparelho novo.
+- ✅ **Devolver os treinos da conta** · Em páginas de até 50, no formato do envio. Os apagados não voltam. · `GET /sync/workouts`
 - ⬜ **Medidas e fotos com consentimento** · Fotos em armazenamento privado, com URL assinada.
 
 ### Desafios · API
@@ -187,12 +187,13 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Qualidade e publicação · API
 
-58% · 3 prontas, 1 parcial, 2 a fazer
+64% · 4 prontas, 1 parcial, 2 a fazer
 
-- ✅ **44 testes automáticos contra um Postgres de verdade** · `npm test`
+- ✅ **51 testes automáticos contra um Postgres de verdade** · `npm test`
 - ✅ **Docker Compose com Postgres, migrações e Caddy (HTTPS)** · Testado localmente; o certificado só sai com o domínio real.
 - 🟨 **CI no GitHub** · O repositório já está no GitHub (privado). Falta conferir as execuções na aba Actions. · `.github/workflows/ci.yml`
-- ✅ **Publicar na VPS** · Painel 99dev, em https://99dev.pro/gymflow-api. Confira se o painel sonda /health (HEALTHCHECK_PATH), e não /healthz.
+- ✅ **Publicar na VPS** · Painel 99dev, em https://99dev.pro/gymflow-api. A sonda do painel testa /healthz, que responde como o /health e confere o banco.
+- ✅ **Documentação das rotas (Swagger e OpenAPI)** · Em https://99dev.pro/gymflow-api/doc e /openapi.json. Um teste falha se uma rota nova ficar sem documentação. · `src/routes/docs.ts`
 - ⬜ **Backup automático do banco** · O comando está no README; falta agendar.
 - ⬜ **Monitoramento e alertas**
 
@@ -257,6 +258,7 @@ Na primeira vez, o banco local sobe com npx prisma dev --name gynflow --detach. 
 - **Estratégia e registro das fases:** `22-estrategia.md`
 - **Fluxo de entrada, temas e marca:** `22-setembro-fluxo-inicial.md`
 - **API publicada:** <https://99dev.pro/gymflow-api>
+- **Documentação da API (Swagger):** <https://99dev.pro/gymflow-api/doc>
 - **Saúde da API e do banco:** <https://99dev.pro/gymflow-api/health>
 - **Código da API:** <https://github.com/srodrigo28/gymflow-api>
 - **Publicação no painel 99dev:** `gymflow-api/23-setembro-guia-deploy-api.md`

@@ -255,16 +255,17 @@
     { "label": "Estratégia e registro das fases", "value": "22-estrategia.md" },
     { "label": "Fluxo de entrada, temas e marca", "value": "22-setembro-fluxo-inicial.md" },
     { "label": "API publicada", "value": "https://99dev.pro/gymflow-api" },
+    { "label": "Documentação da API (Swagger)", "value": "https://99dev.pro/gymflow-api/doc" },
     { "label": "Saúde da API e do banco", "value": "https://99dev.pro/gymflow-api/health" },
     { "label": "Código da API", "value": "https://github.com/srodrigo28/gymflow-api" },
     { "label": "Publicação no painel 99dev", "value": "gymflow-api/23-setembro-guia-deploy-api.md" }
   ],
   "phases": [
     { "title": "Fluxo inicial", "status": "partial", "note": "Etapas 0 a 12 prontas. A 13 (acessibilidade e desempenho) falta no iPhone." },
-    { "title": "Fase 1 · Registro de treino", "status": "partial", "note": "Pronta e sincronizando com a conta. Falta o check-in na academia." },
+    { "title": "Fase 1 · Registro de treino", "status": "partial", "note": "Pronta, sincronizando com a conta e restaurando num aparelho novo. Falta o check-in na academia." },
     { "title": "Fase 2 · Corpo e fotos", "status": "partial", "note": "Medidas, fotos e comparador prontos. Falta o que pede consentimento e servidor." },
     { "title": "Fase 3 · Social e desafios", "status": "partial", "note": "Card, desafios, convite e placar prontos. Faltam amigos e check-in com foto." },
-    { "title": "API · gymflow-api", "status": "partial", "note": "No ar em 99dev.pro/gymflow-api. Faltam backup agendado, monitoramento e envio de e-mail." },
+    { "title": "API · gymflow-api", "status": "partial", "note": "No ar em 99dev.pro/gymflow-api, com as rotas documentadas em /doc. Faltam backup agendado, monitoramento e envio de e-mail." },
     { "title": "Fase 4 · Ranking e ligas", "status": "todo", "note": "XP, ligas semanais, categorias de ranking com DOTS e troféus." },
     { "title": "Fase 5 · Personal e academia", "status": "todo", "note": "Vínculo por convite, painel do personal, prescrição e mural." },
     { "title": "Fase 6 · Recomendação com IA", "status": "todo", "note": "Plano semanal com explicação, resumo do mês e custo por usuário." }
@@ -325,7 +326,7 @@
         { "name": "Sair da conta", "status": "done" },
         { "name": "Banco local separado por conta", "status": "done", "note": "Outra pessoa no mesmo celular não vê nem envia os treinos da anterior.", "where": "src/db/client.ts" },
         { "name": "Apagar a conta pelo app", "status": "done", "note": "Pede a senha e confirma. Apaga também os treinos, medidas, fotos e respostas deste aparelho.", "where": "app/(app)/perfil.tsx" },
-        { "name": "Alterar perfil", "status": "partial", "note": "Nome, foto de capa e senha já mudam. Peso, altura e objetivo (as respostas do questionário) ainda não.", "where": "app/(app)/perfil.tsx" },
+        { "name": "Alterar perfil", "status": "done", "note": "Nome, foto de capa, senha, peso, altura e objetivo. Um peso novo entra também na Evolução, como a pesagem do dia.", "where": "app/(app)/perfil.tsx" },
         { "name": "Trocar a senha", "status": "done", "note": "Pede a senha atual; os outros aparelhos saem da conta.", "where": "app/(app)/perfil.tsx" },
         { "name": "Foto de capa salva", "status": "done", "note": "Da galeria, recortada na proporção da capa. Fica só neste aparelho e sai junto quando a conta é apagada.", "where": "src/services/profile-photo.ts" }
       ]
@@ -339,7 +340,7 @@
       "items": [
         { "name": "Onboarding de 23 etapas com validação", "status": "done", "where": "app/(onboarding)/start.tsx" },
         { "name": "Painel do ponto de partida (peso, altura e IMC)", "status": "done" },
-        { "name": "Respostas guardadas no aparelho", "status": "done", "note": "No SecureStore, porque há dados sensíveis (sono, humor, fumo)." },
+        { "name": "Respostas guardadas no aparelho", "status": "done", "note": "No SecureStore, porque há dados sensíveis (sono, humor, fumo). Inclui a meta escolhida na escala do resumo." },
         { "name": "Resumo da home a partir das respostas", "status": "done", "note": "Fase da jornada, rotina e duração do treino." },
         { "name": "Levar o perfil para a conta, com consentimento", "status": "todo", "note": "Hoje fica só no aparelho, de propósito." }
       ]
@@ -360,7 +361,7 @@
         { "name": "Limites de digitação", "status": "done", "note": "Carga acima de 1000 kg fica vermelha e não é salva." },
         { "name": "Treinos sobem sozinhos para a conta", "status": "done", "note": "Ao entrar, ao voltar para o app e segundos depois de terminar.", "where": "src/services/sync.ts" },
         { "name": "Check-in na academia", "status": "todo" },
-        { "name": "Restaurar os treinos num aparelho novo", "status": "todo", "note": "Precisa de a API devolver os treinos da conta." },
+        { "name": "Restaurar os treinos num aparelho novo", "status": "done", "note": "Na primeira entrada da conta no aparelho, os treinos dela descem sozinhos, depois de a fila subir.", "where": "src/services/sync.ts" },
         { "name": "Comemoração de recorde com card na hora", "status": "todo" }
       ]
     },
@@ -429,7 +430,7 @@
         { "name": "Android", "status": "done", "note": "Testado no emulador com o Expo Go." },
         { "name": "Web", "status": "partial", "note": "As telas de entrada funcionam. O treino usa SQLite, que não roda no servidor web de desenvolvimento." },
         { "name": "iPhone", "status": "todo" },
-        { "name": "Build de loja (EAS)", "status": "todo" },
+        { "name": "Build de loja (EAS)", "status": "todo", "note": "Adiado em 23/09: primeiro as funções que faltam." },
         { "name": "App apontando para a API publicada", "status": "partial", "note": "expo.extra.apiUrl = https://99dev.pro/gymflow-api. Falta testar o app contra a produção.", "where": "app.json" }
       ]
     },
@@ -462,7 +463,7 @@
         { "name": "Receber os treinos da fila do app", "status": "done", "note": "Lotes de até 50.", "where": "POST /sync/workouts" },
         { "name": "Versão mais nova vence; id de outra conta é recusado", "status": "done" },
         { "name": "Validação treino a treino", "status": "done", "note": "Um registro ruim volta como inválido e não trava os outros." },
-        { "name": "Devolver os treinos da conta", "status": "todo", "note": "Para restaurar num aparelho novo." },
+        { "name": "Devolver os treinos da conta", "status": "done", "note": "Em páginas de até 50, no formato do envio. Os apagados não voltam.", "where": "GET /sync/workouts" },
         { "name": "Medidas e fotos com consentimento", "status": "todo", "note": "Fotos em armazenamento privado, com URL assinada." }
       ]
     },
@@ -500,10 +501,11 @@
       "phase": "API",
       "tone": "cyan",
       "items": [
-        { "name": "44 testes automáticos contra um Postgres de verdade", "status": "done", "where": "npm test" },
+        { "name": "51 testes automáticos contra um Postgres de verdade", "status": "done", "where": "npm test" },
         { "name": "Docker Compose com Postgres, migrações e Caddy (HTTPS)", "status": "done", "note": "Testado localmente; o certificado só sai com o domínio real." },
         { "name": "CI no GitHub", "status": "partial", "note": "O repositório já está no GitHub (privado). Falta conferir as execuções na aba Actions.", "where": ".github/workflows/ci.yml" },
-        { "name": "Publicar na VPS", "status": "done", "note": "Painel 99dev, em https://99dev.pro/gymflow-api. Confira se o painel sonda /health (HEALTHCHECK_PATH), e não /healthz." },
+        { "name": "Publicar na VPS", "status": "done", "note": "Painel 99dev, em https://99dev.pro/gymflow-api. A sonda do painel testa /healthz, que responde como o /health e confere o banco." },
+        { "name": "Documentação das rotas (Swagger e OpenAPI)", "status": "done", "note": "Em https://99dev.pro/gymflow-api/doc e /openapi.json. Um teste falha se uma rota nova ficar sem documentação.", "where": "src/routes/docs.ts" },
         { "name": "Backup automático do banco", "status": "todo", "note": "O comando está no README; falta agendar." },
         { "name": "Monitoramento e alertas", "status": "todo" }
       ]

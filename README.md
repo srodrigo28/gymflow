@@ -24,14 +24,14 @@ Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-esta
 - Splash animada, hero de boas-vindas, login e cadastro (contas reais na API)
 - Onboarding de 23 etapas; as respostas ficam só no aparelho
 - Registro de treino offline, com histórico, recordes e "o que está faltando"
-- Treinos concluídos sobem sozinhos para a conta quando há internet
+- Treinos concluídos sobem sozinhos para a conta quando há internet, e voltam sozinhos num aparelho novo
 - Evolução: medidas com gráfico, foto do mês e comparador (só no aparelho)
 - Desafios entre amigos: convite por link, placar de dias com treino
 - Card compartilhável de recorde e de resumo da semana
 - Painel de administração com o total de cadastros (o gatilho dos 200)
-- Perfil: foto de capa, nome, troca de senha e exclusão da conta
+- Perfil: foto de capa, nome, peso, altura, objetivo, troca de senha e exclusão da conta
 - Temas de cores: Flow, Meia-noite, Aurora e Brasa (tela Aparência)
-- API publicada em `https://99dev.pro/gymflow-api`
+- API publicada em `https://99dev.pro/gymflow-api`, com a documentação das rotas em https://99dev.pro/gymflow-api/doc
 
 O plano de produto e o registro de cada fase estão em [`22-estrategia.md`](22-estrategia.md).
 
@@ -142,10 +142,14 @@ O app precisa da API para cadastro, login, desafios e sincronização (o registr
 | O quê | Endereço |
 | --- | --- |
 | API (base de todas as rotas) | https://99dev.pro/gymflow-api |
+| Documentação das rotas (Swagger) | https://99dev.pro/gymflow-api/doc |
+| A mesma documentação em OpenAPI 3.1, para o Postman ou o Insomnia | https://99dev.pro/gymflow-api/openapi.json |
 | Saúde da API e do banco | https://99dev.pro/gymflow-api/health (responde `{"ok":true}`) |
 | Código da API | https://github.com/srodrigo28/gymflow-api |
 
-A raiz da API responde 404 de propósito: ela não tem rota ali, só em `/health`, `/auth/...`, `/me` e as demais. `/healthz` também dá 404: é o endereço que o painel 99dev testa por padrão, e o painel precisa de `HEALTHCHECK_PATH=/health` (veja o guia de deploy no repositório da API). Os links de convite dos desafios saem como `https://99dev.pro/gymflow-api/c/<código>`.
+A raiz da API responde 404 de propósito: ela não tem rota ali, só em `/health`, `/auth/...`, `/me` e as demais. `/healthz` responde igual ao `/health`: é o endereço que o painel 99dev testa depois de cada deploy, então a sonda também confere o banco (veja o guia de deploy no repositório da API). Os links de convite dos desafios saem como `https://99dev.pro/gymflow-api/c/<código>`.
+
+A documentação lista todas as rotas, com corpos, respostas e erros. O endereço é `/doc`, sem barra no fim (`/doc/` dá 404). O botão **Authorize** recebe o token que `POST /auth/sign-in` devolve, e o **Try it out** chama a produção de verdade: um cadastro feito ali é uma conta real e entra no total do painel de administração (o gatilho dos 200). Para testar criando dados, use a documentação da API local, em `http://localhost:3333/doc`.
 
 O app usa a API publicada quando não há `.env.local`: o endereço fica em `app.json` (`expo.extra.apiUrl`).
 
@@ -159,9 +163,8 @@ Com `.env.local`, o app usa o endereço dele em vez do publicado. As chamadas fi
 
 ## Próximos passos
 
-- Testar o app contra a API publicada e gerar o build de loja (EAS)
-- Editar peso, altura e objetivo no Perfil (hoje só no questionário inicial)
-- Restaurar treinos da conta num aparelho novo (a API já recebe; falta o app baixar)
+- Testar o app contra a API publicada
 - Consentimento específico para medidas e fotos subirem para a conta (LGPD)
 - Recuperação de senha (precisa de um serviço de envio de e-mail)
 - Amigos e check-in com foto nos desafios (Fase 3)
+- Build de loja (EAS), depois das funções acima
