@@ -16,6 +16,7 @@ import type { OnboardingProfile } from '@/src/types/onboarding';
 import {
   currentJourneyLevel as getCurrentJourneyLevel,
   journeyLevels as journeyScaleLevels,
+  targetJourneyLevel,
   type JourneyLevel as JourneyScaleLevel,
 } from '@/src/utils/journey';
 
@@ -63,7 +64,8 @@ function OnboardingFlow() {
       return;
     }
 
-    const result = onboardingSchema.safeParse(profile);
+    // A meta vai junto mesmo que a pessoa não toque na escala: fica a que a escala já mostrava.
+    const result = onboardingSchema.safeParse({ ...profile, targetLevel: targetJourneyLevel(profile) });
 
     if (!result.success) {
       return;
@@ -118,7 +120,7 @@ function OnboardingFlow() {
         {step === 22 ? <DailyAdviceStep profile={profile} updateProfile={updateProfile} /> : null}
         {step === 23 ? <MealPhotosStep profile={profile} updateProfile={updateProfile} /> : null}
         {step === 24 ? <ProgressPhotosStep profile={profile} updateProfile={updateProfile} /> : null}
-        {step === 25 ? <SummaryStep profile={profile} /> : null}
+        {step === 25 ? <SummaryStep profile={profile} updateProfile={updateProfile} /> : null}
       </OnboardingLayout>
     </>
   );
@@ -568,16 +570,14 @@ function ProgressPhotosStep({ profile, updateProfile }: StepProps) {
   );
 }
 
-function SummaryStep({ profile }: { profile: OnboardingProfile }) {
+function SummaryStep({ profile, updateProfile }: StepProps) {
   const styles = useStyles();
   const { theme } = useTheme();
   const bmi = calculateBmi(profile.weightKg, profile.heightCm);
   const bmiResult = bmi ? getBmiResult(bmi, theme) : null;
   const bmiValue = bmi?.toFixed(1);
   const currentLevel = getCurrentJourneyLevel(profile);
-  const [targetLevel, setTargetLevel] = useState<JourneyScaleLevel>(
-    currentLevel === 'performance' ? 'performance' : 'evolution',
-  );
+  const targetLevel = targetJourneyLevel(profile);
 
   return (
     <View style={styles.summaryWrapper}>
@@ -594,7 +594,7 @@ function SummaryStep({ profile }: { profile: OnboardingProfile }) {
 
       <JourneyScale
         currentLevel={currentLevel}
-        onTargetChange={setTargetLevel}
+        onTargetChange={(level) => updateProfile({ targetLevel: level })}
         targetLevel={targetLevel}
       />
 

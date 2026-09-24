@@ -33,6 +33,14 @@ export async function getOnboardingProfile(userId: string): Promise<OnboardingPr
   }
 }
 
+// Troca só alguns campos (o Perfil edita peso, altura e objetivo) e mantém as outras respostas.
+export async function updateOnboardingProfile(userId: string, changes: Partial<OnboardingProfile>) {
+  const profile = { ...(await getOnboardingProfile(userId)), ...changes };
+  await secureStorage.set(storageKeys.profile(userId), JSON.stringify(profile));
+
+  return profile;
+}
+
 export async function hasCompletedOnboarding(userId: string) {
   return (await storage.get(storageKeys.onboardingCompleted(userId))) === 'true';
 }

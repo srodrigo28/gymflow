@@ -14,7 +14,7 @@ import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from 
 import type { BodyTrend } from '@/src/types/body';
 import type { OnboardingProfile, TrainingDuration } from '@/src/types/onboarding';
 import { formatDelta } from '@/src/utils/format';
-import { currentJourneyLevel, journeyLabel } from '@/src/utils/journey';
+import { currentJourneyLevel, hasJourneyAnswers, journeyLabel } from '@/src/utils/journey';
 
 const durationLabels: Record<TrainingDuration, string> = {
   '30_to_45': '30 a 45 min',
@@ -27,7 +27,7 @@ type SummaryItem = { icon: ComponentProps<typeof MaterialCommunityIcons>['name']
 
 // O resumo do topo sai das respostas do onboarding (fase da jornada, rotina e duração).
 function profileSummary(profile: OnboardingProfile | null): SummaryItem[] {
-  if (!profile) {
+  if (!hasJourneyAnswers(profile)) {
     return [];
   }
 

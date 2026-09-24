@@ -60,6 +60,9 @@ export type ProfessionalTrainingPurpose =
   | 'physical_test'
   | 'other';
 
+// Fase da jornada: a atual sai das respostas (src/utils/journey.ts); a meta, a pessoa escolhe.
+export type JourneyLevel = 'start' | 'consistency' | 'evolution' | 'performance';
+
 export type OnboardingProfile = {
   sex?: BiologicalSex;
   workRoutine?: WorkRoutine;
@@ -88,4 +91,6 @@ export type OnboardingProfile = {
   moodPattern?: MoodPattern;
   trainsProfessionally?: InterestLevel;
   professionalTrainingPurpose?: ProfessionalTrainingPurpose;
+  // O objetivo: onde a pessoa quer chegar na escala do fim do onboarding. Muda no Perfil.
+  targetLevel?: JourneyLevel;
 };

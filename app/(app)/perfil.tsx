@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, Platform, Pressable, Text, View, type TextInput } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
@@ -10,10 +10,21 @@ import { Input } from '@/src/components/ui/Input';
 import { Screen } from '@/src/components/ui/Screen';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { useSession } from '@/src/contexts/session-context';
+import { BODY_LIMITS } from '@/src/schemas/onboarding';
 import { ApiError } from '@/src/services/api';
 import { changePassword } from '@/src/services/auth';
+import { getBodyTrend, saveMeasurement } from '@/src/services/body';
+import { getOnboardingProfile, updateOnboardingProfile } from '@/src/services/onboarding';
 import { getProfilePhoto, pickProfilePhoto, removeProfilePhoto } from '@/src/services/profile-photo';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
+import {
+  currentJourneyLevel,
+  hasJourneyAnswers,
+  journeyLabel,
+  journeyLevels,
+  targetJourneyLevel,
+  type JourneyLevel,
+} from '@/src/utils/journey';
 
 const DELETE_TITLE = 'Apagar a conta?';
 const DELETE_MESSAGE = 'Não dá para desfazer: a conta, os treinos, as medidas e as fotos saem para sempre.';
@@ -63,6 +74,7 @@ export default function PerfilScreen() {
 
         <CoverPhotoCard />
         <NameCard />
+        <BodyGoalCard />
         <PasswordCard />
         <DeleteAccountCard />
       </KeyboardAwareScrollView>
@@ -218,6 +230,202 @@ function NameCard() {
           {session?.user.email}
         </Text>
       </View>
+    </View>
+  );
+}
+
+type BodyGoal = { heightCm?: number; targetLevel: JourneyLevel; weightKg?: number };
+type BodyGoalErrors = { form?: string; height?: string; weight?: string };
+
+// "82,5" → 82.5. Vazio, ou o que não for número, vira undefined.
+function parseDecimal(text: string) {
+  const value = Number(text.trim().replace(',', '.'));
+  return text.trim() && Number.isFinite(value) ? value : undefined;
+}
+
+function decimalText(value?: number) {
+  return value === undefined ? '' : String(value).replace('.', ',');
+}
+
+// Os mesmos limites do questionário.
+function validateBody(weightKg?: number, heightCm?: number) {
+  const errors: BodyGoalErrors = {};
+  const { heightCm: height, weightKg: weight } = BODY_LIMITS;
+
+  if (weightKg === undefined || weightKg < weight.min || weightKg > weight.max) {
+    errors.weight = `Informe um peso entre ${weight.min} e ${weight.max} kg.`;
+  }
+
+  if (heightCm === undefined || heightCm < height.min || heightCm > height.max) {
+    errors.height = `Informe uma altura entre ${height.min} e ${height.max} cm.`;
+  }
+
+  return errors;
+}
+
+// Peso, altura e objetivo são respostas do questionário e ficam só no aparelho. O peso mostrado é o
+// atual: o da última pesagem na Evolução ou, sem nenhuma, o do questionário.
+function BodyGoalCard() {
+  const styles = useStyles();
+  const { theme } = useTheme();
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const [saved, setSaved] = useState<BodyGoal | null>(null);
+  const [currentLevel, setCurrentLevel] = useState<JourneyLevel | null>(null);
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
+  const [target, setTarget] = useState<JourneyLevel>('evolution');
+  const [errors, setErrors] = useState<BodyGoalErrors>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const weightKg = parseDecimal(weight);
+  const heightCm = parseDecimal(height);
+  const hasChanges =
+    saved !== null && (weightKg !== saved.weightKg || heightCm !== saved.heightCm || target !== saved.targetLevel);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    let active = true;
+
+    // Sem o banco local (no navegador), vale o peso do questionário.
+    void Promise.all([getOnboardingProfile(userId), getBodyTrend().catch(() => null)]).then(([profile, trend]) => {
+      if (!active) {
+        return;
+      }
+
+      const answers = profile ?? {};
+      const values: BodyGoal = {
+        heightCm: answers.heightCm,
+        targetLevel: targetJourneyLevel(answers),
+        weightKg: trend?.latest?.weightKg ?? answers.weightKg,
+      };
+
+      setSaved(values);
+      setCurrentLevel(hasJourneyAnswers(profile) ? currentJourneyLevel(profile) : null);
+      setWeight(decimalText(values.weightKg));
+      setHeight(decimalText(values.heightCm));
+      setTarget(values.targetLevel);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  function changed(field: keyof BodyGoalErrors) {
+    setErrors((previous) => ({ ...previous, [field]: undefined, form: undefined }));
+    setIsSaved(false);
+  }
+
+  async function handleSave() {
+    const found = validateBody(weightKg, heightCm);
+    setErrors(found);
+
+    if (Object.keys(found).length > 0 || weightKg === undefined || heightCm === undefined || !saved || !userId) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // Peso diferente do atual é uma pesagem nova: entra na Evolução com a data de hoje.
+      if (weightKg !== saved.weightKg) {
+        await saveMeasurement({ takenAt: Date.now(), weightKg });
+      }
+
+      await updateOnboardingProfile(userId, { heightCm, targetLevel: target, weightKg });
+      setSaved({ heightCm, targetLevel: target, weightKg });
+      setWeight(decimalText(weightKg));
+      setHeight(decimalText(heightCm));
+      setIsSaved(true);
+    } catch {
+      setErrors({ form: 'Não foi possível salvar. Tente de novo.' });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <View style={styles.card}>
+      <Text accessibilityRole="header" style={styles.cardTitle}>
+        Corpo e objetivo
+      </Text>
+      <Text style={styles.cardText}>Vêm do questionário do início e ficam só neste aparelho.</Text>
+      <Input
+        error={errors.weight}
+        helperText="Se mudar, o peso novo entra também na Evolução, como a pesagem de hoje."
+        keyboardType="decimal-pad"
+        label="Peso atual"
+        maxLength={6}
+        onChangeText={(text) => {
+          setWeight(text);
+          changed('weight');
+        }}
+        placeholder="Ex: 83"
+        rightText="kg"
+        value={weight}
+      />
+      <Input
+        error={errors.height}
+        keyboardType="decimal-pad"
+        label="Altura"
+        maxLength={5}
+        onChangeText={(text) => {
+          setHeight(text);
+          changed('height');
+        }}
+        placeholder="Ex: 170"
+        rightText="cm"
+        value={height}
+      />
+
+      <View style={styles.goalGroup}>
+        <Text style={styles.fieldLabel}>Objetivo</Text>
+        <View accessibilityLabel="Objetivo" accessibilityRole="radiogroup" style={styles.goalGrid}>
+          {journeyLevels.map((level) => {
+            const isSelected = level.value === target;
+
+            return (
+              <Pressable
+                accessibilityLabel={`${level.label}: ${level.description}`}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                key={level.value}
+                onPress={() => {
+                  setTarget(level.value);
+                  changed('form');
+                }}
+                style={({ pressed }) => [
+                  styles.goalOption,
+                  isSelected ? styles.goalOptionSelected : null,
+                  pressed ? styles.pressed : null,
+                ]}>
+                <Text style={styles.goalLabel}>{level.label}</Text>
+                <Text style={styles.goalDescription}>{level.description}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {currentLevel ? (
+          <Text style={styles.goalHint}>Pelas suas respostas, hoje você está em {journeyLabel(currentLevel)}.</Text>
+        ) : null}
+      </View>
+
+      {errors.form ? (
+        <Text accessibilityLiveRegion="polite" style={styles.formError}>
+          {errors.form}
+        </Text>
+      ) : null}
+      <Button disabled={!hasChanges} loading={isSaving} onPress={handleSave} title="Salvar" variant="outline" />
+      {isSaved ? (
+        <View accessibilityLiveRegion="polite" style={styles.savedRow}>
+          <Ionicons color={theme.status.success} name="checkmark-circle" size={18} />
+          <Text style={styles.savedText}>Dados atualizados.</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -527,6 +735,52 @@ const useStyles = makeStyles((theme) => ({
   },
   passwordGroup: {
     gap: 10,
+  },
+  fieldLabel: {
+    ...typography.caption,
+    color: theme.text.primary,
+  },
+  goalGroup: {
+    gap: 8,
+  },
+  goalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  // Duas por linha: "Performance" não cabe em quatro colunas num celular de 360 dp.
+  goalOption: {
+    backgroundColor: theme.bg.surface,
+    borderColor: theme.border.subtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexBasis: '40%',
+    flexGrow: 1,
+    gap: 2,
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  goalOptionSelected: {
+    backgroundColor: theme.accent.soft,
+    borderColor: theme.accent.primary,
+  },
+  goalLabel: {
+    color: theme.text.primary,
+    fontFamily: fonts.bold,
+    fontSize: 15,
+  },
+  goalDescription: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  goalHint: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
   },
   formError: {
     color: theme.status.danger,

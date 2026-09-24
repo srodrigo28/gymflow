@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 const requiredMessage = 'Escolha uma opcao para continuar.';
 
+// Valem no onboarding e no Perfil.
+export const BODY_LIMITS = {
+  heightCm: { max: 250, min: 100 },
+  weightKg: { max: 300, min: 30 },
+} as const;
+
 export const baseOnboardingSchema = z.object({
   sex: z.enum(['male', 'female', 'prefer_not_to_say'], { message: requiredMessage }),
   workRoutine: z.enum(
@@ -24,12 +30,12 @@ export const baseOnboardingSchema = z.object({
   }),
   weightKg: z
     .number({ message: 'Informe seu peso.' })
-    .min(30, 'Peso minimo: 30 kg.')
-    .max(300, 'Peso maximo: 300 kg.'),
+    .min(BODY_LIMITS.weightKg.min, `Peso minimo: ${BODY_LIMITS.weightKg.min} kg.`)
+    .max(BODY_LIMITS.weightKg.max, `Peso maximo: ${BODY_LIMITS.weightKg.max} kg.`),
   heightCm: z
     .number({ message: 'Informe sua altura.' })
-    .min(100, 'Altura minima: 100 cm.')
-    .max(250, 'Altura maxima: 250 cm.'),
+    .min(BODY_LIMITS.heightCm.min, `Altura minima: ${BODY_LIMITS.heightCm.min} cm.`)
+    .max(BODY_LIMITS.heightCm.max, `Altura maxima: ${BODY_LIMITS.heightCm.max} cm.`),
   sleepHours: z.enum(['less_than_5', '5_to_6', '7_to_8', 'more_than_8', 'varies'], {
     message: requiredMessage,
   }),
@@ -63,6 +69,7 @@ export const baseOnboardingSchema = z.object({
   professionalTrainingPurpose: z
     .enum(['competition', 'bodybuilding', 'professional_performance', 'physical_test', 'other'])
     .optional(),
+  targetLevel: z.enum(['start', 'consistency', 'evolution', 'performance']).optional(),
 });
 
 export const onboardingSchema = baseOnboardingSchema.superRefine((data, ctx) => {
