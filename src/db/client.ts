@@ -106,6 +106,14 @@ const migrations: string[] = [
   CREATE INDEX IF NOT EXISTS idx_measurements_taken ON measurements (taken_at DESC);
   CREATE INDEX IF NOT EXISTS idx_photos_month ON photos (month DESC, pose);
   `,
+  `
+  -- O que a sincronização já fez neste aparelho (por exemplo, baixar os treinos da conta).
+  -- Fica no banco da conta, então sai junto quando a conta é apagada.
+  CREATE TABLE IF NOT EXISTS sync_state (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+  );
+  `,
 ];
 
 let currentUserId: string | null = null;

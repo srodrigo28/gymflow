@@ -1,9 +1,10 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/ui/Screen';
+import { onWorkoutsRestored } from '@/src/services/sync';
 import {
   getActiveSessionId,
   getDaysSinceMuscle,
@@ -55,6 +56,9 @@ export default function TreinoScreen() {
       void load();
     }, [load]),
   );
+
+  // Num aparelho novo, os treinos da conta podem chegar com a tela já aberta.
+  useEffect(() => onWorkoutsRestored(() => void load()), [load]);
 
   async function handleStart() {
     setIsStarting(true);

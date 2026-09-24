@@ -1,14 +1,17 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
 import { getDatabase } from '@/src/db/client';
 import { onSyncQueued } from '@/src/db/outbox';
-import { apiRequest } from '@/src/services/api';
+import { ApiError, apiRequest } from '@/src/services/api';
 
 const BATCH_SIZE = 25;
 const MAX_ROUNDS = 20;
 // Espera um pouco depois de cada mudança: várias séries seguidas viram um envio só.
 const QUEUE_DELAY = 1500;
+const RESTORE_PAGE = 50;
+const RESTORED_KEY = 'workouts_restored_at';
 
 type SessionRow = {
   finished_at: number | null;
@@ -159,11 +162,158 @@ async function pushBatch(token: string) {
   return batch.length;
 }
 
+// O treino como a API devolve no download: o mesmo formato do envio.
+type RemoteWorkout = {
+  exercises: {
+    exerciseId: string;
+    id: string;
+    kind: string;
+    muscle: string;
+    name: string;
+    position: number;
+    sets: {
+      createdAt: number;
+      distanceM: number | null;
+      done: boolean;
+      durationSec: number | null;
+      id: string;
+      isPr: boolean;
+      position: number;
+      reps: number | null;
+      rpe: number | null;
+      weightKg: number | null;
+    }[];
+  }[];
+  finishedAt: number | null;
+  id: string;
+  note: string | null;
+  startedAt: number;
+  updatedAt: number;
+};
+
+type RestorePage = { nextCursor: string | null; workouts: RemoteWorkout[] };
+
+// Grava um treino que veio da conta. Não entra na fila: ele já está no servidor.
+async function saveRemoteWorkout(database: SQLiteDatabase, workout: RemoteWorkout) {
+  await database.withTransactionAsync(async () => {
+    await database.runAsync(
+      'INSERT INTO sessions (id, started_at, finished_at, note, updated_at, synced_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [workout.id, workout.startedAt, workout.finishedAt, workout.note, workout.updatedAt, Date.now()],
+    );
+
+    for (const exercise of workout.exercises) {
+      // O catálogo vem do app. Um exercício que saiu dele volta com o nome e o grupo do servidor.
+      await database.runAsync(
+        `INSERT OR IGNORE INTO exercises (id, name, muscle, pattern, equipment, kind) VALUES (?, ?, ?, '', '', ?)`,
+        [exercise.exerciseId, exercise.name, exercise.muscle, exercise.kind],
+      );
+      await database.runAsync(
+        'INSERT INTO session_exercises (id, session_id, exercise_id, position) VALUES (?, ?, ?, ?)',
+        [exercise.id, workout.id, exercise.exerciseId, exercise.position],
+      );
+
+      for (const set of exercise.sets) {
+        await database.runAsync(
+          `INSERT INTO sets
+             (id, session_exercise_id, position, weight_kg, reps, duration_sec, distance_m, rpe, done, is_pr, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            set.id,
+            exercise.id,
+            set.position,
+            set.weightKg,
+            set.reps,
+            set.durationSec,
+            set.distanceM,
+            set.rpe,
+            set.done ? 1 : 0,
+            set.isPr ? 1 : 0,
+            set.createdAt,
+          ],
+        );
+      }
+    }
+  });
+}
+
+// A API publicada ainda sem o download (404): não pergunta de novo até o app abrir outra vez.
+let restoreUnavailable = false;
+const restoredListeners = new Set<() => void>();
+
+// Avisado quando treinos da conta chegam do servidor. A tela aberta recarrega: num aparelho novo,
+// ela pode ter carregado vazia antes de o download terminar.
+export function onWorkoutsRestored(listener: () => void) {
+  restoredListeners.add(listener);
+
+  return () => {
+    restoredListeners.delete(listener);
+  };
+}
+
+// Baixa os treinos da conta que não estão neste aparelho: é o que traz o histórico de volta num
+// celular novo. Roda uma vez por conta em cada aparelho. O que já está aqui, ou ainda na fila,
+// fica com a versão daqui.
+async function restoreWorkouts(token: string) {
+  const database = await getDatabase();
+
+  if (restoreUnavailable || (await database.getFirstAsync('SELECT 1 FROM sync_state WHERE key = ?', [RESTORED_KEY]))) {
+    return;
+  }
+
+  let after: string | null = null;
+
+  do {
+    const path = `/sync/workouts?limit=${RESTORE_PAGE}${after ? `&after=${encodeURIComponent(after)}` : ''}`;
+    let page: RestorePage;
+
+    try {
+      page = await apiRequest<RestorePage>(path, { token });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        restoreUnavailable = true;
+        return;
+      }
+
+      throw error;
+    }
+
+    let saved = 0;
+
+    for (const workout of page.workouts) {
+      const isLocal = await database.getFirstAsync(
+        `SELECT 1 FROM sessions WHERE id = ?
+         UNION ALL SELECT 1 FROM outbox WHERE entity = 'session' AND entity_id = ?
+         LIMIT 1`,
+        [workout.id, workout.id],
+      );
+
+      if (!isLocal) {
+        await saveRemoteWorkout(database, workout);
+        saved += 1;
+      }
+    }
+
+    if (saved > 0) {
+      for (const listener of restoredListeners) {
+        listener();
+      }
+    }
+
+    after = page.nextCursor;
+  } while (after);
+
+  await database.runAsync('INSERT OR REPLACE INTO sync_state (key, value) VALUES (?, ?)', [
+    RESTORED_KEY,
+    String(Date.now()),
+  ]);
+}
+
 let running: Promise<void> | null = null;
 let runAgain = false;
 
-// Sobe os treinos concluídos que estão na fila. Uma execução por vez; um pedido no meio de
-// outra roda de novo no fim, para nada ficar para trás.
+// Sobe os treinos concluídos que estão na fila e, na primeira vez da conta neste aparelho, baixa os
+// que já estavam nela. Uma execução por vez; um pedido no meio de outra roda de novo no fim, para
+// nada ficar para trás.
 export function syncWorkouts(token: string): Promise<void> {
   if (running) {
     runAgain = true;
@@ -177,6 +327,9 @@ export function syncWorkouts(token: string): Promise<void> {
           break;
         }
       }
+
+      // Só depois do envio: um treino apagado aqui já saiu da conta e não volta no download.
+      await restoreWorkouts(token);
     } finally {
       running = null;
 
