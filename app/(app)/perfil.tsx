@@ -28,6 +28,7 @@ import {
   targetJourneyLevel,
   type JourneyLevel,
 } from '@/src/utils/journey';
+import { showAlert } from '@/src/utils/alert';
 import { formatShortDate } from '@/src/utils/format';
 
 const DELETE_TITLE = 'Apagar a conta?';
@@ -139,7 +140,7 @@ function CoverPhotoCard() {
         setUri(picked);
       }
     } catch {
-      Alert.alert('Foto de capa', 'Não foi possível usar essa imagem. Tente outra.');
+      showAlert('Foto de capa', 'Não foi possível usar essa imagem. Tente outra.');
     } finally {
       setIsPicking(false);
     }
@@ -613,7 +614,7 @@ function QuestionnaireCard() {
   }
 
   function askToGrant() {
-    Alert.alert(
+    showAlert(
       'Guardar respostas na conta',
       'As respostas do questionário incluem sono, humor, fumo e bebida: dados de saúde. Com o seu consentimento, o Gyn Flow guarda essas respostas na sua conta, só para elas voltarem num aparelho novo. Ninguém mais as vê.\n\nVocê pode retirar o consentimento quando quiser: aí apagamos tudo do servidor na hora.',
       [
@@ -624,7 +625,7 @@ function QuestionnaireCard() {
   }
 
   function askToRevoke() {
-    Alert.alert('Parar de guardar na conta', 'Apagamos agora as respostas do servidor. As deste aparelho continuam aqui.', [
+    showAlert('Parar de guardar na conta', 'Apagamos agora as respostas do servidor. As deste aparelho continuam aqui.', [
       { style: 'cancel', text: 'Cancelar' },
       { onPress: () => void apply(false), style: 'destructive', text: 'Parar e apagar' },
     ]);

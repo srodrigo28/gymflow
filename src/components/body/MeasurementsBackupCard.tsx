@@ -1,13 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { useSession } from '@/src/contexts/session-context';
 import { countMeasurements } from '@/src/services/body';
 import { countPendingMeasurements, onMeasurementsSynced } from '@/src/services/body-sync';
 import { fonts, makeStyles, radius, useTheme } from '@/src/theme';
+import { showAlert } from '@/src/utils/alert';
 import { formatShortDate } from '@/src/utils/format';
 
 // Consentimento específico e destacado, como a LGPD pede para dado de saúde: diz o que sobe, para
@@ -54,14 +55,14 @@ export function MeasurementsBackupCard() {
   }
 
   function askToGrant() {
-    Alert.alert(CONSENT_TITLE, CONSENT_TEXT, [
+    showAlert(CONSENT_TITLE, CONSENT_TEXT, [
       { style: 'cancel', text: 'Agora não' },
       { onPress: () => void apply(true), text: 'Aceito e quero guardar' },
     ]);
   }
 
   function askToRevoke() {
-    Alert.alert(
+    showAlert(
       'Parar de guardar na conta',
       'Apagamos agora todas as suas medidas do servidor. As deste aparelho continuam aqui.',
       [

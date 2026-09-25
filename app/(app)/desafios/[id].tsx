@@ -10,7 +10,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   Text,
   View,
 } from 'react-native';
@@ -33,7 +32,9 @@ import { registerPushToken } from '@/src/services/push';
 import { syncWorkouts } from '@/src/services/sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { Challenge, ChallengeCheckin, ChallengeCheckinDay, Standing } from '@/src/types/challenges';
+import { showAlert } from '@/src/utils/alert';
 import { dayKey, formatClockTime, parseDayKey, shiftDayKey, weekdayDateLabel } from '@/src/utils/format';
+import { shareText } from '@/src/utils/share-text';
 
 const DAY = 86_400_000;
 const NO_PHOTOS = 'O servidor ainda não está guardando fotos. O treino do dia continua valendo ponto.';
@@ -270,12 +271,12 @@ export default function DesafioScreen() {
 
   function invite() {
     if (challenge) {
-      void Share.share({ message: inviteMessage(challenge) }).catch(() => undefined);
+      void shareText(inviteMessage(challenge)).catch(() => undefined);
     }
   }
 
   function confirmLeave() {
-    Alert.alert('Sair do desafio?', 'Você sai do placar. Dá para voltar depois pelo mesmo convite.', [
+    showAlert('Sair do desafio?', 'Você sai do placar. Dá para voltar depois pelo mesmo convite.', [
       { style: 'cancel', text: 'Ficar' },
       {
         onPress: async () => {

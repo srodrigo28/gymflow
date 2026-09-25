@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
@@ -16,6 +16,7 @@ import {
 } from '@/src/services/friends';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { Friend, FriendsOverview } from '@/src/types/friends';
+import { showAlert } from '@/src/utils/alert';
 
 // "3 dias nesta semana": os dias distintos com treino concluído desde segunda-feira.
 function daysLabel(days: number) {
@@ -110,7 +111,7 @@ export default function AmigosScreen() {
   }
 
   function confirmRemove(friend: Friend) {
-    Alert.alert('Desfazer amizade?', `${friend.name} deixa de ver seus dias de treino, e você deixa de ver os dele.`, [
+    showAlert('Desfazer amizade?', `${friend.name} deixa de ver seus dias de treino, e você deixa de ver os dele.`, [
       { style: 'cancel', text: 'Manter' },
       {
         onPress: () => {

@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
@@ -19,6 +19,7 @@ import {
 import { getOnboardingProfile } from '@/src/services/onboarding';
 import { syncWorkouts } from '@/src/services/sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha, type Theme } from '@/src/theme';
+import { showAlert } from '@/src/utils/alert';
 import type {
   LeagueOverview,
   LeagueResult,
@@ -308,7 +309,7 @@ export default function LigaScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Sair das ligas?',
       'Você sai do grupo desta semana e deixa de aparecer na classificação. O seu XP continua contando para o nível, e dá para voltar quando quiser.',
       [

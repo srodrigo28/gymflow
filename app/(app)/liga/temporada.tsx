@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
@@ -11,6 +11,7 @@ import { formatXp, getSeason, setSeasonSharing } from '@/src/services/league';
 import { syncWorkouts } from '@/src/services/sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { Award, Season, SeasonCategory, SeasonEntry, SeasonUnit } from '@/src/types/league';
+import { showAlert } from '@/src/utils/alert';
 import { formatVolume, monthLabel } from '@/src/utils/format';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -320,7 +321,7 @@ export default function TemporadaScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Parar de mostrar aos amigos?',
       'Seus amigos deixam de ver os seus detalhes (volume, evolução, cardio, modalidades e equilíbrio), e você deixa de ver os deles nessas categorias.',
       [

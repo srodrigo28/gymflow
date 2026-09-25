@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Share, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { Button } from '@/src/components/ui/Button';
@@ -20,6 +20,7 @@ import {
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { PersonalPhrase } from '@/src/types/phrases';
 import { formatShortDate } from '@/src/utils/format';
+import { shareText } from '@/src/utils/share-text';
 
 // De onde veio a última frase guardada, para o aviso aparecer no cartão certo.
 type SavedFrom = 'daily' | 'draft';
@@ -90,7 +91,7 @@ export default function FraseScreen() {
 
   // Só o app escolhido na folha de compartilhamento recebe o texto. Cancelar não é erro.
   function share(text: string) {
-    void Share.share({ message: phraseShareMessage(text) }).catch(() => undefined);
+    void shareText(phraseShareMessage(text)).catch(() => undefined);
   }
 
   return (

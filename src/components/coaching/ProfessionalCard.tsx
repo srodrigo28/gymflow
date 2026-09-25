@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, Share, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
@@ -17,6 +17,7 @@ import {
 import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
 import type { CoachingInvite, ProfessionalProfile } from '@/src/types/coaching';
 import { formatShortDate } from '@/src/utils/format';
+import { shareText } from '@/src/utils/share-text';
 
 // Fase 5 (22-estrategia.md, seção 2.4): o lado do personal no Perfil. Sem o perfil, explica o que é e
 // liga com um toque; com ele, reúne o painel de alunos, o convite, a página pública e os dados dela.
@@ -271,7 +272,7 @@ export function StudentInvite() {
   const coachName = session?.user.name ?? '';
 
   function share(current: CoachingInvite) {
-    void Share.share({ message: coachingInviteMessage(coachName, current) }).catch(() => undefined);
+    void shareText(coachingInviteMessage(coachName, current)).catch(() => undefined);
   }
 
   async function create() {
@@ -336,7 +337,7 @@ function PublicPage({ profile }: { profile: ProfessionalProfile }) {
   const styles = useStyles();
 
   function share() {
-    void Share.share({ message: `Conheça o meu trabalho como personal no Gyn Flow: ${profile.pageUrl}` }).catch(
+    void shareText(`Conheça o meu trabalho como personal no Gyn Flow: ${profile.pageUrl}`).catch(
       () => undefined,
     );
   }

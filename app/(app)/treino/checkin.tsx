@@ -2,7 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { GymBoard } from '@/src/components/coaching/GymBoard';
 import { Button } from '@/src/components/ui/Button';
@@ -28,6 +28,7 @@ import { clearServerGym, getServerGym, listServerCheckins, saveServerGym, sendCh
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { GeoPoint, Gym, GymCheckin } from '@/src/types/gym-checkin';
 import type { ServerCheckin, ServerGym } from '@/src/types/league';
+import { showAlert } from '@/src/utils/alert';
 import { dayLabel, formatClockTime, formatDistance, formatSessionDate } from '@/src/utils/format';
 
 // Quantos check-ins aparecem na lista. O resto fica guardado, mas ninguém rola 200 linhas.
@@ -614,7 +615,7 @@ export default function CheckinScreen() {
   }
 
   function confirmChangeGym() {
-    Alert.alert(
+    showAlert(
       'Trocar academia?',
       'A academia atual sai do aparelho e da conta, e você marca a nova na próxima visita. O histórico de check-ins continua.',
       [

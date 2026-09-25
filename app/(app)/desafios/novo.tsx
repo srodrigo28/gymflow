@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
@@ -9,6 +9,7 @@ import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { createChallenge, inviteMessage, type ChallengeDays } from '@/src/services/challenges';
 import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
+import { shareText } from '@/src/utils/share-text';
 
 const durations: { days: ChallengeDays; hint: string }[] = [
   { days: 7, hint: 'uma semana' },
@@ -41,7 +42,7 @@ export default function NovoDesafioScreen() {
     try {
       const challenge = await createChallenge(session.token, name.trim(), days);
       // O convite sai na hora: é o que faz o desafio existir de verdade.
-      await Share.share({ message: inviteMessage(challenge) }).catch(() => undefined);
+      await shareText(inviteMessage(challenge)).catch(() => undefined);
       router.replace({ params: { id: challenge.id }, pathname: '/(app)/desafios/[id]' });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Não foi possível criar o desafio.');

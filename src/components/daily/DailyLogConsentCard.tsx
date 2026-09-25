@@ -1,12 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { useSession } from '@/src/contexts/session-context';
 import { countDailyLogDays, countPendingDailyLogs, onDailyLogQueued, onDailyLogSynced } from '@/src/services/daily-log';
 import { fonts, makeStyles, radius, useTheme } from '@/src/theme';
+import { showAlert } from '@/src/utils/alert';
 import { formatShortDate } from '@/src/utils/format';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -76,14 +77,14 @@ export function DailyLogConsentCard() {
   }
 
   function askToGrant() {
-    Alert.alert(CONSENT_TITLE, CONSENT_TEXT, [
+    showAlert(CONSENT_TITLE, CONSENT_TEXT, [
       { style: 'cancel', text: 'Agora não' },
       { onPress: () => void apply(true), text: 'Aceito e quero guardar' },
     ]);
   }
 
   function askToRevoke() {
-    Alert.alert(
+    showAlert(
       'Parar de guardar na conta',
       'Apagamos agora todo o seu diário do servidor, e os dias deixam de contar no Equilíbrio da temporada. O que está neste aparelho continua aqui.',
       [

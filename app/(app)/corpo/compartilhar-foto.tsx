@@ -1,10 +1,8 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { captureRef } from 'react-native-view-shot';
 
 import { SHARE_HEIGHT, SHARE_WIDTH } from '@/src/components/share/ShareCard';
 import { Button } from '@/src/components/ui/Button';
@@ -14,6 +12,7 @@ import { listPhotos } from '@/src/services/body';
 import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
 import type { ProgressPhoto } from '@/src/types/body';
 import { monthLabel } from '@/src/utils/format';
+import { shareCardImage } from '@/src/utils/share-image';
 
 const MAX_WIDTH = 560;
 const GUTTER = 20;
@@ -74,18 +73,18 @@ export default function CompartilharFotoScreen() {
       return;
     }
 
-    if (!(await Sharing.isAvailableAsync())) {
-      setMessage('Este aparelho não oferece a opção de compartilhar.');
-      return;
-    }
-
     setMessage(null);
     setIsSharing(true);
 
     try {
       // A tarja é desenhada por cima da foto e vai junto na captura: não dá para tirá-la depois.
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1, result: 'tmpfile' });
-      await Sharing.shareAsync(uri, { UTI: 'public.png', mimeType: 'image/png' });
+      const result = await shareCardImage(cardRef, 'gynflow-evolucao.png');
+
+      if (result === 'unavailable') {
+        setMessage('Este aparelho não oferece a opção de compartilhar.');
+      } else if (result === 'downloaded') {
+        setMessage('A imagem foi baixada: é só mandar pelo app que quiser.');
+      }
     } catch {
       setMessage('Não foi possível gerar a imagem. Tente de novo.');
     } finally {

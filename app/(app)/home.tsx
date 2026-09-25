@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
-import { Alert, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/ui/Screen';
 import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
@@ -14,6 +14,7 @@ import { getProfilePhoto, pickProfilePhoto } from '@/src/services/profile-photo'
 import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from '@/src/theme';
 import type { BodyTrend } from '@/src/types/body';
 import type { OnboardingProfile, TrainingDuration } from '@/src/types/onboarding';
+import { showAlert } from '@/src/utils/alert';
 import { formatDelta } from '@/src/utils/format';
 import { currentJourneyLevel, hasJourneyAnswers, journeyLabel } from '@/src/utils/journey';
 
@@ -256,7 +257,7 @@ export default function HomeScreen() {
         setCoverUri(uri);
       }
     } catch {
-      Alert.alert('Foto de capa', 'Não foi possível usar essa imagem. Tente outra.');
+      showAlert('Foto de capa', 'Não foi possível usar essa imagem. Tente outra.');
     }
   }
 

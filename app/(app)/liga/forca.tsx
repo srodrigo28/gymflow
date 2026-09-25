@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
@@ -14,6 +14,7 @@ import { getOnboardingProfile } from '@/src/services/onboarding';
 import { syncWorkouts } from '@/src/services/sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { DotsFormula, SeasonCategory, SeasonEntry, StrengthProfile } from '@/src/types/league';
+import { showAlert } from '@/src/utils/alert';
 
 type WeightPoint = Awaited<ReturnType<typeof getWeightSeries>>[number];
 
@@ -260,7 +261,7 @@ export default function ForcaScreen() {
   }
 
   function confirmLeave() {
-    Alert.alert(
+    showAlert(
       'Sair do ranking de força?',
       'O seu peso e a fórmula são apagados da conta, e você deixa de aparecer no ranking de força. Dá para entrar de novo quando quiser.',
       [
