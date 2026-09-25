@@ -959,7 +959,10 @@ está em produção, e os commits do app foram enviados para o repositório.
 | App contra a produção | login com uma conta temporária; convite de personal aceito pelo link; treino pela prescrição (40 kg × 10 e × 9), que chegou ao personal com o plano e o dia; liga com 54 XP e a temporada; agenda carregada da conta; diário com consentimento subindo para a conta; Recomendações com a linha de IA ainda não ligada; fotos com o aviso de servidor não pronto; as duas contas apagadas, a do aluno pelo Perfil |
 | Tarde, no emulador | a sessão pelo plano da IA com banner e alvos (3 × 8-12, carga sugerida 60 kg, descanso de 1 min 30 s); sem rota para a API e com o Expo Go reaberto, o Treino e as Recomendações com o plano guardado, sem nenhum pedido chegar à API; consentimento da IA retirado por outra sessão, e o app recebeu 403, conferiu a conta e voltou ao convite; a academia da conta no check-in sem marcar de novo; "Trocar academia" sem conexão, e na volta da conexão a academia saiu da conta e não voltou; aviso publicado pelo formulário; prescrição salva pelo formulário (segunda, supino 3 × 8-12, 60 s); ocultar por dois participantes, e o dia saiu do placar de quem postou |
 | Aparelho novo | com os dados do Expo Go apagados e a conta entrando de novo: treinos, medidas e as 2 fotos voltaram (as miniaturas antes das fotos inteiras), e a academia veio da conta com o mural |
-| Não exercitado | o Claude de verdade (sem chave); GPS e push (só num celular) |
+| Fim da tarde, API | 142 testes (4 novos: as métricas do painel, as URLs de foto do personal e do desafio, e a IA com pedidos em paralelo, escolhas sem consentimento e o questionário enxuto; os testes da regra de carga e do depoimento ganharam conferências), typecheck e build; CI verde em `0cefe14` e `63ae755` |
+| Fim da tarde, produção | API publicada até `63ae755` (tag `v2026.09.25-2`), com a conferência do salvek99 batendo; em `0cefe14`, com duas contas temporárias apagadas no fim: diário e medidas gravando com o consentimento travado, a retirada do diário apagando, escolhas da IA sem consentimento com 403, o mesmo convite de novo com 410 e o depoimento com 409 para outro texto e 204 para o lido |
+| Fim da tarde, emulador | o painel com as sete métricas da estratégia e o custo da IA no mês, com os números da base de teste local; o depoimento trocado por trás, e o Aprovar mostrou o aviso com o texto novo; aprovado de novo, a página pública passou a mostrar o texto novo |
+| Não exercitado | o Claude de verdade (sem chave); GPS e push (só num celular); sem teste que force: dois envios do mesmo convite ao mesmo tempo, uma gravação no meio da retirada de um consentimento e apagar fotos sem o segredo (o caminho normal de cada um está coberto) |
 
 ### Ainda não feito
 
@@ -994,6 +997,74 @@ ficou como está em produção.
   pedir que a pessoa confirme sem pensar.
 - **Quem é responsável pelo mural e tira a academia continua responsável**: se voltar, volta a publicar;
   enquanto isso, ninguém publica, e o administrador pode transferir, como na decisão D8.
+
+### Fim da tarde: revisão de segurança, carga pelas repetições e métricas (25/09)
+
+Pedido do dono: "tem mais atividades que consegue fazer só se tiver pode continuar". O que restava no manual
+seguia dependendo dele, então o fim da tarde foi para uma revisão de segurança do código de hoje, para a regra
+de carga que a seção anterior deixou em aberto e para as métricas da seção 6, que o painel ainda não mostrava.
+A API foi publicada até `63ae755`, com a tag `v2026.09.25-2`, e o app ganhou dois commits.
+
+**Revisão de segurança.** Uma revisão do código que entrou hoje na API (Blocos 1 a 5) achou duas falhas
+médias e quatro baixas, nenhuma alta. Todas foram corrigidas:
+
+- **Média: o teto da IA caía com pedidos em paralelo.** O teto era conferido antes da chamada e o gasto só era
+  registrado depois, então pedidos simultâneos da mesma conta passavam juntos. Agora vai um pedido de IA por
+  pessoa de cada vez (coberto por teste: três pedidos juntos geram um plano e um registro de custo).
+- **Média: as fotos continuavam abrindo para o personal depois de o aluno desligar a chave**, enquanto a URL
+  estava no prazo, porque a URL não dizia para quem tinha saído. Agora cada URL leva a conta que a pediu, e a
+  entrega confere de novo se ela ainda pode ver: o dono, o personal com a chave das fotos ligada ou quem ainda
+  participa do desafio (coberto por teste nos dois casos).
+- **Baixa, no limite com média: um pedido em andamento podia desfazer a retirada de um consentimento.** Um
+  envio do diário, das medidas ou de uma foto, ou uma resposta da IA, que terminasse depois da retirada gravava
+  de novo o que ela tinha apagado. Agora essas gravações travam a linha da conta e conferem o consentimento na
+  mesma transação, e a retirada atualiza a conta antes de apagar.
+- **Baixa: aprovar o depoimento não garantia que o texto era o que o personal leu.** Agora a aprovação manda
+  o texto lido; se o aluno trocou no meio, a API responde 409, e o app avisa e recarrega com o texto novo.
+- **Baixa: um convite de personal podia ser usado duas vezes** com dois envios ao mesmo tempo. Agora o uso é
+  marcado na mesma transação, só se o convite ainda estiver livre.
+- **Baixa: apagar fotos dependia do segredo das URLs.** Se o segredo saísse da configuração depois de haver
+  fotos, apagar a foto, retirar o consentimento ou apagar a conta deixaria os arquivos na pasta. Agora apagar
+  depende só da pasta.
+
+A revisão também notou que o questionário ia inteiro para a IA, com a profissão e o relacionamento. Não era
+falha, mas agora vão só as respostas de treino e descanso.
+
+**Carga pelas repetições.** A regra do servidor passou a olhar as repetições. Cada melhor marca das últimas 8
+semanas vira uma 1RM estimada (Epley, contando até 12 repetições), e a carga sugerida não pode passar do que
+essa estimativa indica para o menor número de repetições pedido, com a mesma folga de 10% ou 5 kg (o menor).
+No teste, com 100 kg feitos 5 vezes, 105 kg para 8 a 12 é recusado e 97 kg passa. Alvo que não é repetição
+(como "20 min") segue só com o limite da carga. O pedido à IA já leva os limites por repetições, para ela
+errar menos antes de a regra conferir.
+
+**Métricas da estratégia no painel.** As da seção 6 que faltavam, cada uma com o alvo e a base ao lado; sem
+base, aparece "sem base ainda" no lugar da porcentagem:
+
+- **Treinos por pessoa ativa na semana** e **alunos por personal** (vínculos por personal com pelo menos um
+  aluno).
+- **D7 e D30**: de quem se cadastrou há pelo menos 7 (ou 30) dias, quantos voltaram ao app depois do prazo.
+- **Fator K**: contas novas por convite de desafio nos últimos 30 dias, por pessoa ativa nos mesmos 30 dias.
+- **Desafio ativo** e **foto do mês**: das pessoas ativas na semana, quantas estão num desafio em andamento e
+  quantas têm a foto do mês na conta.
+
+O painel também passou a mostrar o custo da IA no mês por pessoa ativa, contra o teto: a API já mandava esse
+número e a tela não mostrava.
+
+**Decisões (para o dono revisar)**
+
+- **D7 e D30 contam quem voltou em qualquer momento depois do prazo**, não quem estava no app exatamente no
+  sétimo ou no trigésimo dia. A conta clássica pediria guardar os dias de visita de cada pessoa, e a API guarda
+  só a última visita, então o número fica igual ou acima do clássico.
+- **O fator K conta só o convite de desafio**, que é o convite que a API reconhece (conta nova que entra num
+  desafio até 48 h depois de se cadastrar). Quem chega pelo convite de um personal não entra nessa conta.
+- **A foto do mês conta só a que está na conta**: quem guarda a foto só no aparelho não aparece, então o número
+  é um piso.
+- **A fila de um pedido de IA por pessoa fica na memória da API**: basta com um processo só, como roda hoje;
+  com mais de um, precisa virar trava no banco. No app, a decisão do Bloco 4 de não repetir um pedido em
+  andamento continua valendo.
+- **A carga sugerida continua como alvo, sem preencher as séries.** O motivo técnico da seção anterior caiu,
+  porque a regra agora olha as repetições, mas preencher a série com a sugestão ainda pediria que a pessoa
+  confirmasse sem pensar. Se o dono preferir preencher, é uma troca pequena no app.
 
 ## Fontes da pesquisa
 

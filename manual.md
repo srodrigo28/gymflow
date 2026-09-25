@@ -9,8 +9,8 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
 | **App** (frontend em Expo) | 85 | 2 | 4 | **95%** |
-| **API** (gymflow-api) | 59 | 0 | 2 | **97%** |
-| **Geral** (Fases 1 a 6, app e API) | 144 | 2 | 6 | **95%** |
+| **API** (gymflow-api) | 61 | 0 | 2 | **97%** |
+| **Geral** (Fases 1 a 6, app e API) | 146 | 2 | 6 | **95%** |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -22,7 +22,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 2. ✅ **Fase 1 · Registro de treino**: Registro, histórico, recordes com card na hora, sincronização com a conta, restauração num aparelho novo e check-in na academia pelo GPS do aparelho.
 3. 🟨 **Fase 2 · Corpo e fotos**: Medidas, fotos, comparador, câmera com guia de contorno e compartilhar com tarja prontos; medidas e fotos ficam na conta com consentimentos separados, e as fotos só abrem por links de 10 minutos. Falta o Health Connect, que depende do build nativo.
 4. ✅ **Fase 3 · Social e desafios**: Card, desafios, convite, placar, amigos, notificações de lembrete e de placar, cards de sequência e do mês e o check-in com foto no desafio, com mural do dia e moderação do grupo.
-5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api, com as rotas documentadas em /doc e a publicação em um comando (salvek99). Em 25/09 saíram as oito categorias da temporada, os escudos, o diário, a agenda, as fotos com URL assinada, o check-in com foto, personal e academia e a IA, com 138 testes. Falta configurar na VPS o SMTP, o volume das fotos e a chave da Anthropic.
+5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api, com as rotas documentadas em /doc e a publicação em um comando (salvek99). Em 25/09 saíram as oito categorias da temporada, os escudos, o diário, a agenda, as fotos com URL assinada, o check-in com foto, personal e academia e a IA, com 142 testes. Falta configurar na VPS o SMTP, o volume das fotos e a chave da Anthropic. No fim da tarde, uma revisão de segurança corrigiu duas falhas médias e quatro baixas.
 6. ✅ **Fase 4 · Ranking e ligas**: XP, ligas semanais, temporada entre amigos com as oito categorias (pontualidade, modalidades e equilíbrio incluídos), escudos da sequência, força relativa por DOTS, check-in verificado, ranking da academia, troféus e selos.
 7. ✅ **Fase 5 · Personal e academia**: Perfil de personal com página pública, vínculo por convite com três permissões que o aluno controla, painel do personal, prescrição com o feito contra o prescrito, ranking de personais e mural da academia.
 8. ✅ **Fase 6 · Recomendação com IA**: Plano da semana com o porquê de cada dia, resumo do mês, leitura das medidas e o treino de hoje pelo plano, com consentimento próprio, regras de segurança por cima, custo medido com teto e lote de madrugada. Validada com o provedor simulado; em produção liga com a chave da Anthropic, e o custo real por pessoa ainda não foi medido.
@@ -162,7 +162,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 - ✅ **Nome e resumo reais de quem entrou** · `app/(app)/home.tsx`
 - ✅ **Menu com Treino, Evolução, Desafios e Aparência**
-- ✅ **Painel de administração** · Só para quem está em ADMIN_EMAILS: cadastros contra a meta de 200. · `app/(app)/admin.tsx`
+- ✅ **Painel de administração** · Só para quem está em ADMIN_EMAILS: cadastros contra a meta de 200. Com as métricas da estratégia (alvo e base de cada uma) e o custo da IA no mês. Validado no emulador. · `app/(app)/admin.tsx`
 - ✅ **Sincronizar dispositivos** · Tela com o que já está na conta, o que falta subir, Sincronizar agora e Baixar de novo da conta. Relógios e apps de saúde ficam para o build nativo. Validado no emulador. · `app/(app)/sincronizar.tsx`
 - ✅ **Alimentações diárias** · Diário local de refeições e água, com Repetir ontem e histórico de 7 dias. Sem calorias. · `app/(app)/alimentacao/index.tsx`
 - ✅ **Alimentação ideal para escolher** · Seis estilos com trocas práticas e um dia de exemplo, com sugestão a partir do questionário. Orientação geral, não substitui nutricionista. · `app/(app)/alimentacao/ideal.tsx`
@@ -214,7 +214,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 - ✅ **Consentimento para medidas na conta** · Liga e desliga; sem ele, as rotas de medidas respondem 403 CONSENT_REQUIRED. Retirar apaga todas as medidas da conta na hora, e um novo aceite grava um instante novo. · `PUT /me/consents/body-data`
 - ✅ **Receber as medidas da fila do app** · Lotes de até 50, validação medida a medida, versão mais nova vence; medida apagada vira só uma marca, sem valores. · `POST /sync/measurements`
 - ✅ **Devolver as medidas da conta** · Em páginas de até 50, para restaurar num aparelho novo. · `GET /sync/measurements`
-- ✅ **Fotos de evolução com consentimento próprio** · Armazenamento privado, imagem refeita sem metadados (até 1600 px) e miniatura, URL assinada de 10 minutos que confere o consentimento na hora. Coberto por 7 testes. Em produção responde 503 até o volume e o segredo serem configurados. · `POST, GET e DELETE /sync/photos · GET /files/:token`
+- ✅ **Fotos de evolução com consentimento próprio** · Armazenamento privado, imagem refeita sem metadados (até 1600 px) e miniatura, URL assinada de 10 minutos que confere o consentimento na hora. Coberto por 7 testes. Em produção responde 503 até o volume e o segredo serem configurados. Cada URL vale para a conta que a pediu: o personal perde as fotos quando o aluno desliga a chave (coberto por teste). · `POST, GET e DELETE /sync/photos · GET /files/:token`
 - ✅ **Modalidade de cada exercício no treino** · Opcional: o app antigo continua aceito. · `POST /sync/workouts`
 - ✅ **Diário do dia na conta** · Consentimento próprio; retirar apaga tudo; a versão mais nova vence. · `POST e GET /sync/daily-logs`
 
@@ -247,8 +247,8 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 100% · 6 prontas, 0 parciais, 0 a fazer
 
-- ✅ **Perfil profissional e página pública** · CREF como informado, sem verificação. A página mostra as conquistas dos alunos que aceitaram aparecer e os depoimentos aprovados. · `/me/professional · GET /p/:slug`
-- ✅ **Convite, vínculo e permissões conferidas a cada leitura** · Desligar uma permissão corta o acesso na hora; desfazer o vínculo apaga as prescrições entre os dois. Coberto pelos 6 testes de personal e academia. · `/coaching/invites · /coaching/join · /coaching/links/:id`
+- ✅ **Perfil profissional e página pública** · CREF como informado, sem verificação. A página mostra as conquistas dos alunos que aceitaram aparecer e os depoimentos aprovados. A aprovação do depoimento vale só para o texto que o personal leu; texto trocado no meio responde 409 (validado no emulador e em produção). · `/me/professional · GET /p/:slug`
+- ✅ **Convite, vínculo e permissões conferidas a cada leitura** · Desligar uma permissão corta o acesso na hora; desfazer o vínculo apaga as prescrições entre os dois. Coberto pelos 6 testes de personal e academia. O uso do convite é marcado na mesma transação, só com o convite ainda livre, para dois envios ao mesmo tempo não usarem o mesmo; o segundo uso responde 410 (conferido em produção). · `/coaching/invites · /coaching/join · /coaching/links/:id`
 - ✅ **Painel do personal e dados do aluno** · Só medidas e fotos que o próprio aluno guarda na conta chegam ao personal, e só com a chave ligada. · `GET /coaching/students · GET /coaching/students/:studentId`
 - ✅ **Prescrição e feito contra o prescrito** · Até 7 dias; o treino do aluno sobe com o plano e o dia, e o personal vê o que foi feito e o que faltou. · `/coaching/plans · POST /sync/workouts`
 - ✅ **Ranking de personais** · Aderência e evolução média só de alunos que compartilham os treinos, com mínimo de 3. · `GET /coaching/ranking`
@@ -259,23 +259,25 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 100% · 5 prontas, 0 parciais, 0 a fazer
 
 - ✅ **Plano da semana, resumo do mês e leitura das medidas** · Claude (claude-opus-5) pela API da Anthropic, com saída estruturada validada, thinking adaptativo e a parte fixa do pedido em cache. Coberto por 7 testes com o provedor simulado. Em produção responde 503 até a chave ser configurada. · `/ai/weekly-plan · /ai/monthly-summary · /ai/measurements-reading`
-- ✅ **Regras de segurança por cima da IA** · Cada resposta passa pelas regras antes de chegar à pessoa: exercícios só do catálogo, dias dentro da meta, carga só com histórico e no máximo o menor entre 10% e 5 kg acima da melhor marca de 8 semanas, nada de dieta nem remédio. A resposta recusada fica guardada com o motivo e nunca aparece. · `src/lib/ai.ts`
-- ✅ **Consentimento próprio e apagar ao retirar** · Retirar apaga o que a IA gerou e as escolhas de treino mandadas; o registro de custo, sem conteúdo, fica. · `PUT /me/consents/ai · PUT /ai/preferences`
-- ✅ **Custo medido por pessoa, com teto** · Cada chamada guarda tokens e custo pela tabela de preços; teto de US$ 0,20 por pessoa por mês e o custo por pessoa ativa no painel de administração. · `GET /ai/status · GET /admin/metrics`
+- ✅ **Regras de segurança por cima da IA** · Cada resposta passa pelas regras antes de chegar à pessoa: exercícios só do catálogo, dias dentro da meta, carga só com histórico e no máximo o menor entre 10% e 5 kg acima da melhor marca de 8 semanas e, desde 25/09, também acima do que essa marca indica para as repetições pedidas (1RM estimada por Epley), nada de dieta nem remédio. A resposta recusada fica guardada com o motivo e nunca aparece. · `src/lib/ai.ts`
+- ✅ **Consentimento próprio e apagar ao retirar** · Retirar apaga o que a IA gerou e as escolhas de treino mandadas; o registro de custo, sem conteúdo, fica. A resposta só é gravada com o consentimento ainda em pé. Do questionário, só as respostas de treino e descanso vão para a IA. · `PUT /me/consents/ai · PUT /ai/preferences`
+- ✅ **Custo medido por pessoa, com teto** · Cada chamada guarda tokens e custo pela tabela de preços; teto de US$ 0,20 por pessoa por mês e o custo por pessoa ativa no painel de administração. Um pedido de IA por pessoa de cada vez: pedidos em paralelo não passam juntos pelo teto (coberto por teste). O custo aparece no painel do app. · `GET /ai/status · GET /admin/metrics`
 - ✅ **Lote de madrugada (Batch API)** · Plano da semana no domingo à noite e resumo no dia 1, pela metade do preço, com coleta de hora em hora. Instalado no cron da VPS; sem a chave, ele pula. · `src/scripts/ai-batch.ts`
 
 ### Administração · API
 
-100% · 2 prontas, 0 parciais, 0 a fazer
+100% · 3 prontas, 0 parciais, 0 a fazer
 
 - ✅ **Métricas da semana** · Cadastros, ativos e treinos concluídos. · `GET /admin/metrics`
+- ✅ **Métricas da estratégia** · As da seção 6 que faltavam, em números brutos com a base de cada uma: retenção D7 e D30 (quem voltou depois do prazo), convites aceitos por pessoa ativa, pessoas ativas em desafio em andamento e com foto do mês na conta, e alunos por personal. Coberto por teste. · `GET /admin/metrics`
 - ✅ **Transferir o responsável pela academia** · Só para alguém que marcou a mesma academia. · `PATCH /admin/gyms/:id/owner`
 
 ### Qualidade e publicação · API
 
-82% · 9 prontas, 0 parciais, 2 a fazer
+83% · 10 prontas, 0 parciais, 2 a fazer
 
-- ✅ **138 testes automáticos contra um Postgres de verdade** · Passaram em 25/09 com o Postgres local do Prisma (cerca de 3 minutos): Fase 4 completa, fotos e check-in, personal e academia, e a IA com o provedor simulado. · `npm test`
+- ✅ **142 testes automáticos contra um Postgres de verdade** · Passaram em 25/09 com o Postgres local do Prisma (cerca de 3 minutos): Fase 4 completa, fotos e check-in, personal e academia, a IA com o provedor simulado e, no fim da tarde, as correções de segurança e as métricas do painel. · `npm test`
+- ✅ **Revisão de segurança do código de 25/09** · Duas falhas médias e quatro baixas corrigidas: URLs de foto que valiam depois de o aluno desligar a chave, teto da IA vencido com pedidos em paralelo, gravações que sobravam depois da retirada do consentimento, convite usado duas vezes, depoimento aprovado sem ser lido e fotos que não se apagavam sem o segredo. Coberto por testes; em produção, com contas temporárias, conferidos o diário e as medidas com o consentimento travado, o convite e o depoimento (fotos e IA seguem em 503 lá).
 - ✅ **Docker Compose com Postgres, migrações e Caddy (HTTPS)** · Testado localmente; o certificado só sai com o domínio real.
 - ✅ **CI no GitHub** · Conferido em 24/09: as 8 execuções da aba Actions passaram (typecheck, testes contra Postgres e build), inclusive a do último deploy. · `.github/workflows/ci.yml`
 - ✅ **Publicar na VPS** · Painel 99dev, em https://99dev.pro/gymflow-api. A sonda do painel testa /healthz, que responde como o /health e confere o banco. Duas publicações em 24/09 pelo salvek99, as medidas (eccb80e) e o pacote da tarde (e8f9330), as duas com TUDO CONFERE.
@@ -316,7 +318,7 @@ npm run typecheck && npm run lint                  # app
 npm run typecheck && npm test && npm run build     # API
 ```
 
-Os quatro passaram em 25/09. Na API, os 138 testes precisam do Postgres local no ar (npx prisma dev start gynflow) e levam cerca de 3 minutos.
+Os quatro passaram em 25/09. Na API, os 142 testes precisam do Postgres local no ar (npx prisma dev start gynflow) e levam cerca de 3 minutos.
 
 **Este manual** (`D:\dev\gynflow`)
 

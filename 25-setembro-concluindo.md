@@ -56,6 +56,9 @@ Ontem à noite o app estava em 90%, a API em 92% e o plano completo em 84%. O qu
 - **Tarde**: as quatro pontas de código do registro foram fechadas no app (alvos da IA na sessão, plano da IA
   sem internet, consentimento conferido de novo e academia da conta num aparelho novo), e o emulador passou
   pelo que faltava: fotos num aparelho novo, ocultar por dois participantes, prescrever e publicar aviso.
+- **Fim da tarde**: revisão de segurança da API (duas falhas médias e quatro baixas, corrigidas e conferidas em
+  produção), a carga sugerida pela IA limitada também pelas repetições e as métricas da seção 6 no painel, com
+  o custo da IA. A API foi publicada com 142 testes e a tag `v2026.09.25-2`.
 - **Tudo o que está "a fazer" no manual depende de você**: é a lista abaixo.
 
 ---

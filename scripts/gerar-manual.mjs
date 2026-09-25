@@ -11,8 +11,6 @@ const data = JSON.parse(json);
 
 const SCORE = { done: 1, partial: 0.5, todo: 0 };
 const ICON = { done: '✅', partial: '🟨', todo: '⬜' };
-const LABEL = { done: 'Pronto', partial: 'Parcial', todo: 'A fazer' };
-const AREA = { app: 'App', api: 'API', future: 'Próximas fases' };
 
 function tally(items) {
   const count = { done: 0, partial: 0, todo: 0 };
