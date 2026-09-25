@@ -26,6 +26,7 @@ type SessionContextValue = {
   deleteAccount: (password: string) => Promise<void>;
   isLoading: boolean;
   session: AuthResponse | null;
+  setAiConsent: (granted: boolean) => Promise<void>;
   setBodyDataConsent: (granted: boolean) => Promise<void>;
   setBodyPhotoConsent: (granted: boolean) => Promise<void>;
   setDailyLogConsent: (granted: boolean) => Promise<void>;
@@ -196,6 +197,23 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [applySession, session],
   );
 
+  // Como o do diário: ao aceitar, a tela de Recomendações vê o consentimento novo e pede o plano e o resumo;
+  // ao retirar, o servidor já apagou o que a IA gerou e as escolhas de treino mandadas para ela.
+  const setAiConsent = useCallback(
+    async (granted: boolean) => {
+      if (!session) {
+        return;
+      }
+
+      const freshSession = await auth.setAiConsent(session, granted);
+
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
   // Ao aceitar, as respostas locais sobem na hora; ao retirar, o servidor já apagou.
   const setQuestionnaireConsent = useCallback(
     async (granted: boolean) => {
@@ -237,6 +255,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       deleteAccount,
       isLoading,
       session,
+      setAiConsent,
       setBodyDataConsent,
       setBodyPhotoConsent,
       setDailyLogConsent,
@@ -251,6 +270,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       deleteAccount,
       isLoading,
       session,
+      setAiConsent,
       setBodyDataConsent,
       setBodyPhotoConsent,
       setDailyLogConsent,

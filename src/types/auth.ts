@@ -28,6 +28,8 @@ export type AuthUser = {
   bodyPhotoConsentAt: string | null;
   // Não aparece no ranking da academia (o mural continua aberto).
   gymRankingOptOut: boolean;
+  // Quando aceitou as recomendações com IA (ISO 8601). null: não aceitou.
+  aiConsentAt: string | null;
 };
 
 export type AuthResponse = {

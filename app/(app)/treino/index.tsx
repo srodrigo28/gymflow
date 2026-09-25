@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { PrescribedPlans } from '@/src/components/coaching/PrescribedPlans';
+import { AiPlanToday } from '@/src/components/training/AiPlanToday';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { getTodayCheckin } from '@/src/services/gym-checkin';
@@ -138,6 +139,9 @@ export default function TreinoScreen() {
 
         {/* As prescrições do personal, com os dias de cada uma. Sem personal, a seção não aparece. */}
         <PrescribedPlans />
+
+        {/* O treino de hoje pelo plano da semana da IA. Sem a IA ligada ou sem o consentimento, não aparece. */}
+        <AiPlanToday />
 
         <View style={styles.pills}>
           <SummaryPill label="Treinos" value={`${week?.sessionCount ?? 0}`} />

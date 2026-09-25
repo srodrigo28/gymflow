@@ -122,6 +122,18 @@ export async function setBodyPhotoConsent(session: AuthResponse, granted: boolea
   return persistSession({ ...session, user });
 }
 
+// Consentimento próprio para as recomendações com IA: os dados agregados de treino (e, com os outros
+// consentimentos, medidas e questionário) vão para a Anthropic. Retirar apaga o que a IA gerou.
+export async function setAiConsent(session: AuthResponse, granted: boolean) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/me/consents/ai', {
+    body: { granted },
+    method: 'PUT',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
 export async function getSession(): Promise<AuthResponse | null> {
   const storedSession = await secureStorage.get(storageKeys.session);
 
@@ -143,6 +155,7 @@ export async function getSession(): Promise<AuthResponse | null> {
       token: session.token,
       user: {
         ...session.user,
+        aiConsentAt: session.user.aiConsentAt ?? null,
         bodyDataConsentAt: session.user.bodyDataConsentAt ?? null,
         bodyPhotoConsentAt: session.user.bodyPhotoConsentAt ?? null,
         dailyLogConsentAt: session.user.dailyLogConsentAt ?? null,

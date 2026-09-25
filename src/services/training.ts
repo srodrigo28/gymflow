@@ -205,7 +205,23 @@ const MAX_PLAN_SETS = 10;
  * Um treino em andamento com exercícios não é tocado: volta `busy` e a tela pergunta o que fazer. Um em
  * andamento ainda vazio (a pessoa tocou em começar e voltou) vira este, com o relógio zerado.
  */
-export async function startPlanSession(planId: string, planDay: number, exercises: PlanExercise[]) {
+export function startPlanSession(planId: string, planDay: number, exercises: PlanExercise[]) {
+  return startPreparedSession(exercises, { planDay, planId });
+}
+
+/**
+ * Começa o treino de um dia do plano da semana sugerido pela IA (Fase 6), montado como o da prescrição:
+ * os exercícios na ordem do dia, as séries pedidas, a carga da última vez e o mesmo cuidado com um treino
+ * em andamento (`busy`). A diferença é que a sessão nasce sem `plan_id` e `plan_day`. Esses campos sobem
+ * com o treino como a prescrição do personal de onde ele veio (a API procura esse plano na conta, e a tela
+ * da sessão mostra "prescrito pelo seu personal"), e o plano da IA não é prescrição de ninguém. Para a
+ * conta, é um treino livre que já começa com os exercícios escolhidos.
+ */
+export function startAiPlanSession(exercises: PlanExercise[]) {
+  return startPreparedSession(exercises, null);
+}
+
+async function startPreparedSession(exercises: PlanExercise[], plan: { planDay: number; planId: string } | null) {
   const database = await getDatabase();
   const active = await getActiveSessionId();
 
@@ -222,14 +238,15 @@ export async function startPlanSession(planId: string, planDay: number, exercise
 
   const id = active ?? (await startSession());
   const now = Date.now();
+  // Sem prescrição, os dois campos ficam nulos de propósito: um treino vazio reaproveitado não leva a de antes.
   await database.runAsync(
     'UPDATE sessions SET plan_id = ?, plan_day = ?, started_at = ?, updated_at = ? WHERE id = ?',
-    [planId, planDay, now, now, id],
+    [plan?.planId ?? null, plan?.planDay ?? null, now, now, id],
   );
 
   for (const item of exercises) {
-    // O personal escolhe do mesmo catálogo. Um exercício que este aparelho ainda não conhece (de uma
-    // versão mais nova do app) entra com o nome, o grupo e a modalidade da prescrição, como na restauração.
+    // O personal e a IA escolhem do mesmo catálogo. Um exercício que este aparelho ainda não conhece (de uma
+    // versão mais nova do app) entra com o nome, o grupo e a modalidade do plano, como na restauração.
     await database.runAsync(
       `INSERT OR IGNORE INTO exercises (id, name, muscle, pattern, equipment, kind, modality)
        VALUES (?, ?, ?, '', '', ?, ?)`,

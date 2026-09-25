@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { MeasurementsBackupCard } from '@/src/components/body/MeasurementsBackupCard';
+import { MeasurementsReadingCard } from '@/src/components/body/MeasurementsReadingCard';
 import { PhotosBackupSummary } from '@/src/components/body/PhotosBackupCard';
 import { WeightChart } from '@/src/components/body/WeightChart';
 import { Screen } from '@/src/components/ui/Screen';
@@ -102,6 +103,9 @@ export default function CorpoScreen() {
           />
           <ActionCard icon="camera-outline" label="Foto do mês" onPress={() => router.push('/(app)/corpo/fotos')} />
         </View>
+
+        {/* A leitura das medidas com IA. Sem a IA ligada no servidor, não aparece; sem os consentimentos, vira um atalho. */}
+        <MeasurementsReadingCard />
 
         <View style={styles.cardHeader}>
           <Text style={styles.sectionTitle}>Fotos</Text>

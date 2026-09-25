@@ -208,3 +208,12 @@ export function formatDelta(value: number, unit: string, digits = 1) {
 
   return `${sign}${Math.abs(rounded).toFixed(digits).replace('.', ',')} ${unit}`;
 }
+
+// São Paulo não tem horário de verão desde 2019: é sempre UTC−3. É o relógio em que o servidor conta os dias
+// e as semanas (a liga, o plano da IA), qualquer que seja o fuso do aparelho.
+const SAO_PAULO_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+/** O dia da semana agora em São Paulo, como os planos contam: 0 = segunda … 6 = domingo. */
+export function saoPauloWeekday(now = Date.now()) {
+  return (new Date(now - SAO_PAULO_OFFSET_MS).getUTCDay() + 6) % 7;
+}
