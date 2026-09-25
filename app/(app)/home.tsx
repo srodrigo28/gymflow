@@ -9,6 +9,7 @@ import { spacing } from '@/src/constants/spacing';
 import { useSession } from '@/src/contexts/session-context';
 import { getBodyTrend } from '@/src/services/body';
 import { getOnboardingProfile } from '@/src/services/onboarding';
+import { onQuestionnaireRestored } from '@/src/services/questionnaire-sync';
 import { getProfilePhoto, pickProfilePhoto } from '@/src/services/profile-photo';
 import { fonts, makeStyles, radius, useTheme, withAlpha, type DomainName } from '@/src/theme';
 import type { BodyTrend } from '@/src/types/body';
@@ -101,8 +102,18 @@ const menuItems: ProfileMenuItem[] = [
   },
   {
     accessibilityLabel:
-      'Abrir Sincronizar dispositivos. Conecte relógios e dispositivos para acompanhar dados de saúde e atividade.',
-    description: 'Conecte relógios e dispositivos para acompanhar atividade e saúde.',
+      'Abrir Liga e temporada. Veja seu XP da semana, sua liga, a temporada entre amigos e os troféus.',
+    description: 'XP da semana, sua liga, a temporada entre amigos e os troféus.',
+    href: '/(app)/liga',
+    icon: 'podium',
+    title: 'Liga e temporada',
+    tone: 'conquista',
+  },
+  {
+    accessibilityLabel:
+      'Abrir Sincronizar dispositivos. Veja o que já está na conta, o que falta subir e baixe de novo num aparelho novo.',
+    description: 'Seus aparelhos em dia pela conta: o que subiu, o que falta e como restaurar.',
+    href: '/(app)/sincronizar',
     icon: 'watch-variant',
     title: 'Sincronizar dispositivos',
     tone: 'neutral',
@@ -111,6 +122,7 @@ const menuItems: ProfileMenuItem[] = [
     accessibilityLabel:
       'Abrir Alimentações diárias. Informe os tipos de refeições que costuma fazer no dia.',
     description: 'Cadastre refeições comuns, horários e hábitos do dia a dia.',
+    href: '/(app)/alimentacao',
     icon: 'food-apple-outline',
     title: 'Alimentações diárias',
     tone: 'alimentacao',
@@ -119,6 +131,7 @@ const menuItems: ProfileMenuItem[] = [
     accessibilityLabel:
       'Abrir Alimentação ideal para escolher. Veja opções alinhadas ao seu objetivo e preferências.',
     description: 'Escolha ideias de alimentação alinhadas ao seu objetivo atual.',
+    href: '/(app)/alimentacao/ideal',
     icon: 'silverware-fork-knife',
     title: 'Alimentação ideal para escolher',
     tone: 'alimentacao',
@@ -127,6 +140,7 @@ const menuItems: ProfileMenuItem[] = [
     accessibilityLabel:
       'Abrir Escolhas de treinos. Ajuste tipos de treino favoritos, disponibilidade e foco principal.',
     description: 'Escolha estilos, foco e disponibilidade para seus treinos.',
+    href: '/(app)/treino/preferencias',
     icon: 'dumbbell',
     title: 'Escolhas de treinos',
     tone: 'treino',
@@ -135,6 +149,7 @@ const menuItems: ProfileMenuItem[] = [
     accessibilityLabel:
       'Abrir Recomendações. Receba sugestões personalizadas com base no seu perfil e rotina.',
     description: 'Sugestões para treino, descanso e rotina a partir do seu perfil.',
+    href: '/(app)/recomendacoes',
     icon: 'lightbulb-on-outline',
     title: 'Recomendações',
     tone: 'neutral',
@@ -143,6 +158,7 @@ const menuItems: ProfileMenuItem[] = [
     accessibilityLabel:
       'Abrir Conquistas. Veja marcos importantes da sua jornada, como constância e treinos concluídos.',
     description: 'Marcos, badges e sinais de constância na sua jornada.',
+    href: '/(app)/conquistas',
     icon: 'trophy-outline',
     title: 'Conquistas',
     tone: 'conquista',
@@ -150,6 +166,7 @@ const menuItems: ProfileMenuItem[] = [
   {
     accessibilityLabel: 'Abrir Frase do dia. Publique ou salve uma frase para marcar seu momento.',
     description: 'Registre uma frase curta para manter sua motivação visível.',
+    href: '/(app)/frase',
     icon: 'format-quote-close',
     title: 'Frase do dia',
     tone: 'mente',
@@ -191,6 +208,17 @@ export default function HomeScreen() {
       void getOnboardingProfile(userId).then(setProfile);
     }
   }, [userId]);
+
+  // Num aparelho novo, as respostas podem chegar da conta depois de a home abrir.
+  useEffect(
+    () =>
+      onQuestionnaireRestored(() => {
+        if (userId) {
+          void getOnboardingProfile(userId).then(setProfile);
+        }
+      }),
+    [userId],
+  );
 
   // Volta da Evolução com a medida nova já contada, e do Perfil com a capa nova.
   useFocusEffect(

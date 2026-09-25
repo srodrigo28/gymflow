@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { getDatabase } from '@/src/db/client';
@@ -343,32 +343,41 @@ export function syncWorkouts(token: string): Promise<void> {
   return running;
 }
 
-// Mantém os treinos em dia com a conta: ao entrar, ao voltar para o app e logo depois de cada
-// mudança na fila. Sem rede, o envio falha em silêncio e tenta de novo no próximo gatilho.
-export function useWorkoutSync(token?: string) {
+// Os gatilhos de toda sincronização: ao entrar, ao voltar para o app e logo depois de cada mudança
+// na fila. `key` identifica a rodada (a conta e o que mais mudar o que sobe): quando ela muda, uma
+// rodada nova começa na hora; nula, nada roda. Sem rede, o envio falha em silêncio e tenta de novo
+// no próximo gatilho.
+export function useSyncTriggers(key: string | null, run: () => Promise<void>, label: string) {
+  // A função muda a cada render; o efeito só precisa da versão mais recente.
+  const runRef = useRef(run);
+
   useEffect(() => {
-    if (!token) {
+    runRef.current = run;
+  });
+
+  useEffect(() => {
+    if (!key) {
       return;
     }
 
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const run = () => {
-      syncWorkouts(token).catch((error: unknown) => {
+    const execute = () => {
+      runRef.current().catch((error: unknown) => {
         // Sem rede é o caso comum; em desenvolvimento, o motivo aparece no terminal do Metro.
         if (__DEV__) {
-          console.warn('Sincronização de treinos falhou:', error instanceof Error ? error.message : error);
+          console.warn(`Sincronização de ${label} falhou:`, error instanceof Error ? error.message : error);
         }
       });
     };
     const schedule = () => {
       clearTimeout(timer);
-      timer = setTimeout(run, QUEUE_DELAY);
+      timer = setTimeout(execute, QUEUE_DELAY);
     };
 
-    run();
+    execute();
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        run();
+        execute();
       }
     });
     const unsubscribe = onSyncQueued(schedule);
@@ -378,5 +387,10 @@ export function useWorkoutSync(token?: string) {
       appState.remove();
       unsubscribe();
     };
-  }, [token]);
+  }, [key, label]);
+}
+
+// Mantém os treinos em dia com a conta enquanto houver alguém logado.
+export function useWorkoutSync(token?: string) {
+  useSyncTriggers(token ?? null, () => syncWorkouts(token as string), 'treinos');
 }
