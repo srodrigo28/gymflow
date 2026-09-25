@@ -1,9 +1,11 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/ui/Screen';
+import { useSession } from '@/src/contexts/session-context';
+import { getTodayCheckin } from '@/src/services/gym-checkin';
 import { onWorkoutsRestored } from '@/src/services/sync';
 import {
   getActiveSessionId,
@@ -13,8 +15,9 @@ import {
   startSession,
 } from '@/src/services/training';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
+import type { GymCheckin } from '@/src/types/gym-checkin';
 import type { MuscleGroup, PeriodSummary, SessionSummary } from '@/src/types/training';
-import { formatSessionDate, formatVolume, muscleLabel, startOfWeek } from '@/src/utils/format';
+import { formatClockTime, formatSessionDate, formatVolume, muscleLabel, startOfWeek } from '@/src/utils/format';
 
 type MissingMuscle = { days: number; muscle: MuscleGroup };
 
@@ -24,23 +27,29 @@ const trackedMuscles: MuscleGroup[] = ['peito', 'costas', 'pernas', 'ombros', 'b
 export default function TreinoScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
+  const { session } = useSession();
+  const userId = session?.user.id;
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [week, setWeek] = useState<PeriodSummary | null>(null);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [missing, setMissing] = useState<MissingMuscle[]>([]);
   const [isStarting, setIsStarting] = useState(false);
+  const [todayCheckin, setTodayCheckin] = useState<GymCheckin | null>(null);
 
   const load = useCallback(async () => {
-    const [active, summary, recent, sinceMuscle] = await Promise.all([
+    const [active, summary, recent, sinceMuscle, checkin] = await Promise.all([
       getActiveSessionId(),
       getPeriodSummary(startOfWeek(), Date.now()),
       listRecentSessions(8),
       getDaysSinceMuscle(),
+      // O check-in é por conta; sem sessão (logo depois de sair), não há o que ler.
+      userId ? getTodayCheckin(userId) : Promise.resolve(null),
     ]);
 
     setActiveSessionId(active);
     setWeek(summary);
     setSessions(recent);
+    setTodayCheckin(checkin);
 
     const byMuscle = new Map(sinceMuscle.map((item) => [item.muscle, item.days]));
     setMissing(
@@ -49,7 +58,7 @@ export default function TreinoScreen() {
         .filter((item) => item.days > 7)
         .sort((a, b) => b.days - a.days),
     );
-  }, []);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -132,6 +141,29 @@ export default function TreinoScreen() {
           <SummaryPill label="Cardio" value={`${week?.cardioMinutes ?? 0} min`} />
         </View>
         <Text style={styles.pillsCaption}>Esta semana</Text>
+
+        <Pressable
+          accessibilityLabel={`Check-in na academia. ${
+            todayCheckin ? `Feito hoje às ${formatClockTime(todayCheckin.at)}` : 'Ainda não feito hoje'
+          }`}
+          accessibilityRole="button"
+          onPress={() => router.push('/(app)/treino/checkin' as Href)}
+          style={({ pressed }) => [styles.checkinCard, pressed ? styles.pressed : null]}>
+          <View style={[styles.checkinIcon, { backgroundColor: withAlpha(theme.domain.treino, 0.16) }]}>
+            <MaterialCommunityIcons
+              color={theme.domain.treino}
+              name={todayCheckin ? 'map-marker-check' : 'map-marker-outline'}
+              size={22}
+            />
+          </View>
+          <View style={styles.checkinText}>
+            <Text style={styles.checkinTitle}>Check-in na academia</Text>
+            <Text style={[styles.checkinStatus, todayCheckin ? { color: theme.status.success } : null]}>
+              {todayCheckin ? `Feito às ${formatClockTime(todayCheckin.at)}` : 'Ainda não'}
+            </Text>
+          </View>
+          <Ionicons color={theme.text.secondary} name="chevron-forward" size={20} />
+        </Pressable>
 
         {missing.length ? (
           <View style={styles.missingCard}>
@@ -292,6 +324,39 @@ const useStyles = makeStyles((theme) => ({
     color: theme.text.muted,
     marginTop: -8,
     textAlign: 'center',
+  },
+  checkinCard: {
+    alignItems: 'center',
+    backgroundColor: theme.bg.surface,
+    borderColor: theme.border.subtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  checkinIcon: {
+    alignItems: 'center',
+    borderRadius: radius.sm,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  checkinText: {
+    flex: 1,
+    gap: 2,
+  },
+  checkinTitle: {
+    color: theme.text.primary,
+    fontFamily: fonts.bold,
+    fontSize: 15,
+  },
+  checkinStatus: {
+    color: theme.text.muted,
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
   },
   missingCard: {
     backgroundColor: theme.bg.surface,

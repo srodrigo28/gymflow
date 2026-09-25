@@ -1,14 +1,55 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
+import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { getAdminMetrics, type AdminMetrics } from '@/src/services/admin';
-import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
+import { listAdminGyms, setGymConfirmation } from '@/src/services/league';
+import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
+import type { AdminGym } from '@/src/types/league';
 
-// Só para administradores: o número que decide quando o app deixa de ser 100% grátis.
+const UNDO_TITLE = 'Desfazer a confirmação?';
+
+const confirmationLabels = {
+  admin: 'Confirmada pela equipe',
+  members: 'Confirmada por duas contas',
+} as const;
+
+function plural(count: number, one: string, many: string) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+// Desfazer tira o verificado dos check-ins de todo mundo naquela academia: pede confirmação antes. No
+// navegador o Alert do React Native não aparece; lá vale a confirmação do próprio navegador.
+function confirmUndo(gym: AdminGym, onConfirm: () => void) {
+  const message = `Os check-ins em “${gym.name}” deixam de valer como verificados.`;
+
+  if (Platform.OS === 'web') {
+    if (window.confirm(`${UNDO_TITLE}\n\n${message}`)) {
+      onConfirm();
+    }
+
+    return;
+  }
+
+  Alert.alert(UNDO_TITLE, message, [
+    { style: 'cancel', text: 'Manter' },
+    { onPress: onConfirm, style: 'destructive', text: 'Desfazer' },
+  ]);
+}
+
+// Para conferir se o ponto marcado é mesmo uma academia antes de confirmar.
+function openOnMap(gym: AdminGym) {
+  const url = `https://www.google.com/maps/search/?api=1&query=${gym.latitude},${gym.longitude}`;
+
+  void Linking.openURL(url).catch(() => undefined);
+}
+
+// Só para administradores: o número que decide quando o app deixa de ser 100% grátis e as academias
+// que a equipe confirma para o check-in verificado.
 export default function AdminScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
@@ -16,19 +57,37 @@ export default function AdminScreen() {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [gyms, setGyms] = useState<AdminGym[] | null>(null);
+  const [gymsError, setGymsError] = useState<string | null>(null);
+  // Academia com a confirmação mudando agora: trava só o botão dela.
+  const [busyGymId, setBusyGymId] = useState<string | null>(null);
+  const [gymActionError, setGymActionError] = useState<string | null>(null);
   const token = session?.token;
 
+  // Números e academias carregam juntos, mas um erro num não esconde o outro.
   const load = useCallback(async () => {
     if (!token) {
       return;
     }
 
-    try {
-      setMetrics(await getAdminMetrics(token));
-      setError(null);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Não foi possível carregar o painel.');
-    }
+    await Promise.all([
+      (async () => {
+        try {
+          setMetrics(await getAdminMetrics(token));
+          setError(null);
+        } catch (reason) {
+          setError(reason instanceof Error ? reason.message : 'Não foi possível carregar o painel.');
+        }
+      })(),
+      (async () => {
+        try {
+          setGyms(await listAdminGyms(token));
+          setGymsError(null);
+        } catch (reason) {
+          setGymsError(reason instanceof Error ? reason.message : 'Não foi possível carregar as academias.');
+        }
+      })(),
+    ]);
   }, [token]);
 
   useFocusEffect(
@@ -41,6 +100,32 @@ export default function AdminScreen() {
     setIsRefreshing(true);
     await load();
     setIsRefreshing(false);
+  }
+
+  async function changeConfirmation(gym: AdminGym) {
+    if (!token) {
+      return;
+    }
+
+    setBusyGymId(gym.id);
+    setGymActionError(null);
+
+    try {
+      const updated = await setGymConfirmation(token, gym.id, !gym.confirmed);
+      setGyms((current) => current?.map((item) => (item.id === gym.id ? updated : item)) ?? current);
+    } catch (reason) {
+      setGymActionError(reason instanceof Error ? reason.message : 'Não foi possível mudar a confirmação.');
+    } finally {
+      setBusyGymId(null);
+    }
+  }
+
+  function handleGymAction(gym: AdminGym) {
+    if (gym.confirmed) {
+      confirmUndo(gym, () => void changeConfirmation(gym));
+    } else {
+      void changeConfirmation(gym);
+    }
   }
 
   const total = metrics?.users.total ?? 0;
@@ -110,8 +195,94 @@ export default function AdminScreen() {
             </Text>
           </>
         ) : null}
+
+        {gyms || gymsError ? (
+          <>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>
+              Academias
+            </Text>
+            <Text style={styles.sectionNote}>
+              Check-in só vale como verificado em academia confirmada. Confirme só academias de verdade; desfazer tira o
+              verificado dos check-ins dela.
+            </Text>
+
+            {gymsError ? <Text style={styles.error}>{gymsError}</Text> : null}
+            {gymActionError ? <Text style={styles.error}>{gymActionError}</Text> : null}
+
+            {gyms?.length === 0 ? <Text style={styles.empty}>Nenhuma academia marcada ainda.</Text> : null}
+
+            {gyms?.map((gym) => (
+              <GymCard
+                busy={busyGymId === gym.id}
+                gym={gym}
+                key={gym.id}
+                locked={busyGymId !== null}
+                onAction={() => handleGymAction(gym)}
+              />
+            ))}
+          </>
+        ) : null}
       </ScrollView>
     </Screen>
+  );
+}
+
+type GymCardProps = {
+  busy: boolean;
+  gym: AdminGym;
+  // Outra academia mudando agora: uma confirmação de cada vez.
+  locked: boolean;
+  onAction: () => void;
+};
+
+function GymCard({ busy, gym, locked, onAction }: GymCardProps) {
+  const styles = useStyles();
+  const { theme } = useTheme();
+  const status = gym.confirmedBy ? confirmationLabels[gym.confirmedBy] : 'Não confirmada';
+  const people = plural(gym.memberCount, 'pessoa', 'pessoas');
+  const counts = `${people} · ${plural(gym.checkinCount, 'check-in', 'check-ins')}`;
+
+  return (
+    <View style={styles.gymCard}>
+      <View accessibilityLabel={`${gym.name}. ${counts}. ${status}.`} accessible style={styles.gymInfo}>
+        <Text numberOfLines={2} style={styles.gymName}>
+          {gym.name}
+        </Text>
+        <Text style={styles.gymMeta}>{counts}</Text>
+        <View
+          style={[
+            styles.chip,
+            gym.confirmedBy ? { backgroundColor: withAlpha(theme.status.success, 0.14) } : styles.chipIdle,
+          ]}>
+          <Ionicons
+            color={gym.confirmedBy ? theme.status.success : theme.text.muted}
+            name={gym.confirmedBy ? 'shield-checkmark' : 'shield-outline'}
+            size={14}
+          />
+          <Text style={styles.chipText}>{status}</Text>
+        </View>
+      </View>
+
+      <Pressable
+        accessibilityLabel={`Ver ${gym.name} no mapa`}
+        accessibilityRole="link"
+        hitSlop={4}
+        onPress={() => openOnMap(gym)}
+        style={({ pressed }) => [styles.mapLink, pressed ? styles.pressed : null]}>
+        <Ionicons color={theme.accent.primary} name="map-outline" size={16} />
+        <Text style={styles.mapLinkText}>Ver no mapa</Text>
+      </Pressable>
+
+      <Button
+        accessibilityLabel={gym.confirmed ? `Desfazer a confirmação de ${gym.name}` : `Confirmar ${gym.name}`}
+        disabled={locked}
+        icon={gym.confirmed ? 'close-circle-outline' : 'shield-checkmark-outline'}
+        loading={busy}
+        onPress={onAction}
+        title={gym.confirmed ? 'Desfazer confirmação' : 'Confirmar'}
+        variant={gym.confirmed ? 'ghost' : 'outline'}
+      />
+    </View>
   );
 }
 
@@ -239,6 +410,75 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 17,
+  },
+  sectionTitle: {
+    color: theme.text.primary,
+    fontFamily: fonts.extrabold,
+    fontSize: 16,
+    marginTop: 8,
+  },
+  sectionNote: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  empty: {
+    color: theme.text.muted,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  gymCard: {
+    backgroundColor: theme.bg.surface,
+    borderColor: theme.border.subtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    gap: 8,
+    padding: 16,
+  },
+  gymInfo: {
+    gap: 6,
+  },
+  gymName: {
+    color: theme.text.primary,
+    fontFamily: fonts.bold,
+    fontSize: 16,
+  },
+  gymMeta: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
+  },
+  chip: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  chipIdle: {
+    backgroundColor: theme.bg.raised,
+  },
+  chipText: {
+    color: theme.text.primary,
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+  },
+  mapLink: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 40,
+  },
+  mapLinkText: {
+    color: theme.accent.primary,
+    fontFamily: fonts.semibold,
+    fontSize: 14,
   },
   pressed: {
     opacity: 0.75,

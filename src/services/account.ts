@@ -1,8 +1,11 @@
 import { deleteLocalDatabase } from '@/src/db/client';
 import { apiRequest } from '@/src/services/api';
 import { deleteAllPhotoFiles } from '@/src/services/body';
+import { clearGymCheckins } from '@/src/services/gym-checkin';
+import { removePersonalPhrase } from '@/src/services/phrases';
 import { removeProfilePhoto } from '@/src/services/profile-photo';
 import { secureStorage, storage, storageKeys } from '@/src/services/storage';
+import { clearTrainingPreferences } from '@/src/services/training-preferences';
 import type { AuthResponse } from '@/src/types/auth';
 
 // Apaga a conta na API e, depois, tudo o que ela deixou neste aparelho: fotos, treinos e
@@ -17,8 +20,12 @@ export async function deleteAccount(session: AuthResponse, password: string) {
     ['as fotos', deleteAllPhotoFiles],
     ['o banco local', () => deleteLocalDatabase(userId)],
     ['a foto de capa', () => removeProfilePhoto(userId)],
+    ['a frase pessoal', () => removePersonalPhrase(userId)],
     ['as respostas do onboarding', () => secureStorage.remove(storageKeys.profile(userId))],
     ['a marca de onboarding concluído', () => storage.remove(storageKeys.onboardingCompleted(userId))],
+    ['a marca das respostas enviadas', () => storage.remove(storageKeys.questionnaireUploaded(userId))],
+    ['as escolhas de treino', () => clearTrainingPreferences(userId)],
+    ['a academia e os check-ins', () => clearGymCheckins(userId)],
     ['a sessão', () => secureStorage.remove(storageKeys.session)],
   ];
 
