@@ -22,16 +22,22 @@ Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-esta
 ## Status
 
 - Splash animada, hero de boas-vindas, login e cadastro (contas reais na API)
-- Onboarding de 23 etapas; as respostas ficam só no aparelho
+- Onboarding de até 26 telas (22 a 26, conforme as respostas); as respostas ficam só no aparelho
 - Registro de treino offline, com histórico, recordes e "o que está faltando"
 - Treinos concluídos sobem sozinhos para a conta quando há internet, e voltam sozinhos num aparelho novo
-- Evolução: medidas com gráfico, foto do mês e comparador (só no aparelho)
+- Evolução: medidas com gráfico, foto do mês e comparador. Com consentimento específico (LGPD), as medidas ficam guardadas na conta e voltam num aparelho novo; as fotos continuam só no aparelho
 - Desafios entre amigos: convite por link, placar de dias com treino
 - Card compartilhável de recorde e de resumo da semana
 - Painel de administração com o total de cadastros (o gatilho dos 200)
 - Perfil: foto de capa, nome, peso, altura, objetivo, troca de senha e exclusão da conta
-- Temas de cores: Flow, Meia-noite, Aurora e Brasa (tela Aparência)
+- Temas de cores: Flow, Dia (claro), Meia-noite, Aurora e Brasa (tela Aparência)
+- Menu do perfil completo: sincronizar, alimentações diárias, alimentação ideal, escolhas de treinos, recomendações, conquistas e frase do dia
+- Recuperação de senha e confirmação de e-mail por código; Termos de Uso e Política de Privacidade; questionário na conta com consentimento próprio
+- Amigos, cards de sequência e do mês, recorde com card na hora, check-in na academia, câmera com guia de contorno e compartilhar fotos com tarja
+- Notificações dos desafios (lembrete do dia e placar final) pelo Expo Push: o aparelho se registra ao abrir um desafio; chegam num development build ou no app da loja, não no Expo Go
+- Liga e temporada (Fase 4): XP e nível, meta da semana, ligas semanais Bronze, Prata, Ouro e Elite, temporada do mês entre amigos por categoria, força relativa por DOTS com consentimento, check-in verificado na conta e troféus e selos
 - API publicada em `https://99dev.pro/gymflow-api`, com a documentação das rotas em https://99dev.pro/gymflow-api/doc
+- App validado contra a API publicada no emulador Android (24/09): cadastro, consentimento e medida, treino com recorde, desafio com convite e exclusão da conta
 
 O plano de produto e o registro de cada fase estão em [`22-estrategia.md`](22-estrategia.md).
 
@@ -163,8 +169,9 @@ Com `.env.local`, o app usa o endereço dele em vez do publicado. As chamadas fi
 
 ## Próximos passos
 
-- Testar o app contra a API publicada
-- Consentimento específico para medidas e fotos subirem para a conta (LGPD)
-- Recuperação de senha (precisa de um serviço de envio de e-mail)
-- Amigos e check-in com foto nos desafios (Fase 3)
+- Testar num celular físico e no iPhone (no emulador Android já foi)
+- Fotos de evolução na conta, com o mesmo consentimento específico das medidas (precisam de armazenamento privado com URL assinada)
+- Configurar SMTP e SUPPORT_EMAIL na VPS (libera recuperação de senha, confirmação de e-mail e o alerta da sonda em produção)
+- Check-in com foto nos desafios (Fase 3) e um development build para ver as notificações chegando
+- Fase 4: pontualidade, modalidade e equilíbrio na temporada e os escudos da sequência; Fase 5: personal e academia
 - Build de loja (EAS), depois das funções acima

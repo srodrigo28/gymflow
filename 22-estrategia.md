@@ -269,7 +269,7 @@ A ideia é **R$ 1,00 ou R$ 5,00**, valores de apoio, não de assinatura cara. Tr
 
 ## 7. Plano de execução
 
-### Fase 1 — Fundação do registro 🟨 (em 22/09)
+### Fase 1 — Fundação do registro ✅ (em 24/09)
 
 **Objetivo:** registrar treino bem feito e ver o histórico. Sem isso, nada de social.
 
@@ -298,7 +298,7 @@ semanal e mensal com volume por grupo muscular. Use os tokens do tema e as
 cores de domínio. Rode typecheck e lint.
 ```
 
-### Fase 2 — Corpo e fotos 🟨 (em 22/09)
+### Fase 2 — Corpo e fotos 🟨 (em 24/09)
 
 **Objetivo:** a evolução ficar visível.
 
@@ -314,6 +314,10 @@ lado a lado estão prontos e rodando offline. Falta o que depende de servidor (U
 tarja, revogação de compartilhamento) e a integração com Health Connect/Apple Health.
 Detalhes em **Registro da Fase 2** no fim do documento.
 
+**Situação em 24/09:** as medidas passaram a poder ficar na conta, com consentimento específico e
+destacado (cartão na Evolução), e voltam num aparelho novo; retirar o consentimento apaga tudo do
+servidor na hora. Fotos continuam só no aparelho. Detalhes em **Registro das medidas na conta**.
+
 **Critérios de aceite**: enviar duas fotos de meses diferentes e ver a comparação; revogar o compartilhamento e a foto sumir para o outro lado na hora.
 
 ```txt
@@ -324,7 +328,7 @@ padrão, consentimento específico para dados de saúde, revogação imediata).
 Fotos em armazenamento privado com URL assinada. Rode typecheck e lint.
 ```
 
-### Fase 3 — Social e desafios 🟨 (em 23/09)
+### Fase 3 — Social e desafios 🟨 (em 24/09)
 
 **Objetivo:** ligar o primeiro laço viral.
 
@@ -337,11 +341,16 @@ Detalhes em **Registro da Fase 3** e **Registro da API** no fim do documento.
 
 **Critérios de aceite**: criar um desafio e entrar por link em menos de 30 segundos, sem cadastro prévio obrigatório até o momento de pontuar.
 
-### Fase 4 — Ranking, ligas e premiação ⬜
+### Fase 4 — Ranking, ligas e premiação 🟨 (em 24/09)
 
 **Entregas**: XP, ligas semanais, temporada mensal, as oito categorias da seção 3.3, DOTS para força relativa, check-in verificado, troféus e selos.
 
 **Critérios de aceite**: dois usuários de pesos diferentes com o mesmo DOTS aparecem lado a lado; ranking separa verificado de declarado.
+
+**Situação em 24/09:** XP, ligas semanais, temporada entre amigos, DOTS, check-in verificado, troféus e
+selos prontos no app e na API, e os dois critérios de aceite cobertos por teste. Das oito categorias, faltam
+três (pontualidade, modalidade e equilíbrio), e faltam os escudos da sequência. Detalhes em **Registro da
+Fase 4** no fim do documento.
 
 ### Fase 5 — Personal e academia ⬜
 
@@ -572,6 +581,190 @@ A API foi publicada em https://99dev.pro/gymflow-api (documentação em `/doc`),
 | API | 51 testes, typecheck e build; em produção desde o commit `5a8f063` |
 
 **Ainda não feito**: testar o app contra a produção; sincronizar dois aparelhos em uso ao mesmo tempo (a restauração roda uma vez por aparelho); consentimento e envio de medidas e fotos; recuperação de senha; amigos e check-in com foto; teste em iPhone.
+
+## Registro das medidas na conta (24/09)
+
+Primeira parte do que a seção 4 pede para dado de saúde: as **medidas** do corpo passam a poder
+ficar na conta, com consentimento específico e destacado. As fotos continuam só no aparelho.
+
+**O que foi construído**
+
+- **API** (`gymflow-api`, commit `eccb80e`): `PUT /me/consents/body-data` liga e desliga o consentimento;
+  `POST /sync/measurements` recebe a fila do aparelho (até 50 por vez, validação medida a medida, a
+  versão mais nova vence, medida apagada vira só uma marca sem valores) e `GET /sync/measurements`
+  devolve as da conta em páginas, para restaurar num aparelho novo. Sem consentimento, as duas
+  respondem 403 `CONSENT_REQUIRED`. **Retirar o consentimento apaga na hora todas as medidas da
+  conta no servidor**; um novo aceite grava um instante novo. Tabela `body_measurements` e coluna
+  `body_data_consent_at` em `users` (migração `20260924070240_body_measurements_consent`, só
+  acréscimos). O `user` que a API devolve ganhou `bodyDataConsentAt`. Dez testes novos (61 no
+  total), documentação em `/doc` e tabela de rotas do README.
+- **App**: cartão "Medidas na conta" na Evolução (`src/components/body/MeasurementsBackupCard.tsx`).
+  O botão abre o texto do consentimento (o que sobe, para quê, quem vê e como voltar atrás) e só
+  então chama a API. Com consentimento, `src/services/body-sync.ts` sobe a fila de medidas (que já
+  existia no outbox desde a Fase 2, sem nunca ter sido enviada), baixa as da conta e repete tudo a
+  cada consentimento novo: o instante do aceite funciona como época, guardada em `sync_state`. A
+  tela recarrega o gráfico quando medidas chegam, e o peso salvo pelo Perfil passa pelo mesmo
+  caminho. Os gatilhos (entrar, voltar para o app, mudança na fila) ficaram num hook comum,
+  `useSyncTriggers`, usado também pelos treinos.
+
+**Decisões**
+
+- Consentimento separado do aceite geral dos termos, com texto próprio, como a LGPD pede para dado
+  de saúde. Fica no servidor, não no aparelho: vale para todos os aparelhos da conta.
+- Retirar apaga tudo no servidor imediatamente, sem prazo. As medidas do aparelho ficam com a pessoa.
+- A medida apagada no aparelho vira uma marca sem nenhum valor no servidor, para não voltar num
+  download e para não guardar um dado que a pessoa quis apagar.
+- Fotos ficam de fora até existir armazenamento privado com URL assinada (seção 4).
+
+**Como foi validado** (emulador Android `lume_test`, Expo Go, API local)
+
+| Verificação | Resultado |
+| --- | --- |
+| Cartão na Evolução sem consentimento | "Medidas só neste aparelho · 3 medidas guardadas só aqui" |
+| Aceitar no diálogo | `PUT` do consentimento, `POST` das 3 medidas e `GET` de restauração em sequência; 3 no banco; cartão "Tudo em dia com a conta" |
+| Medida nova (79,2 kg, cintura 83 cm) | no servidor segundos depois de salvar |
+| Apagar a medida nova | no servidor fica só a marca: valores nulos e `deleted_at` |
+| Retirar o consentimento | 0 medidas no servidor e consentimento nulo; as 3 do aparelho continuam |
+| Aceitar de novo | instante novo e as 3 medidas sobem de novo; a apagada não volta |
+| API | 61 testes, typecheck e build; publicada em produção pelo `salvek99` |
+
+**Ainda não feito**: fotos na conta; sincronizar dois aparelhos em uso ao mesmo tempo (a
+restauração roda uma vez por consentimento em cada aparelho); teste em iPhone. O teste contra a API
+publicada está no registro seguinte.
+
+## Registro do teste contra a produção (24/09)
+
+Primeira vez que o app rodou contra `https://99dev.pro/gymflow-api` de ponta a ponta. Emulador Android
+`lume_test` com o Expo Go, Metro iniciado com `EXPO_PUBLIC_API_URL=https://99dev.pro/gymflow-api`
+(a variável de ambiente vence o `.env.local`), sem `adb reverse` para a porta 3333. Conta de teste
+criada pelo próprio app e apagada por ele no fim.
+
+| Verificação | Resultado |
+| --- | --- |
+| Sessão antiga (token da API local) ao abrir | a produção respondeu 401 e o app voltou para o início, sem travar |
+| Cadastro pela tela do app | conta criada na produção; o app seguiu para o onboarding |
+| Consentimento na Evolução | `bodyDataConsentAt` gravado na conta |
+| Medida (81,4 kg) | em `GET /sync/measurements` segundos depois de salvar |
+| Treino (agachamento 60 kg × 8, recorde) | em `GET /sync/workouts`, finalizado, com `isPr` |
+| Desafio de 7 dias | criado, já com 1 ponto pelo treino do dia; folha de compartilhar com o link `https://99dev.pro/gymflow-api/c/<código>`; a página do link responde com título, prévia e `gymflow://convite/<código>` |
+| Apagar a conta pelo Perfil | login e token antigo passam a responder 401; o app volta para o início com o aviso |
+
+**Sobra conhecida**: o desafio de teste (código `CQRHRERK`) fica no servidor sem participantes até
+01/10, porque a API não apaga desafios (quem cria pode sair sem apagar o dos outros).
+
+**Ainda não feito**: celular físico e iPhone; o fluxo do onboarding contra a produção (as telas do
+app foram abertas por deep link, sem passar pelas 23 etapas).
+
+## Registro da aceleração (24/09, tarde)
+
+Meta do dono: pelo menos 90% em cada área do manual, acelerando. A rodada juntou três agentes em
+paralelo (telas isoladas do app) com o trabalho de API, sincronização e infraestrutura, e terminou
+com o app em 90% (64 de 71 itens) e a API em 92% (36 de 39), dois deploys da API (`e8f9330` e
+`edc9c2c`, os dois com TUDO CONFERE) e o app validado no emulador.
+
+**O que foi construído**
+
+- **Menu do perfil inteiro**: Sincronizar (o que está na conta, o que falta, sincronizar agora e
+  baixar de novo), Alimentações diárias (diário local de refeições e água), Alimentação ideal (seis
+  estilos com trocas práticas, sugestão a partir do questionário, sem calorias), Escolhas de treinos
+  (local, tipos, grupos, equipamentos e favoritos, que aparecem primeiro na escolha de exercícios),
+  Recomendações (estágio 1 da seção 2.5: regras sobre treinos, medidas e questionário, no aparelho),
+  Conquistas (16, calculadas dos dados locais) e Frase do dia (48 frases originais e a frase pessoal).
+- **Treino e evolução**: recorde com o botão "Ver card" na hora; abas Sequência e Mês no
+  Compartilhar; check-in na academia pelo GPS (um por dia, no local até 150 m, tudo no aparelho);
+  câmera própria com guia de contorno por pose; compartilhar o antes e depois com tarja gravada na
+  imagem.
+- **Conta e LGPD**: recuperação de senha e confirmação de e-mail com código de 6 números por e-mail
+  (SMTP configurável; sem SMTP, terminal em desenvolvimento e 503 em produção); respostas do
+  questionário na conta com consentimento próprio, que descem num aparelho novo antes de decidir
+  entre onboarding e home; Termos de Uso e Política de Privacidade em `/termos` e `/privacidade`,
+  ligados no cadastro e no Perfil; tema claro "Dia".
+- **Social**: amigos por e-mail (resposta genérica, aceitar, recusar, desfazer), com nome, dias de
+  treino na semana e quem treinou hoje. Nada de medidas, cargas ou treinos de outra pessoa.
+  Notificações dos desafios decididas pela API e enviadas pelo Expo Push: lembrete do dia (das 18h
+  às 21h no fuso do desafio, só para quem ainda não treinou) e placar final; o app registra o
+  aparelho ao abrir um desafio, esquece ao sair da conta e abre o desafio ao tocar no aviso.
+- **Operação**: backup diário do banco na VPS (03:15, 14 dias, primeiro feito ao instalar), sonda a
+  cada 5 minutos que reinicia o container na segunda falha e alerta por e-mail (o mesmo SMTP) ou
+  webhook, e a rotina das notificações de hora em hora dentro do container. CI do GitHub conferida:
+  todas as execuções verdes. 88 testes na API.
+
+**Como foi validado** (emulador Android `lume_test`, Expo Go, API local)
+
+| Verificação | Resultado |
+| --- | --- |
+| Recuperar senha pela tela Nova senha | código pedido pelo app, senha trocada, login com a nova |
+| Confirmar e-mail pelo Perfil | "Confirmado em 24 set"; `email_verified_at` no banco |
+| Home com os sete cartões | todos abrem as telas novas |
+| Recomendações, Sincronizar, Conquistas, Frase, Alimentação, Escolhas | telas renderizadas com os dados da conta de teste |
+| Compartilhar: abas Sequência e Mês | "1 semana seguida" e "Meu setembro: 5 treinos, 67,4 t, 4 recordes, Peito" |
+| Tema Dia | home, Treino e Evolução legíveis em fundo claro |
+| Amigos | tela e estado vazio; API coberta por 10 testes |
+| Check-in | cartão no hub e tela de marcar a academia; permissão concedida; a leitura do GPS falhou no emulador sem janela e a tela mostrou o erro certo |
+| Câmera com guia | contorno da pose por cima da câmera, troca de pose e botão de captura |
+| Tarja | tarja posicionada por toque nas duas fotos, ligar e desligar, setas, e o Compartilhar abrindo a folha do Android |
+| Notificações | 4 testes na API (token do aparelho, lembrete, placar, empate); rotina no cron da VPS; no Expo Go o app só pula o registro, porque push não roda nele no Android |
+| Produção | `edc9c2c` publicado, TUDO CONFERE, `/termos` e `/privacidade` 200, backup, sonda e notificações no cron |
+
+**Ainda não feito**: configurar o SMTP e o e-mail de contato na VPS (libera três funções de uma
+vez); fotos na conta e check-in com foto (dependem da decisão sobre o armazenamento); celular
+físico, iPhone e build de loja (que também é o que faz as notificações chegarem de verdade); Health
+Connect e Apple Health.
+
+## Registro da Fase 4 (24/09, noite)
+
+Pedido do dono: continuar o projeto. Com o app em 90% e a API em 92%, o que faltava nas duas áreas dependia
+de decisões dele (SMTP, onde guardar fotos, build de loja). A Fase 4 era o próximo bloco do plano que só
+dependia de código. Dois agentes fizeram as telas do app em paralelo, sobre um contrato escrito antes
+(`src/types/league.ts` e `src/services/league.ts`), enquanto a API era feita, testada e publicada
+(commit `3965b1f`).
+
+**Decisões (para o dono revisar)**
+
+- **O XP não fica guardado**: é calculado dos treinos e check-ins, dia a dia no fuso de São Paulo. Treino
+  concluído vale 50 (até 2 por dia), série feita vale 2 (até 40 por dia; é o teto contra maratona de registro)
+  e check-in verificado vale 20. A meta da semana batida vale 25 por dia da meta, e a meta só muda da semana
+  seguinte em diante, para ninguém baixar a meta no meio da semana. O convite reconhecido dá 7 dias de XP em
+  dobro para os dois (conta nova, até 48 h, que entra por um desafio) e o selo "Trouxe gente para treinar".
+- **Medidas e fotos não viram XP**, ao contrário do que a seção 3.2 sugeria: dado sensível não pode virar
+  moeda de troca pelo consentimento (LGPD). Carga levantada também não, como a seção já dizia.
+- **Ligas**: grupos de até 30 pessoas da mesma liga, formados com o primeiro XP da semana, então quem não
+  treinou não entra e não perde nada. Na segunda, os 20% do topo sobem (com pelo menos 150 XP) e os 20% de
+  baixo descem, só em grupos a partir de 5 pessoas; empate divide a posição e fica com o resultado melhor. No
+  grupo aparece só "Ana S." e o XP. Dá para sair das ligas.
+- **Temporada é o mês, entre amigos**, sem ranking global. As categorias da seção 3.3 que dá para medir hoje:
+  pontos, constância declarada e verificada (separadas), força relativa por DOTS, evolução, tonelagem (só
+  entre gente da mesma liga, que é a faixa de nível) e cardio por modalidade. Quem fica em 1º numa categoria,
+  com ao menos um amigo disputando, ganha o troféu do mês; empate vale para todos.
+- **Privacidade da temporada**: a API já prometia que amigo vê só nome e dias com treino. Por isso evolução,
+  tonelagem e cardio só aparecem entre quem liga "Mostrar volume, evolução e cardio", nos dois sentidos, e
+  nunca aparecem as cargas de cada série ou os treinos. O DOTS pede o próprio consentimento (peso e fórmula,
+  apagados ao sair), e ninguém vê o peso.
+- **Antifraude**: marca a confirmar não conta (salto de mais de 30% sobre a melhor marca de 6 meses nos três
+  básicos, DOTS acima de 600, evolução acima de 50% num exercício). A academia só vale depois de confirmada,
+  por duas contas diferentes ou pelo administrador, porque senão qualquer um marcaria a própria casa. O
+  check-in verificado exige estar a até 150 m, com leitura de GPS de até 100 m de erro. A posição da pessoa
+  não fica guardada.
+- **Rotina**: o cron de hora em hora da VPS fecha a semana das ligas e o mês da temporada (uma vez só) e avisa
+  por push. A Política de Privacidade e os Termos cobrem tudo isso, e o Expo aparece como operador das
+  notificações.
+
+**Como foi validado**
+
+| Verificação | Resultado |
+| --- | --- |
+| API | 105 testes (17 novos): tetos do XP e fuso, meta, convite, ligas (vaga de 30, zonas, fechamento, empate, mínimo de 150, selo de 4 semanas), temporada (DOTS igual com pesos diferentes lado a lado, verificado separado de declarado, compartilhamento, liga na tonelagem, a confirmar, troféus do mês), academia e check-in |
+| Produção | `3965b1f` publicado, migração aplicada, rotina de hora em hora rodando o fechamento |
+| Liga no emulador | nível 2, 443 XP no total e 158 na semana, conferidos contra os treinos; grupo de 5 na Prata com zonas; resultado "subiu para a Prata"; meta de 4 dias gravada na conta |
+| Temporada no emulador | pontos, constância declarada (5, 4, 4 com empate) e verificada (3 e 1), DOTS de 277,2 conferido à mão, compartilhamento ligado mostrando tonelagem só da mesma liga e esteira |
+| Força no emulador | entrada com o peso sugerido da última pesagem (79,8 kg) e a fórmula; o perfil gravado na conta |
+| Conquistas, card e painel | troféu e selo da conta, card de troféu no Compartilhar, academia confirmada por duas contas no painel |
+| Check-in na tela | não exercitado: no emulador sem janela o GPS não entrega posição ao Expo Go. A leitura passou a esperar no máximo 15 s e a aceitar uma posição de até 2 minutos |
+
+**Ainda não feito**: pontualidade (precisa de agenda de treinos), modalidade (precisa de modalidades como
+funcional, luta, natação e yoga no catálogo) e equilíbrio (precisa de registro diário de sono, água e humor
+na conta); os escudos da sequência (seção 3.2); o ranking e o mural da academia (Fase 5); o check-in na tela
+num celular de verdade.
 
 ## Fontes da pesquisa
 

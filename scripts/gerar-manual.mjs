@@ -1,9 +1,10 @@
 // Gera o manual.md a partir do JSON embutido no manual.html, com a mesma regra de porcentagem da
-// página. Para atualizar o manual: edite o bloco "manual-data" do manual.html e rode
+// página. O manual.html fica na raiz do workspace (D:\dev\gynflow), uma pasta acima deste
+// repositório. Para atualizar o manual: edite o bloco "manual-data" do manual.html e rode, daqui,
 // node scripts/gerar-manual.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const [htmlPath = 'manual.html', mdPath = 'manual.md'] = process.argv.slice(2);
+const [htmlPath = '../manual.html', mdPath = 'manual.md'] = process.argv.slice(2);
 const html = readFileSync(htmlPath, 'utf8');
 const json = html.match(/<script id="manual-data" type="application\/json">([\s\S]*?)<\/script>/)[1];
 const data = JSON.parse(json);
@@ -32,7 +33,7 @@ const full = tally(itemsOf(['app', 'api', 'future']));
 
 const out = [];
 out.push('# Manual do projeto Gyn Flow', '');
-out.push(`Atualizado em ${data.updated}. Versão interativa, com filtros e busca: [manual.html](manual.html) (abra no navegador).`, '');
+out.push(`Atualizado em ${data.updated}. Versão interativa, com filtros e busca: [manual.html](../manual.html), na raiz do workspace (abra no navegador).`, '');
 out.push('Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o que falta, agrupado do jeito que o app se organiza.', '');
 
 out.push('## Resumo', '');
@@ -50,6 +51,12 @@ out.push('Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.', '');
 out.push('## Linha do projeto', '');
 data.phases.forEach((phase, index) => {
   out.push(`${index + 1}. ${ICON[phase.status]} **${phase.title}**: ${phase.note}`);
+});
+out.push('');
+
+out.push('## Próximos passos, na ordem sugerida', '');
+data.next.forEach((item, index) => {
+  out.push(`${index + 1}. **${item.step}** (${item.tag}): ${item.note}`);
 });
 out.push('');
 
