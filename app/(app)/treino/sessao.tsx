@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 
@@ -50,6 +50,20 @@ const setColumns: Record<ExerciseKind, string[]> = {
   tempo: ['min'],
 };
 
+// O useKeepAwake da biblioteca não trata a recusa do pedido. No navegador ela é comum (aba em segundo plano,
+// economia de bateria, navegador sem a API) e virava um erro solto na tela do treino; sem tela acesa, o treino
+// segue igual.
+function useScreenAwake() {
+  const tag = useId();
+
+  useEffect(() => {
+    activateKeepAwakeAsync(tag).catch(() => {});
+    return () => {
+      deactivateKeepAwake(tag).catch(() => {});
+    };
+  }, [tag]);
+}
+
 export default function SessaoScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
@@ -74,7 +88,7 @@ export default function SessaoScreen() {
   const [aiDay, setAiDay] = useState<AiPlanDay | null>(null);
 
   // A tela fica acesa durante o treino: ninguém quer desbloquear o celular a cada série.
-  useKeepAwake();
+  useScreenAwake();
 
   const load = useCallback(async () => {
     if (!id) return;

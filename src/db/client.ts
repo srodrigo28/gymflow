@@ -1,19 +1,12 @@
-import type * as SQLiteTypes from 'expo-sqlite';
+import * as SQLite from 'expo-sqlite';
 
 import { exercisesSeed } from '@/src/db/exercises-seed';
 import { storage } from '@/src/services/storage';
 
-type SQLiteDatabase = SQLiteTypes.SQLiteDatabase;
-
-// O expo-sqlite no web carrega WebAssembly e um worker, o que quebra a renderização
-// das rotas no servidor. Por isso o módulo só é carregado quando há navegador/app.
-async function loadSQLite() {
-  if (typeof window === 'undefined') {
-    throw new Error('O banco local só existe no app; não use durante a renderização no servidor.');
-  }
-
-  return import('expo-sqlite');
-}
+// O expo-sqlite vem no bundle principal, sem import() à parte: com ele separado, o build do web (expo export)
+// punha num pedaço comum módulos que o worker do banco também usa, e o worker, que só carrega o próprio
+// arquivo, quebrava ("Requiring unknown module").
+type SQLiteDatabase = SQLite.SQLiteDatabase;
 
 // O banco de antes das contas. Fica com a primeira pessoa que entrar no aparelho.
 const FIRST_DATABASE_NAME = 'gynflow.db';
@@ -211,8 +204,7 @@ async function seedExercises(database: SQLiteDatabase) {
 }
 
 async function openDatabase(userId: string) {
-  const sqlite = await loadSQLite();
-  const database = await sqlite.openDatabaseAsync(await databaseNameFor(userId));
+  const database = await SQLite.openDatabaseAsync(await databaseNameFor(userId));
   await database.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   await migrate(database);
   await seedExercises(database);
@@ -251,8 +243,7 @@ export async function deleteLocalDatabase(userId: string) {
   await (await opened?.catch(() => null))?.closeAsync();
 
   const isFirstOwner = (await storage.get(FIRST_DATABASE_OWNER_KEY)) === userId;
-  const sqlite = await loadSQLite();
-  await sqlite.deleteDatabaseAsync(isFirstOwner ? FIRST_DATABASE_NAME : `gynflow-${userId}.db`);
+  await SQLite.deleteDatabaseAsync(isFirstOwner ? FIRST_DATABASE_NAME : `gynflow-${userId}.db`);
 
   if (isFirstOwner) {
     await storage.remove(FIRST_DATABASE_OWNER_KEY);
