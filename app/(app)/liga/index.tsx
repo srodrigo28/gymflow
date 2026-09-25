@@ -25,6 +25,7 @@ import type {
   LeagueRules,
   LeagueStanding,
   LeagueTier,
+  Streak,
   WeeklyGoal,
   XpBreakdown,
   XpRules,
@@ -363,6 +364,8 @@ export default function LigaScreen() {
             <LevelCard summary={summary} />
             <WeekCard summary={summary} />
             <GoalCard goal={summary.goal} onChoose={chooseGoal} routineDays={routineDays} rules={summary.rules} />
+            {/* A API de antes da sequência não manda o campo: sem ele, o cartão só não aparece. */}
+            {summary.streak ? <StreakCard streak={summary.streak} /> : null}
           </>
         ) : null}
 
@@ -664,6 +667,98 @@ function GoalCard({ goal, onChoose, routineDays, rules }: GoalCardProps) {
   );
 }
 
+// "2026-09-08" → "8 set": a segunda-feira que abre a semana, lida direto da chave (sem fuso no meio).
+function weekStartLabel(key: string) {
+  const [, month, day] = key.split('-').map(Number);
+
+  return `${day} ${MONTHS[month - 1] ?? ''}`.trim();
+}
+
+// Sequência de semanas com a meta batida e os escudos do mês. Sem culpa: a semana em aberto não quebra
+// nada, e a que ficou a um dia da meta é segurada por um escudo.
+function StreakCard({ streak }: { streak: Streak }) {
+  const styles = useStyles();
+  const { theme } = useTheme();
+  const shields = Array.from({ length: streak.shieldsPerMonth }, (_, index) => index < streak.shieldsLeft);
+  const protectedLabels = streak.protectedWeeks.map(weekStartLabel);
+  const weeksText = streak.weeks === 1 ? 'semana seguida com a meta batida' : 'semanas seguidas com a meta batida';
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTop}>
+        <Text accessibilityRole="header" style={styles.cardTitle}>
+          Sequência
+        </Text>
+        <MaterialCommunityIcons color={theme.domain.conquista} name="fire" size={22} />
+      </View>
+
+      {streak.weeks > 0 ? (
+        <View accessibilityLabel={`${streak.weeks} ${weeksText}`} accessible style={styles.weekXp}>
+          <Text style={styles.bigValue}>{streak.weeks}</Text>
+          <Text style={styles.secondary}>{weeksText}</Text>
+        </View>
+      ) : (
+        // Sem sequência em andamento, a semana atual nunca bateu a meta ainda: ela é o começo.
+        <Text style={styles.secondary}>
+          A semana atual ainda está em aberto: {streak.bestWeeks > 0 ? 'uma sequência nova' : 'a sequência'} começa
+          quando a meta for batida.
+        </Text>
+      )}
+
+      {streak.bestWeeks > 0 ? (
+        <Text style={styles.label}>Melhor sequência: {plural(streak.bestWeeks, 'semana', 'semanas')}</Text>
+      ) : null}
+
+      {streak.weeks === 0 ? null : streak.currentWeekReached ? (
+        <View style={[styles.highlight, { backgroundColor: withAlpha(theme.status.success, 0.14) }]}>
+          <MaterialCommunityIcons color={theme.status.success} name="check-circle" size={20} />
+          <Text style={styles.highlightText}>A semana atual já bateu a meta e conta na sequência.</Text>
+        </View>
+      ) : (
+        <Text style={styles.caption}>
+          A semana atual ainda está em aberto: ela entra na sequência quando a meta for batida.
+        </Text>
+      )}
+
+      <View style={styles.divider} />
+
+      <View
+        accessibilityLabel={`Escudos do mês: ${streak.shieldsLeft} de ${streak.shieldsPerMonth} ${
+          streak.shieldsPerMonth === 1 ? 'disponível' : 'disponíveis'
+        }.`}
+        accessible
+        style={styles.shieldRow}>
+        <View style={styles.shields}>
+          {shields.map((isLeft, index) => (
+            <MaterialCommunityIcons
+              color={isLeft ? theme.domain.conquista : theme.text.muted}
+              key={index}
+              name={isLeft ? 'shield' : 'shield-outline'}
+              size={24}
+            />
+          ))}
+        </View>
+        <Text style={styles.label}>
+          Escudos do mês: {streak.shieldsLeft} de {streak.shieldsPerMonth}
+        </Text>
+      </View>
+
+      {protectedLabels.length ? (
+        <Text style={styles.secondary}>
+          {protectedLabels.length === 1
+            ? `Um escudo segurou a semana de ${protectedLabels[0]}: a sequência continuou.`
+            : `Os escudos seguraram as semanas de ${protectedLabels.join(' e ')}: a sequência continuou.`}
+        </Text>
+      ) : null}
+
+      <Text style={styles.caption}>
+        Uma semana que ficou a um dia da meta usa um escudo e não quebra a sequência. São {streak.shieldsPerMonth} por
+        mês.
+      </Text>
+    </View>
+  );
+}
+
 function ResultBanner({ result }: { result: LeagueResult }) {
   const styles = useStyles();
   const { theme } = useTheme();
@@ -856,7 +951,7 @@ function XpRulesCard({ rules }: { rules: XpRules }) {
           </View>
         </View>
       ))}
-      <Text style={styles.caption}>Carga levantada, medidas e fotos não viram XP.</Text>
+      <Text style={styles.caption}>Carga levantada, medidas, fotos e o diário do dia não viram XP.</Text>
     </View>
   );
 }
@@ -1255,6 +1350,15 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
+  },
+  shieldRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  shields: {
+    flexDirection: 'row',
+    gap: 4,
   },
   switchRow: {
     alignItems: 'center',

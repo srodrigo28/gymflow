@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -25,6 +25,9 @@ import type { Meal, MealFeeling, MealType, NutritionDay } from '@/src/types/nutr
 import { dayKey, dayLabel, weekdayDateLabel } from '@/src/utils/format';
 import { defaultMealType, foodMonitoringSummary } from '@/src/utils/nutrition';
 
+// Rota nova, que ainda não está nos tipos gerados do expo-router.
+const diaryRoute = '/(app)/diario' as unknown as Href;
+
 // "3 refeições · 6 copos de água", ou "Sem registro" para um dia em branco.
 function daySummary(day: NutritionDay) {
   const meals = day.meals.length;
@@ -42,6 +45,7 @@ export default function AlimentacaoScreen() {
   const { theme } = useTheme();
   const { session } = useSession();
   const userId = session?.user.id;
+  const hasDailyLogConsent = Boolean(session?.user.dailyLogConsentAt);
   const [today, setToday] = useState<NutritionDay | null>(null);
   const [history, setHistory] = useState<NutritionDay[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
@@ -238,6 +242,16 @@ export default function AlimentacaoScreen() {
                 />
               ))}
             </View>
+            <Pressable
+              accessibilityLabel="A água de hoje também conta no Diário do dia. Abrir o Diário do dia."
+              accessibilityRole="link"
+              hitSlop={6}
+              onPress={() => router.push(diaryRoute)}
+              style={({ pressed }) => [styles.diaryLink, pressed ? styles.pressed : null]}>
+              <MaterialCommunityIcons color={theme.accent.primary} name="notebook-heart-outline" size={16} />
+              <Text style={styles.diaryLinkText}>A água de hoje também conta no Diário do dia</Text>
+              <MaterialCommunityIcons color={theme.accent.primary} name="chevron-right" size={16} />
+            </Pressable>
           </View>
 
           <View style={styles.card}>
@@ -336,7 +350,12 @@ export default function AlimentacaoScreen() {
             </View>
           ))}
 
-          <Text style={styles.footnote}>{NUTRITION_DISCLAIMER} O diário fica só neste aparelho.</Text>
+          <Text style={styles.footnote}>
+            {NUTRITION_DISCLAIMER}{' '}
+            {hasDailyLogConsent
+              ? 'As refeições ficam só neste aparelho; a água vai para a conta junto com o Diário do dia.'
+              : 'O diário fica só neste aparelho.'}
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
@@ -508,6 +527,19 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: radius.pill,
     flex: 1,
     height: 6,
+  },
+  diaryLink: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 32,
+  },
+  diaryLinkText: {
+    color: theme.accent.primary,
+    flexShrink: 1,
+    fontFamily: fonts.semibold,
+    fontSize: 13,
   },
   label: {
     color: theme.text.secondary,

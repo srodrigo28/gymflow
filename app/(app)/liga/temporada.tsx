@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Switch, Text, View } from 'react-native';
 
@@ -16,9 +16,10 @@ import { formatVolume, monthLabel } from '@/src/utils/format';
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 type CategoryItem = { category: SeasonCategory; kind: 'category' };
-type CardioItem = { categories: SeasonCategory[]; kind: 'cardio' };
+// Um pódio por modalidade (treinos por modalidade, cardio por exercício), todos sob um subtítulo só.
+type PodiumsItem = { categories: SeasonCategory[]; kind: 'podiums'; prefix: string; title: string };
 type ConstancyBlock = { declared?: SeasonCategory; kind: 'constancy'; verified?: SeasonCategory };
-type SharedBlock = { items: (CategoryItem | CardioItem)[]; kind: 'shared' };
+type SharedBlock = { items: (CategoryItem | PodiumsItem)[]; kind: 'shared' };
 type Block = CategoryItem | ConstancyBlock | SharedBlock;
 
 type ConstancyMode = 'declarado' | 'verificado';
@@ -30,8 +31,18 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SYNC_WAIT_MS = 4000;
 // O placar de cada categoria mostra os dez primeiros; você aparece no fim se estiver mais abaixo.
 const MAX_ENTRIES = 10;
-// Tonelagem, evolução e cardio só listam quem escolheu mostrar (Season.sharing).
-const SHARED_IDS = ['tonelagem', 'evolucao'];
+// Volume (tonelagem), evolução, equilíbrio, modalidades e cardio só listam quem escolheu mostrar
+// detalhes (Season.sharing). As categorias em si vêm da API; aqui só se sabe quais ficam sob a escolha.
+const SHARED_IDS = ['tonelagem', 'evolucao', 'equilibrio'];
+const PODIUM_GROUPS = [
+  { prefix: 'modalidade:', title: 'Treinos por modalidade' },
+  { prefix: 'cardio:', title: 'Cardio por modalidade' },
+];
+// A evolução é uma mudança ("subiu 12%") e vai com sinal; as outras em % são uma parte do total
+// (pontualidade: 80% dos compromissos) e vão sem.
+const SIGNED_PERCENT_IDS = ['evolucao'];
+// Rota nova, que ainda não está nos tipos gerados do expo-router.
+const diaryRoute = '/(app)/diario' as unknown as Href;
 
 const constancyModes: { icon: IconName; label: string; mode: ConstancyMode; spoken: string }[] = [
   { icon: 'pencil-outline', label: 'Declarado', mode: 'declarado', spoken: 'Constância declarada' },
@@ -41,7 +52,7 @@ const constancyModes: { icon: IconName; label: string; mode: ConstancyMode; spok
 const integerFormat = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const decimalFormat = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 
-function formatValue(value: number, unit: SeasonUnit) {
+function formatValue(value: number, unit: SeasonUnit, signed = false) {
   switch (unit) {
     case 'xp':
       return formatXp(value);
@@ -53,7 +64,11 @@ function formatValue(value: number, unit: SeasonUnit) {
     case 'pontos':
       return `${decimalFormat.format(value)} pts`;
     case 'percent': {
-      // Sempre com sinal: a leitura é "mudou tanto".
+      if (!signed) {
+        return `${integerFormat.format(Math.round(value))}%`;
+      }
+
+      // Com sinal: a leitura é "mudou tanto".
       const rounded = Math.round(value * 10) / 10;
       const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
 
@@ -63,6 +78,11 @@ function formatValue(value: number, unit: SeasonUnit) {
       return formatVolume(value);
     case 'minutos':
       return `${integerFormat.format(Math.round(value))} min`;
+    case 'treinos': {
+      const workouts = Math.round(value);
+
+      return `${integerFormat.format(workouts)} ${workouts === 1 ? 'treino' : 'treinos'}`;
+    }
     default:
       return integerFormat.format(value);
   }
@@ -126,17 +146,22 @@ function awardIcon(name: string): IconName {
   return name in MaterialCommunityIcons.glyphMap ? (name as IconName) : 'trophy-outline';
 }
 
-function isCardio(id: string) {
-  return id.startsWith('cardio:');
+function podiumGroupOf(id: string) {
+  return PODIUM_GROUPS.find((group) => id.startsWith(group.prefix));
 }
 
-// Mantém a ordem da API, com três agrupamentos: as duas constâncias viram um cartão só, e tonelagem,
-// evolução e cardio (este sob "Cardio por modalidade") vão juntos, abaixo da escolha de mostrar.
+function isShared(id: string) {
+  return SHARED_IDS.includes(id) || Boolean(podiumGroupOf(id));
+}
+
+// Mantém a ordem da API, com três agrupamentos: as duas constâncias viram um cartão só, e as categorias
+// de detalhes (tonelagem, evolução, equilíbrio, modalidades e cardio) vão juntas, abaixo da escolha de
+// mostrar. Modalidades e cardio ficam cada um sob o seu subtítulo, um pódio por modalidade.
 function buildBlocks(categories: SeasonCategory[]): Block[] {
   const blocks: Block[] = [];
   let constancy: ConstancyBlock | null = null;
   let shared: SharedBlock | null = null;
-  let cardio: CardioItem | null = null;
+  const podiums = new Map<string, PodiumsItem>();
 
   for (const category of categories) {
     if (category.id === 'constancia' || category.id === 'constancia-verificada') {
@@ -150,19 +175,24 @@ function buildBlocks(categories: SeasonCategory[]): Block[] {
       } else {
         constancy.verified = category;
       }
-    } else if (SHARED_IDS.includes(category.id) || isCardio(category.id)) {
+    } else if (isShared(category.id)) {
       if (!shared) {
         shared = { items: [], kind: 'shared' };
         blocks.push(shared);
       }
 
-      if (isCardio(category.id)) {
-        if (!cardio) {
-          cardio = { categories: [], kind: 'cardio' };
-          shared.items.push(cardio);
+      const group = podiumGroupOf(category.id);
+
+      if (group) {
+        let item = podiums.get(group.prefix);
+
+        if (!item) {
+          item = { categories: [], kind: 'podiums', ...group };
+          podiums.set(group.prefix, item);
+          shared.items.push(item);
         }
 
-        cardio.categories.push(category);
+        item.categories.push(category);
       } else {
         shared.items.push({ category, kind: 'category' });
       }
@@ -171,7 +201,7 @@ function buildBlocks(categories: SeasonCategory[]): Block[] {
     }
   }
 
-  // Sem nenhuma das três na resposta, a escolha de mostrar continua à mão, depois das categorias.
+  // Sem nenhuma categoria de detalhes na resposta, a escolha de mostrar continua à mão, depois das outras.
   if (!shared) {
     blocks.push({ items: [], kind: 'shared' });
   }
@@ -292,7 +322,7 @@ export default function TemporadaScreen() {
 
     Alert.alert(
       'Parar de mostrar aos amigos?',
-      'Seus amigos deixam de ver a sua tonelagem, a sua evolução e o seu cardio, e você deixa de ver os deles nessas categorias.',
+      'Seus amigos deixam de ver os seus detalhes (volume, evolução, cardio, modalidades e equilíbrio), e você deixa de ver os deles nessas categorias.',
       [
         { style: 'cancel', text: 'Continuar mostrando' },
         { onPress: () => void applySharing(false), style: 'destructive', text: 'Parar de mostrar' },
@@ -446,6 +476,7 @@ export default function TemporadaScreen() {
               return <CategoryCard category={block.category} key={block.category.id} locked={false} />;
             })}
 
+            {/* A API manda a lista vazia desde que as oito categorias passaram a ser medidas: aí a seção some. */}
             {season.unavailable.length ? (
               <View style={[styles.card, styles.mutedCard]}>
                 <Text accessibilityRole="header" style={styles.mutedTitle}>
@@ -469,7 +500,7 @@ export default function TemporadaScreen() {
 type SharedGroupProps = {
   busy: boolean;
   error: string | null;
-  items: (CategoryItem | CardioItem)[];
+  items: (CategoryItem | PodiumsItem)[];
   onChange: (share: boolean) => void;
   // O que o servidor já aplicou: é o que decide se os amigos aparecem nas categorias.
   sharing: boolean;
@@ -484,14 +515,14 @@ function SharedGroup({ busy, error, items, onChange, sharing, value }: SharedGro
   return (
     <View style={styles.stack}>
       <Text accessibilityRole="header" style={styles.sectionTitle}>
-        Volume, evolução e cardio
+        Detalhes entre amigos
       </Text>
 
       <View style={[styles.card, { borderColor: withAlpha(theme.accent.primary, 0.35) }]}>
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Mostrar volume, evolução e cardio aos amigos</Text>
+          <Text style={styles.switchLabel}>Mostrar detalhes aos amigos</Text>
           <Switch
-            accessibilityLabel="Mostrar volume, evolução e cardio aos amigos"
+            accessibilityLabel="Mostrar detalhes aos amigos"
             disabled={busy}
             ios_backgroundColor={theme.bg.high}
             onValueChange={onChange}
@@ -501,8 +532,12 @@ function SharedGroup({ busy, error, items, onChange, sharing, value }: SharedGro
           />
         </View>
         <Text style={styles.secondary}>
-          Seus amigos veem sua tonelagem do mês, sua evolução em % e seus minutos de cardio, e você vê os deles. Nunca
-          as cargas de cada série, nem os treinos.
+          Volume, evolução, cardio, modalidades e equilíbrio. Vale nos dois sentidos: você vê os amigos que também
+          mostram.
+        </Text>
+        <Text style={styles.caption}>
+          Nunca aparecem as cargas de cada série nem os treinos. Do equilíbrio, só a contagem de dias: as horas de
+          sono e o humor ficam com você.
         </Text>
         {error ? (
           <Text accessibilityLiveRegion="polite" style={styles.error}>
@@ -512,10 +547,10 @@ function SharedGroup({ busy, error, items, onChange, sharing, value }: SharedGro
       </View>
 
       {items.map((item) =>
-        item.kind === 'cardio' ? (
-          <View key="cardio" style={styles.stack}>
+        item.kind === 'podiums' ? (
+          <View key={item.prefix} style={styles.stack}>
             <Text accessibilityRole="header" style={styles.subheading}>
-              Cardio por modalidade
+              {item.title}
             </Text>
             {item.categories.map((category) => (
               <CategoryCard category={category} key={category.id} locked={!sharing} />
@@ -591,10 +626,11 @@ function CategoryBody({ category, locked }: { category: SeasonCategory; locked: 
   const styles = useStyles();
   const { theme } = useTheme();
   const { entries, me, pending, unit } = category;
+  const signed = SIGNED_PERCENT_IDS.includes(category.id);
   const top = entries.slice(0, MAX_ENTRIES);
   const mine = entries.find((entry) => entry.isMe);
   const mineBelow = mine && !top.includes(mine) ? mine : null;
-  const myValue = me.value !== null ? formatValue(me.value, unit) : null;
+  const myValue = me.value !== null ? formatValue(me.value, unit, signed) : null;
   const total = Math.max(entries.length, me.rank ?? 0);
 
   return (
@@ -639,14 +675,14 @@ function CategoryBody({ category, locked }: { category: SeasonCategory; locked: 
       {top.length ? (
         <View style={styles.board}>
           {top.map((entry) => (
-            <EntryRow entry={entry} key={entry.userId} unit={unit} />
+            <EntryRow entry={entry} key={entry.userId} signed={signed} unit={unit} />
           ))}
           {mineBelow ? (
             <>
               <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.gapRow}>
                 <MaterialCommunityIcons color={theme.text.muted} name="dots-horizontal" size={18} />
               </View>
-              <EntryRow entry={mineBelow} unit={unit} />
+              <EntryRow entry={mineBelow} signed={signed} unit={unit} />
             </>
           ) : null}
         </View>
@@ -658,6 +694,20 @@ function CategoryBody({ category, locked }: { category: SeasonCategory; locked: 
             : 'Ninguém marcou nesta categoria ainda.'}
         </Text>
       )}
+
+      {/* O Equilíbrio nasce no Diário do dia: o caminho para registrar fica ao lado do placar. */}
+      {category.id === 'equilibrio' ? (
+        <Pressable
+          accessibilityLabel="Abrir o Diário do dia para registrar sono, água e humor"
+          accessibilityRole="link"
+          hitSlop={6}
+          onPress={() => router.push(diaryRoute)}
+          style={({ pressed }) => [styles.diaryLink, pressed ? styles.pressed : null]}>
+          <MaterialCommunityIcons color={theme.accent.primary} name="notebook-heart-outline" size={16} />
+          <Text style={styles.diaryLinkText}>Abrir o Diário do dia</Text>
+          <MaterialCommunityIcons color={theme.accent.primary} name="chevron-right" size={16} />
+        </Pressable>
+      ) : null}
 
       {pending.length ? (
         <View
@@ -684,10 +734,10 @@ function CategoryBody({ category, locked }: { category: SeasonCategory; locked: 
   );
 }
 
-function EntryRow({ entry, unit }: { entry: SeasonEntry; unit: SeasonUnit }) {
+function EntryRow({ entry, signed, unit }: { entry: SeasonEntry; signed: boolean; unit: SeasonUnit }) {
   const styles = useStyles();
   const { theme } = useTheme();
-  const value = formatValue(entry.value, unit);
+  const value = formatValue(entry.value, unit, signed);
   const isFirst = entry.rank === 1;
 
   return (
@@ -1016,6 +1066,18 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: fonts.extrabold,
     fontSize: 14,
     fontVariant: ['tabular-nums'],
+  },
+  diaryLink: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 32,
+  },
+  diaryLinkText: {
+    color: theme.accent.primary,
+    fontFamily: fonts.semibold,
+    fontSize: 13,
   },
   pendingBox: {
     borderRadius: radius.sm,

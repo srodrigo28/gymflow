@@ -22,6 +22,10 @@ export type AuthUser = {
   emailVerifiedAt: string | null;
   // Quando aceitou guardar as respostas do questionário na conta (ISO 8601). null: não aceitou.
   questionnaireConsentAt: string | null;
+  // Quando aceitou guardar o diário do dia (sono, água e humor) na conta (ISO 8601). null: não aceitou.
+  dailyLogConsentAt: string | null;
+  // Quando aceitou guardar as fotos de evolução na conta (ISO 8601). null: não aceitou.
+  bodyPhotoConsentAt: string | null;
 };
 
 export type AuthResponse = {

@@ -64,6 +64,9 @@ function evolutionKicker(trend: BodyTrend | null) {
   return 'Comece pela primeira medição';
 }
 
+// Rotas que ainda não estão nos tipos gerados do expo-router (novas nesta rodada).
+const route = (path: string) => path as unknown as Href;
+
 type ProfileMenuItem = {
   accessibilityLabel: string;
   description: string;
@@ -117,6 +120,14 @@ const menuItems: ProfileMenuItem[] = [
     icon: 'watch-variant',
     title: 'Sincronizar dispositivos',
     tone: 'neutral',
+  },
+  {
+    accessibilityLabel: 'Abrir Diário do dia. Registre sono, água e humor em menos de um minuto.',
+    description: 'Sono, água e humor do dia, em menos de um minuto.',
+    href: route('/(app)/diario'),
+    icon: 'notebook-heart-outline',
+    title: 'Diário do dia',
+    tone: 'sono',
   },
   {
     accessibilityLabel:

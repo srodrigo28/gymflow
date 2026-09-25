@@ -26,6 +26,7 @@ type SessionContextValue = {
   isLoading: boolean;
   session: AuthResponse | null;
   setBodyDataConsent: (granted: boolean) => Promise<void>;
+  setDailyLogConsent: (granted: boolean) => Promise<void>;
   setQuestionnaireConsent: (granted: boolean) => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
   signOut: () => Promise<void>;
@@ -152,6 +153,23 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [applySession, session],
   );
 
+  // Como o das medidas: ao aceitar, o useDailyLogSync vê o consentimento novo e sobe o diário na hora;
+  // ao retirar, o servidor já apagou tudo e a sincronização para.
+  const setDailyLogConsent = useCallback(
+    async (granted: boolean) => {
+      if (!session) {
+        return;
+      }
+
+      const freshSession = await auth.setDailyLogConsent(session, granted);
+
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
   // Ao aceitar, as respostas locais sobem na hora; ao retirar, o servidor já apagou.
   const setQuestionnaireConsent = useCallback(
     async (granted: boolean) => {
@@ -194,6 +212,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       isLoading,
       session,
       setBodyDataConsent,
+      setDailyLogConsent,
       setQuestionnaireConsent,
       signIn,
       signOut,
@@ -206,6 +225,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       isLoading,
       session,
       setBodyDataConsent,
+      setDailyLogConsent,
       setQuestionnaireConsent,
       signIn,
       signOut,

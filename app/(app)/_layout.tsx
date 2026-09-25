@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import { useSession } from '@/src/contexts/session-context';
 import { useBodySync } from '@/src/services/body-sync';
+import { useDailyLogSync } from '@/src/services/daily-log';
 import { usePushNavigation } from '@/src/services/push';
 import { syncQuestionnaire } from '@/src/services/questionnaire-sync';
 import { useWorkoutSync } from '@/src/services/sync';
@@ -12,10 +13,11 @@ export default function AppLayout() {
   const { theme } = useTheme();
   const { session } = useSession();
 
-  // Enquanto houver alguém logado, os treinos concluídos sobem para a conta; as medidas, só com o
-  // consentimento específico da pessoa.
+  // Enquanto houver alguém logado, os treinos concluídos sobem para a conta; as medidas e o diário do
+  // dia (sono, água e humor), só com o consentimento específico de cada um.
   useWorkoutSync(session?.token);
   useBodySync(session?.token, session?.user.bodyDataConsentAt);
+  useDailyLogSync(session?.user.id, session?.token, session?.user.dailyLogConsentAt);
   // Tocar numa notificação de desafio abre o desafio.
   usePushNavigation();
 

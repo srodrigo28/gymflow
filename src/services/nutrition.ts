@@ -1,6 +1,7 @@
 import { isEatingStyleId } from '@/src/constants/eating-styles';
 import { mealTypes } from '@/src/constants/meals';
 import { createId } from '@/src/db/client';
+import { markDailyLogChanged } from '@/src/services/daily-log-store';
 import { storage, storageKeys } from '@/src/services/storage';
 import type { EatingStyleId, Meal, NutritionDay } from '@/src/types/nutrition';
 import { dayKey, shiftDayKey } from '@/src/utils/format';
@@ -12,7 +13,8 @@ const WATER_MAX = 20;
 export const MEAL_DESCRIPTION_MAX = 120;
 
 // O diário inteiro fica numa chave só por conta, como as respostas do questionário. É pouco dado
-// (algumas linhas por dia) e assim uma leitura resolve a tela toda. Não sobe para a API.
+// (algumas linhas por dia) e assim uma leitura resolve a tela toda. As refeições não sobem para a API;
+// a água sobe como parte do Diário do dia (services/daily-log.ts), só com o consentimento dele.
 type Diary = {
   meals: Meal[];
   /** Copos por dia (`AAAA-MM-DD`). Dias sem registro não aparecem. */
@@ -115,12 +117,55 @@ export function deleteMeal(userId: string, mealId: string) {
 export function adjustWaterGlasses(userId: string, date: string, delta: number) {
   return enqueue(async () => {
     const diary = await readDiary(userId);
-    const glasses = Math.min(Math.max((diary.water[date] ?? 0) + delta, 0), WATER_MAX);
+    const previous = diary.water[date] ?? 0;
+    const glasses = Math.min(Math.max(previous + delta, 0), WATER_MAX);
 
     await writeDiary(userId, { ...diary, water: { ...diary.water, [date]: glasses } });
 
+    // A água também é do Diário do dia: o dia entra na fila dele (só sobe com o consentimento). Uma
+    // falha ali não pode desfazer o copo que já foi anotado aqui.
+    if (glasses !== previous) {
+      await markDailyLogChanged(userId, date).catch(() => undefined);
+    }
+
     return glasses;
   });
+}
+
+/** Copos por dia (`AAAA-MM-DD`), só dos dias com registro. É a água que o Diário do dia sobe para a conta. */
+export async function getWaterGlassesByDay(userId: string): Promise<Record<string, number>> {
+  return { ...(await readDiary(userId)).water };
+}
+
+/**
+ * Água que veio da conta (o Diário do dia num aparelho novo), em copos por dia. Só preenche os dias sem
+ * registro de copos neste aparelho: o que foi anotado aqui vale mais. Devolve quantos dias ganharam água.
+ */
+export function restoreWaterGlasses(userId: string, glassesByDay: Record<string, number>) {
+  return enqueue(async () => {
+    const diary = await readDiary(userId);
+    const water = { ...diary.water };
+    let restored = 0;
+
+    for (const [date, glasses] of Object.entries(glassesByDay)) {
+      if (water[date] === undefined && glasses > 0) {
+        water[date] = Math.min(Math.round(glasses), WATER_MAX);
+        restored += 1;
+      }
+    }
+
+    if (restored > 0) {
+      await writeDiary(userId, { ...diary, water });
+    }
+
+    return restored;
+  });
+}
+
+/** Apaga deste aparelho o diário alimentar e o estilo escolhido (quando a conta é apagada). */
+export async function clearNutritionData(userId: string) {
+  await enqueue(() => storage.remove(storageKeys.nutritionDiary(userId)));
+  await storage.remove(storageKeys.eatingStyle(userId));
 }
 
 /**

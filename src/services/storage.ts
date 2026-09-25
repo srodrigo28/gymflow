@@ -3,7 +3,11 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 export const storageKeys = {
-  // Estilo de alimentação escolhido e diário alimentar (refeições e água por dia). Ficam só neste aparelho.
+  // Diário do dia: sono e humor por dia, a fila dos dias que ainda não subiram e o consentimento com
+  // que este aparelho já acertou tudo com a conta. A água é a do diário alimentar, logo abaixo.
+  dailyLog: (userId: string) => `gynflow.dailyLog.${userId}`,
+  // Estilo de alimentação escolhido e diário alimentar (refeições e água por dia). Ficam só neste
+  // aparelho; só a água sobe, como parte do Diário do dia e com o consentimento dele.
   eatingStyle: (userId: string) => `gynflow.eatingStyle.${userId}`,
   // Academia marcada e check-ins feitos nela ({ gym, checkins }). Ficam só neste aparelho.
   gymCheckin: (userId: string) => `gynflow.gymCheckin.${userId}`,

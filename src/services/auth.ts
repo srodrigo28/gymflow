@@ -98,6 +98,30 @@ export async function setQuestionnaireConsent(session: AuthResponse, granted: bo
   return persistSession({ ...session, user });
 }
 
+// Consentimento próprio para o diário do dia (sono, água e humor) na conta. Sono e humor são dado
+// de saúde. Retirar apaga todos os registros do servidor; os do aparelho continuam.
+export async function setDailyLogConsent(session: AuthResponse, granted: boolean) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/me/consents/daily-log', {
+    body: { granted },
+    method: 'PUT',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
+// Consentimento próprio para guardar as fotos de evolução na conta. Retirar apaga todas as fotos da conta
+// no servidor na hora (e corta as URLs que ainda estavam no prazo); as do aparelho continuam.
+export async function setBodyPhotoConsent(session: AuthResponse, granted: boolean) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/me/consents/body-photos', {
+    body: { granted },
+    method: 'PUT',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
 export async function getSession(): Promise<AuthResponse | null> {
   const storedSession = await secureStorage.get(storageKeys.session);
 
@@ -112,13 +136,14 @@ export async function getSession(): Promise<AuthResponse | null> {
       return null;
     }
 
-    // Sessões gravadas antes de existir o papel entram como pessoa comum; antes do consentimento
-    // das medidas, como quem ainda não aceitou. O servidor confirma os dois ao abrir o app.
+    // Sessões gravadas antes de existir o papel entram como pessoa comum; antes de um consentimento
+    // (medidas, questionário, diário do dia), como quem ainda não aceitou. O servidor confirma ao abrir o app.
     return {
       token: session.token,
       user: {
         ...session.user,
         bodyDataConsentAt: session.user.bodyDataConsentAt ?? null,
+        dailyLogConsentAt: session.user.dailyLogConsentAt ?? null,
         emailVerifiedAt: session.user.emailVerifiedAt ?? null,
         questionnaireConsentAt: session.user.questionnaireConsentAt ?? null,
         role: session.user.role ?? 'user',
