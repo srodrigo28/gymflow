@@ -7,16 +7,35 @@ import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
-import { challengeTiming, joinChallenge, listChallenges } from '@/src/services/challenges';
+import { challengeTiming, joinChallenge, listChallengeCheckins, listChallenges } from '@/src/services/challenges';
 import { registerPushToken } from '@/src/services/push';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { ChallengeSummary } from '@/src/types/challenges';
+
+// Os desafios em andamento em que o meu check-in com foto de hoje está no mural: uma consulta por desafio,
+// depois da lista. Sem fotos no servidor (503) ou sem internet, o selo só não aparece; o check-in ocultado
+// pelo grupo não conta.
+async function checkedTodayIn(token: string, challenges: ChallengeSummary[]) {
+  const done = await Promise.all(
+    challenges
+      .filter((challenge) => challenge.status === 'active')
+      .map((challenge) =>
+        listChallengeCheckins(token, challenge.id).then(
+          (day) => (day.mine && !day.mine.hidden ? challenge.id : null),
+          () => null,
+        ),
+      ),
+  );
+
+  return done.filter((challengeId): challengeId is string => challengeId !== null);
+}
 
 export default function DesafiosScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
   const { session } = useSession();
   const [challenges, setChallenges] = useState<ChallengeSummary[] | null>(null);
+  const [checkedToday, setCheckedToday] = useState<string[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -29,8 +48,10 @@ export default function DesafiosScreen() {
     }
 
     try {
-      setChallenges(await listChallenges(token));
+      const list = await listChallenges(token);
+      setChallenges(list);
       setLoadError(null);
+      setCheckedToday(await checkedTodayIn(token, list));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar os desafios.');
     }
@@ -118,7 +139,9 @@ export default function DesafiosScreen() {
           <Pressable
             accessibilityLabel={`${challenge.name}. ${challengeTiming(challenge)}. ${
               challenge.myRank ? `Você está em ${challenge.myRank}º lugar` : ''
-            } com ${challenge.myPoints} ${challenge.myPoints === 1 ? 'ponto' : 'pontos'}.`}
+            } com ${challenge.myPoints} ${challenge.myPoints === 1 ? 'ponto' : 'pontos'}.${
+              checkedToday.includes(challenge.id) ? ' Check-in de hoje feito.' : ''
+            }`}
             accessibilityRole="button"
             key={challenge.id}
             onPress={() => router.push({ params: { id: challenge.id }, pathname: '/(app)/desafios/[id]' })}
@@ -149,6 +172,13 @@ export default function DesafiosScreen() {
                 value={`${challenge.memberCount} ${challenge.memberCount === 1 ? 'pessoa' : 'pessoas'}`}
               />
             </View>
+
+            {checkedToday.includes(challenge.id) ? (
+              <View style={[styles.badge, { backgroundColor: withAlpha(theme.domain.treino, 0.14) }]}>
+                <MaterialCommunityIcons color={theme.domain.treino} name="check-circle-outline" size={14} />
+                <Text style={[styles.badgeText, { color: theme.domain.treino }]}>Check-in de hoje feito</Text>
+              </View>
+            ) : null}
           </Pressable>
         ))}
 
@@ -288,6 +318,19 @@ const useStyles = makeStyles((theme) => ({
     color: theme.text.secondary,
     fontFamily: fonts.semibold,
     fontSize: 13,
+  },
+  badge: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  badgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
   },
   joinCard: {
     backgroundColor: theme.bg.surface,

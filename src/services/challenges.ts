@@ -1,5 +1,5 @@
-import { apiRequest } from '@/src/services/api';
-import type { Challenge, ChallengeSummary, InvitePreview, Standing } from '@/src/types/challenges';
+import { apiRequest, apiUpload, formFile } from '@/src/services/api';
+import type { Challenge, ChallengeCheckin, ChallengeCheckinDay, ChallengeSummary, InvitePreview, Standing } from '@/src/types/challenges';
 
 export type ChallengeDays = 7 | 14 | 30;
 
@@ -77,4 +77,50 @@ export function challengeTiming(challenge: Pick<Challenge, 'endsAt' | 'startsAt'
 
   const left = Math.ceil((Date.parse(challenge.endsAt) - now) / DAY);
   return left <= 1 ? 'Último dia' : `Faltam ${left} dias`;
+}
+
+/** Os check-ins com foto de um dia do desafio (AAAA-MM-DD, no fuso dele). Sem dia, hoje. */
+export function listChallengeCheckins(token: string, challengeId: string, day?: string) {
+  const query = day ? `?day=${encodeURIComponent(day)}` : '';
+
+  return apiRequest<ChallengeCheckinDay>(`/challenges/${encodeURIComponent(challengeId)}/checkins${query}`, { token });
+}
+
+/** Check-in com foto de hoje (um por dia). A foto vai em JPEG; a legenda tem até 140 caracteres. */
+export async function sendChallengeCheckin(token: string, challengeId: string, input: { caption?: string; uri: string }) {
+  const form = new FormData();
+  form.append('photo', formFile(input.uri));
+
+  if (input.caption?.trim()) {
+    form.append('caption', input.caption.trim());
+  }
+
+  const { checkin } = await apiUpload<{ checkin: ChallengeCheckin }>(
+    `/challenges/${encodeURIComponent(challengeId)}/checkins`,
+    form,
+    { token },
+  );
+
+  return checkin;
+}
+
+/** Apaga o meu check-in (a foto sai do servidor). */
+export async function deleteChallengeCheckin(token: string, challengeId: string, checkinId: string) {
+  await apiRequest(`/challenges/${encodeURIComponent(challengeId)}/checkins/${encodeURIComponent(checkinId)}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+/**
+ * Ocultar o check-in de outra pessoa: quem criou o desafio oculta na hora; os outros participantes
+ * somam pedidos, e com 2 ele some para todos e o dia deixa de contar.
+ */
+export async function hideChallengeCheckin(token: string, challengeId: string, checkinId: string) {
+  const { checkin } = await apiRequest<{ checkin: ChallengeCheckin }>(
+    `/challenges/${encodeURIComponent(challengeId)}/checkins/${encodeURIComponent(checkinId)}/hide`,
+    { method: 'POST', token },
+  );
+
+  return checkin;
 }
