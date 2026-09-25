@@ -1,12 +1,13 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { challengeTiming, getChallenge, inviteMessage, leaveChallenge } from '@/src/services/challenges';
+import { registerPushToken } from '@/src/services/push';
 import { syncWorkouts } from '@/src/services/sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { Challenge, Standing } from '@/src/types/challenges';
@@ -45,6 +46,15 @@ export default function DesafioScreen() {
       void load();
     }, [load]),
   );
+
+  // Quem acabou de criar ou entrar num desafio passa por aqui: é a hora de registrar o aparelho
+  // para o lembrete do dia e o placar final.
+  useEffect(() => {
+    if (session && challenge) {
+      void registerPushToken(session).catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id, challenge?.id]);
 
   async function refresh() {
     setIsRefreshing(true);

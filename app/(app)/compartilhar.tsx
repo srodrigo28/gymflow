@@ -9,59 +9,134 @@ import { SHARE_HEIGHT, SHARE_WIDTH, ShareCard, type ShareContent } from '@/src/c
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
-import { getPeriodSummary, listPersonalRecords } from '@/src/services/training';
+import {
+  countPersonalRecords,
+  getPersonalRecord,
+  getPeriodSummary,
+  getTrainingStreak,
+  listPersonalRecords,
+} from '@/src/services/training';
 import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
-import { startOfWeek } from '@/src/utils/format';
+import { monthKey, muscleLabel, startOfMonth, startOfWeek } from '@/src/utils/format';
 
-type Tab = 'recorde' | 'semana';
+type Tab = 'recorde' | 'semana' | 'sequencia' | 'mes';
+
+// O troféu só vira opção quando a tela de conquistas manda um (parâmetros `trofeu*`); os cards de
+// sempre continuam nas abas ao lado.
+type Mode = Tab | 'trofeu';
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'recorde', label: 'Recorde' },
+  { key: 'semana', label: 'Semana' },
+  { key: 'sequencia', label: 'Sequência' },
+  { key: 'mes', label: 'Mês' },
+];
+
+const EMPTY: Record<Tab, string> = {
+  mes: 'Ainda não há treinos neste mês.',
+  recorde:
+    'Você ainda não tem um recorde registrado. Conclua uma série com carga e repetições para o primeiro aparecer aqui.',
+  semana: 'Ainda não há treinos nesta semana.',
+  sequencia: 'A sequência começa na primeira semana com treino concluído.',
+};
 
 const MAX_WIDTH = 560;
 const GUTTER = 20;
+
+function isTab(value: unknown): value is Tab {
+  return TABS.some((tab) => tab.key === value);
+}
+
+// Parâmetro de rota como texto limpo. Vazio conta como ausente; repetido chega como lista e vale o primeiro.
+function textParam(value: string | string[] | undefined) {
+  const text = Array.isArray(value) ? value[0] : value;
+
+  return typeof text === 'string' && text.trim() ? text.trim() : null;
+}
 
 export default function CompartilharScreen() {
   const styles = useStyles();
   const { theme } = useTheme();
   const { session } = useSession();
   const { width } = useWindowDimensions();
-  const params = useLocalSearchParams<{ tipo?: Tab }>();
-  const [tab, setTab] = useState<Tab>(params.tipo === 'semana' ? 'semana' : 'recorde');
-  const [record, setRecord] = useState<ShareContent | null>(null);
-  const [week, setWeek] = useState<ShareContent | null>(null);
+  // `recordId` chega da sessão de treino, com o recorde recém-batido: o card é daquele, não do último.
+  // `trofeuTitulo`, `trofeuDescricao` e `trofeuPeriodo` chegam das conquistas, com um troféu da conta.
+  const params = useLocalSearchParams<{
+    recordId?: string;
+    tipo?: string;
+    trofeuDescricao?: string;
+    trofeuPeriodo?: string;
+    trofeuTitulo?: string;
+  }>();
+  const trophyTitle = textParam(params.trofeuTitulo);
+  const trophyDescription = textParam(params.trofeuDescricao);
+  const trophyPeriod = textParam(params.trofeuPeriodo);
+  const [tab, setTab] = useState<Mode>(trophyTitle ? 'trofeu' : isTab(params.tipo) ? params.tipo : 'recorde');
+  const [contents, setContents] = useState<Partial<Record<Tab, ShareContent | null>>>({});
   const [loaded, setLoaded] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
   // A prévia encolhe para caber na tela; a imagem exportada sai sempre com 360 × 450.
   const scale = Math.min(1, (Math.min(width, MAX_WIDTH) - GUTTER * 2) / SHARE_WIDTH);
+  const recordId = params.recordId;
+  const requestedTab = params.tipo;
+
+  // A tela pode já estar aberta quando um link novo chega (deep link): a aba acompanha o parâmetro.
+  // Um troféu pedido tem a vez sobre o tipo.
+  useEffect(() => {
+    if (trophyTitle) {
+      setTab('trofeu');
+    } else if (isTab(requestedTab)) {
+      setTab(requestedTab);
+    }
+  }, [requestedTab, trophyTitle, trophyDescription, trophyPeriod]);
 
   useEffect(() => {
     void (async () => {
-      const [records, summary] = await Promise.all([
+      const now = Date.now();
+      const monthStart = startOfMonth();
+      const [chosen, records, week, streak, month, monthPrs] = await Promise.all([
+        recordId ? getPersonalRecord(recordId) : Promise.resolve(null),
         listPersonalRecords(1),
-        getPeriodSummary(startOfWeek(), Date.now()),
+        getPeriodSummary(startOfWeek(), now),
+        getTrainingStreak(),
+        getPeriodSummary(monthStart, now),
+        countPersonalRecords(monthStart, now),
       ]);
+      const best = chosen ?? records[0];
 
-      const best = records[0];
-      setRecord(
-        best
-          ? { exercise: best.exercise, kind: 'recorde', reps: best.reps, weightKg: best.weightKg }
-          : null,
-      );
-      setWeek(
-        summary.sessionCount > 0
-          ? {
-              cardioMinutes: summary.cardioMinutes,
-              kind: 'semana',
-              sessionCount: summary.sessionCount,
-              volumeKg: summary.volumeKg,
-            }
-          : null,
-      );
+      setContents({
+        mes:
+          month.sessionCount > 0
+            ? {
+                kind: 'mes',
+                month: monthKey(),
+                prCount: monthPrs,
+                sessionCount: month.sessionCount,
+                topMuscle: month.byMuscle[0] ? muscleLabel(month.byMuscle[0].muscle) : null,
+                volumeKg: month.volumeKg,
+              }
+            : null,
+        recorde: best ? { exercise: best.exercise, kind: 'recorde', reps: best.reps, weightKg: best.weightKg } : null,
+        semana:
+          week.sessionCount > 0
+            ? { cardioMinutes: week.cardioMinutes, kind: 'semana', sessionCount: week.sessionCount, volumeKg: week.volumeKg }
+            : null,
+        sequencia: streak.weeks > 0 ? { daysThisWeek: streak.daysThisWeek, kind: 'sequencia', weeks: streak.weeks } : null,
+      });
       setLoaded(true);
     })();
-  }, []);
+  }, [recordId]);
 
-  const content = tab === 'recorde' ? record : week;
+  const trophy: ShareContent | null = trophyTitle
+    ? { description: trophyDescription ?? '', kind: 'trofeu', period: trophyPeriod, title: trophyTitle }
+    : null;
+  // Sem os parâmetros do troféu, a opção some e a tela volta para o card de recorde.
+  const selected: Mode = tab === 'trofeu' && !trophy ? 'recorde' : tab;
+  const tabs: { key: Mode; label: string }[] = trophy ? [{ key: 'trofeu', label: 'Troféu' }, ...TABS] : TABS;
+  const content = selected === 'trofeu' ? trophy : (contents[selected] ?? null);
+  const emptyText = selected === 'trofeu' ? null : EMPTY[selected];
 
   async function share() {
     if (!cardRef.current) {
@@ -106,19 +181,20 @@ export default function CompartilharScreen() {
         </View>
 
         <View accessibilityRole="tablist" style={styles.tabs}>
-          {(['recorde', 'semana'] as Tab[]).map((item) => (
+          {tabs.map((item) => (
             <Pressable
               accessibilityRole="tab"
-              aria-selected={tab === item}
-              key={item}
-              onPress={() => setTab(item)}
+              aria-selected={selected === item.key}
+              key={item.key}
+              onPress={() => setTab(item.key)}
               style={({ pressed }) => [
-                styles.tab,
-                tab === item ? styles.tabActive : null,
+                // Com o troféu são cinco abas: cada uma fica do tamanho do nome para "Sequência" caber.
+                trophy ? styles.tabFit : styles.tab,
+                selected === item.key ? styles.tabActive : null,
                 pressed ? styles.pressed : null,
               ]}>
-              <Text style={[styles.tabText, tab === item ? styles.tabTextActive : null]}>
-                {item === 'recorde' ? 'Recorde' : 'Semana'}
+              <Text numberOfLines={1} style={[styles.tabText, selected === item.key ? styles.tabTextActive : null]}>
+                {item.label}
               </Text>
             </Pressable>
           ))}
@@ -145,12 +221,8 @@ export default function CompartilharScreen() {
               title="Compartilhar"
             />
           </>
-        ) : loaded ? (
-          <Text style={styles.empty}>
-            {tab === 'recorde'
-              ? 'Você ainda não tem um recorde registrado. Conclua uma série com carga e repetições para o primeiro aparecer aqui.'
-              : 'Ainda não há treinos nesta semana.'}
-          </Text>
+        ) : loaded && emptyText ? (
+          <Text style={styles.empty}>{emptyText}</Text>
         ) : null}
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -204,6 +276,14 @@ const useStyles = makeStyles((theme) => ({
   tab: {
     borderRadius: radius.pill,
     flex: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
+  },
+  tabFit: {
+    borderRadius: radius.pill,
+    flexGrow: 1,
+    flexShrink: 1,
+    paddingHorizontal: 6,
     paddingVertical: 10,
   },
   tabActive: {
@@ -212,7 +292,7 @@ const useStyles = makeStyles((theme) => ({
   tabText: {
     color: theme.text.secondary,
     fontFamily: fonts.semibold,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
   },
   tabTextActive: {

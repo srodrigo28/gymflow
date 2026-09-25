@@ -13,15 +13,20 @@ import {
 import { setDatabaseUser } from '@/src/db/client';
 import * as account from '@/src/services/account';
 import * as auth from '@/src/services/auth';
+import { forgetPushToken } from '@/src/services/push';
+import { syncQuestionnaire } from '@/src/services/questionnaire-sync';
 import type { AuthResponse, SignInPayload, SignUpPayload } from '@/src/types/auth';
 
 // Se o armazenamento travar, o app segue como se não houvesse sessão.
 const LOAD_TIMEOUT = 4000;
 
 type SessionContextValue = {
+  confirmEmail: (code: string) => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
   isLoading: boolean;
   session: AuthResponse | null;
+  setBodyDataConsent: (granted: boolean) => Promise<void>;
+  setQuestionnaireConsent: (granted: boolean) => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (payload: SignUpPayload) => Promise<void>;
@@ -91,9 +96,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
   );
 
   const signOut = useCallback(async () => {
+    // O aparelho deixa de receber as notificações desta conta antes de a sessão acabar.
+    if (session) {
+      await forgetPushToken(session).catch(() => undefined);
+    }
+
     await auth.signOut();
     applySession(null);
-  }, [applySession]);
+  }, [applySession, session]);
 
   const updateName = useCallback(
     async (name: string) => {
@@ -106,6 +116,57 @@ export function SessionProvider({ children }: PropsWithChildren) {
       // Só aplica se ninguém saiu nem trocou de conta enquanto salvava.
       if (currentToken.current === freshSession.token) {
         applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
+  const confirmEmail = useCallback(
+    async (code: string) => {
+      if (!session) {
+        return;
+      }
+
+      const freshSession = await auth.confirmEmailVerification(session, code);
+
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
+  // O consentimento vive na sessão: é ele que liga e desliga a sincronização das medidas.
+  const setBodyDataConsent = useCallback(
+    async (granted: boolean) => {
+      if (!session) {
+        return;
+      }
+
+      const freshSession = await auth.setBodyDataConsent(session, granted);
+
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
+  // Ao aceitar, as respostas locais sobem na hora; ao retirar, o servidor já apagou.
+  const setQuestionnaireConsent = useCallback(
+    async (granted: boolean) => {
+      if (!session) {
+        return;
+      }
+
+      const freshSession = await auth.setQuestionnaireConsent(session, granted);
+
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+
+      if (granted) {
+        void syncQuestionnaire(freshSession).catch(() => {});
       }
     },
     [applySession, session],
@@ -127,8 +188,30 @@ export function SessionProvider({ children }: PropsWithChildren) {
   );
 
   const value = useMemo(
-    () => ({ deleteAccount, isLoading, session, signIn, signOut, signUp, updateName }),
-    [deleteAccount, isLoading, session, signIn, signOut, signUp, updateName],
+    () => ({
+      confirmEmail,
+      deleteAccount,
+      isLoading,
+      session,
+      setBodyDataConsent,
+      setQuestionnaireConsent,
+      signIn,
+      signOut,
+      signUp,
+      updateName,
+    }),
+    [
+      confirmEmail,
+      deleteAccount,
+      isLoading,
+      session,
+      setBodyDataConsent,
+      setQuestionnaireConsent,
+      signIn,
+      signOut,
+      signUp,
+      updateName,
+    ],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

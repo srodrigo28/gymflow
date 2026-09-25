@@ -36,7 +36,8 @@ export default function SessaoScreen() {
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [rest, setRest] = useState<number | null>(null);
-  const [prMessage, setPrMessage] = useState<string | null>(null);
+  // O recorde recém-batido: fica na tela por alguns segundos com o atalho para o card.
+  const [prRecord, setPrRecord] = useState<{ setId: string } | null>(null);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
   const prTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -94,9 +95,9 @@ export default function SessaoScreen() {
       }
 
       if (result.isPr) {
-        setPrMessage('Recorde pessoal! 🏆');
+        setPrRecord({ setId: set.id });
         clearTimeout(prTimer.current);
-        prTimer.current = setTimeout(() => setPrMessage(null), 3500);
+        prTimer.current = setTimeout(() => setPrRecord(null), 8000);
       }
     }
   }
@@ -185,9 +186,19 @@ export default function SessaoScreen() {
         ) : null}
       </ScrollView>
 
-      {prMessage ? (
+      {prRecord ? (
         <Animated.View entering={FadeInDown} exiting={FadeOut} style={styles.prToast}>
-          <Text style={styles.prToastText}>{prMessage}</Text>
+          <Text style={styles.prToastText}>Recorde pessoal! 🏆</Text>
+          <Pressable
+            accessibilityLabel="Ver o card do recorde para compartilhar"
+            accessibilityRole="button"
+            onPress={() =>
+              router.push({ params: { recordId: prRecord.setId, tipo: 'recorde' }, pathname: '/(app)/compartilhar' })
+            }
+            style={({ pressed }) => [styles.prToastAction, pressed ? styles.pressed : null]}>
+            <Ionicons color={theme.domain.conquista} name="share-social-outline" size={16} />
+            <Text style={styles.prToastActionText}>Ver card</Text>
+          </Pressable>
         </Animated.View>
       ) : null}
 
@@ -647,6 +658,20 @@ const useStyles = makeStyles((theme) => ({
     paddingHorizontal: 18,
     paddingVertical: 10,
     position: 'absolute',
+  },
+  prToastAction: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginLeft: 12,
+    paddingLeft: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: withAlpha(theme.domain.conquista, 0.4),
+  },
+  prToastActionText: {
+    color: theme.domain.conquista,
+    fontFamily: fonts.bold,
+    fontSize: 14,
   },
   prToastText: {
     color: theme.text.primary,

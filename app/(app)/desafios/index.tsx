@@ -1,6 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
@@ -8,6 +8,7 @@ import { Input } from '@/src/components/ui/Input';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { challengeTiming, joinChallenge, listChallenges } from '@/src/services/challenges';
+import { registerPushToken } from '@/src/services/push';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { ChallengeSummary } from '@/src/types/challenges';
 
@@ -40,6 +41,15 @@ export default function DesafiosScreen() {
       void load();
     }, [load]),
   );
+
+  // Com pelo menos um desafio, o aparelho se registra para o lembrete do dia e o placar final.
+  useEffect(() => {
+    if (session && challenges && challenges.length > 0) {
+      void registerPushToken(session).catch(() => undefined);
+    }
+    // Só quando a conta ou a quantidade de desafios mudam; a sessão em si muda a cada refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id, challenges?.length]);
 
   async function handleJoin() {
     if (!token || !code.trim()) {
@@ -78,6 +88,16 @@ export default function DesafiosScreen() {
           <Text accessibilityRole="header" style={styles.title}>
             Desafios
           </Text>
+          {/* A rota é nova e os typed routes só são regerados pelo `expo start`: o cast segura o
+              typecheck até lá. */}
+          <Pressable
+            accessibilityLabel="Amigos"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => router.push('/(app)/amigos' as Href)}
+            style={({ pressed }) => [styles.iconButton, pressed ? styles.pressed : null]}>
+            <MaterialCommunityIcons color={theme.text.primary} name="account-multiple-outline" size={22} />
+          </Pressable>
         </View>
 
         <Text style={styles.intro}>

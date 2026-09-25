@@ -51,6 +51,24 @@
           "cameraPermission": "O Gyn Flow usa a câmera para você tirar a foto de evolução do mês.",
           "photosPermission": "O Gyn Flow acessa suas fotos para você escolher a imagem de evolução do mês."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Gyn Flow usa a câmera para tirar a foto de evolução do mês com o guia de contorno."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Gyn Flow usa sua localização só na hora do check-in na academia."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png"
+        }
       ]
     ],
     "extra": {

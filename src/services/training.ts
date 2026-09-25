@@ -1,5 +1,6 @@
 import { createId, getDatabase } from '@/src/db/client';
 import { queueSync } from '@/src/db/outbox';
+import { startOfWeek } from '@/src/utils/format';
 import type {
   Exercise,
   MuscleGroup,
@@ -416,6 +417,87 @@ export async function listPersonalRecords(limit = 10) {
     reps: row.reps,
     weightKg: row.weight_kg,
   }));
+}
+
+/** Um recorde específico: o card montado na hora em que ele acontece usa este, não o último. */
+export async function getPersonalRecord(setId: string) {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<{ created_at: number; id: string; name: string; reps: number; weight_kg: number }>(
+    `SELECT st.id, st.weight_kg, st.reps, st.created_at, e.name
+     FROM sets st
+     JOIN session_exercises se ON se.id = st.session_exercise_id
+     JOIN exercises e ON e.id = se.exercise_id
+     WHERE st.id = ? AND st.is_pr = 1 AND st.weight_kg IS NOT NULL AND st.reps IS NOT NULL`,
+    [setId],
+  );
+
+  return row ? { createdAt: row.created_at, exercise: row.name, id: row.id, reps: row.reps, weightKg: row.weight_kg } : null;
+}
+
+/** Recordes batidos num período (para a retrospectiva do mês). */
+export async function countPersonalRecords(from: number, to: number) {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<{ total: number }>(
+    `SELECT COUNT(*) AS total
+     FROM sets st
+     JOIN session_exercises se ON se.id = st.session_exercise_id
+     JOIN sessions s ON s.id = se.session_id
+     WHERE st.is_pr = 1 AND s.finished_at IS NOT NULL AND s.started_at BETWEEN ? AND ?`,
+    [from, to],
+  );
+
+  return row?.total ?? 0;
+}
+
+/** Início de cada treino concluído, do mais novo para o mais antigo. Base das contas por dia e por semana. */
+export async function listFinishedSessionStarts(from = 0, to = Number.MAX_SAFE_INTEGER) {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<{ started_at: number }>(
+    'SELECT started_at FROM sessions WHERE finished_at IS NOT NULL AND started_at BETWEEN ? AND ? ORDER BY started_at DESC',
+    [from, to],
+  );
+
+  return rows.map((row) => row.started_at);
+}
+
+const WEEK = 7 * 86_400_000;
+
+// Segunda-feira da semana anterior à que começa em `weekStart`, sem depender de horário de verão.
+function previousWeek(weekStart: number) {
+  return startOfWeek(new Date(weekStart - WEEK / 2));
+}
+
+/**
+ * Semanas seguidas com ao menos um treino concluído, contadas até esta semana. Se esta ainda não
+ * teve treino, a conta vai até a anterior: a sequência só quebra quando a semana termina vazia.
+ */
+export async function getTrainingStreak() {
+  const starts = await listFinishedSessionStarts();
+  const weeks = new Set(starts.map((timestamp) => startOfWeek(new Date(timestamp))));
+  const thisWeek = startOfWeek();
+  const daysThisWeek = new Set(
+    starts.filter((timestamp) => timestamp >= thisWeek).map((timestamp) => new Date(timestamp).toDateString()),
+  ).size;
+  let cursor = weeks.has(thisWeek) ? thisWeek : previousWeek(thisWeek);
+  let current = 0;
+
+  while (weeks.has(cursor)) {
+    current += 1;
+    cursor = previousWeek(cursor);
+  }
+
+  // A melhor sequência de todas, para a conquista.
+  let best = 0;
+  let run = 0;
+  let previous: number | null = null;
+
+  for (const week of [...weeks].sort((a, b) => a - b)) {
+    run = previous !== null && previousWeek(week) === previous ? run + 1 : 1;
+    best = Math.max(best, run);
+    previous = week;
+  }
+
+  return { best, daysThisWeek, weeks: current };
 }
 
 export async function getPeriodSummary(from: number, to: number): Promise<PeriodSummary> {
