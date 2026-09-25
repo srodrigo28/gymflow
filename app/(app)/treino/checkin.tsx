@@ -16,11 +16,13 @@ import {
   DEFAULT_GYM_RADIUS_M,
   distanceInMeters,
   getGym,
+  isGymClearPending,
   getTodayCheckin,
   GYM_NAME_MAX_LENGTH,
   listCheckins,
   normalizeGymName,
   saveGym,
+  settleGymClear,
 } from '@/src/services/gym-checkin';
 import { clearServerGym, getServerGym, listServerCheckins, saveServerGym, sendCheckin } from '@/src/services/league';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
@@ -196,8 +198,23 @@ function accountCheckinDate(checkin: ServerCheckin) {
 
 // Quando a academia do aparelho e a da conta são a mesma, o aparelho fica com o ponto, o nome e o raio
 // da conta: assim a distância conferida aqui e a conferida no servidor dão o mesmo resultado.
+function serverGymRadius(server: ServerGym) {
+  return server.radiusM > 0 ? server.radiusM : DEFAULT_GYM_RADIUS_M;
+}
+
+// Aparelho sem academia e conta com uma (aparelho novo, app reinstalado ou academia marcada em outro
+// aparelho): o aparelho passa a usar o ponto, o nome e o raio da conta.
+function restoreServerGym(userId: string, server: ServerGym) {
+  return saveGym(userId, {
+    latitude: server.latitude,
+    longitude: server.longitude,
+    name: server.name,
+    radiusM: serverGymRadius(server),
+  });
+}
+
 async function adoptServerGym(userId: string, local: Gym, server: ServerGym) {
-  const radiusM = server.radiusM > 0 ? server.radiusM : DEFAULT_GYM_RADIUS_M;
+  const radiusM = serverGymRadius(server);
 
   if (
     local.latitude === server.latitude &&
@@ -223,14 +240,22 @@ async function pushGymToAccount(token: string, userId: string, local: Gym): Prom
   return { joined: linked === 'joined', local: await adoptServerGym(userId, local, gym), server: gym };
 }
 
-// Deixa a conta com a academia deste aparelho. A daqui sobe quando a conta não tem nenhuma (quem marcou
-// antes do ranking existir) ou tem outra, longe (marcada de novo sem internet). Sem academia no
-// aparelho, só lê: a próxima marcada toma o lugar da conta. Sem conexão, lança o erro da API.
+// Deixa a conta e o aparelho com a mesma academia. A daqui sobe quando a conta não tem nenhuma (quem marcou
+// antes do ranking existir) ou tem outra, longe (marcada de novo sem internet). Sem academia no aparelho, o
+// aparelho passa a usar a da conta, como a tela promete; a exceção é a academia tirada daqui sem conexão,
+// que primeiro sai da conta. Sem conexão, lança o erro da API.
 async function syncGymWithAccount(token: string, userId: string, local: Gym | null): Promise<AccountGymSync> {
+  if (!local && (await isGymClearPending(userId))) {
+    await clearServerGym(token);
+    await settleGymClear(userId);
+
+    return { joined: false, local: null, server: null };
+  }
+
   const server = await getServerGym(token);
 
   if (!local) {
-    return { joined: false, local, server };
+    return { joined: false, local: server ? await restoreServerGym(userId, server) : null, server };
   }
 
   if (server && distanceInMeters(local, server) <= SAME_GYM_M) {
@@ -413,6 +438,11 @@ export default function CheckinScreen() {
     if (account.status === 'fulfilled') {
       setGym(account.value.local);
       setServerGym(account.value.server);
+
+      // A academia veio da conta (aparelho novo): a distância aparece já, como para quem marcou aqui.
+      if (!savedGym && account.value.local) {
+        void locate();
+      }
 
       if (account.value.joined && account.value.server) {
         setJoinedGymName(account.value.server.name);
@@ -604,8 +634,11 @@ export default function CheckinScreen() {
             setJoinedGymName(null);
 
             if (token) {
-              // Sem conexão, a da conta fica até a próxima academia marcada, que toma o lugar dela.
-              void clearServerGym(token).catch(() => setServerGym(undefined));
+              // Sem conexão, a troca fica pendente no aparelho: na próxima abertura com internet, a academia
+              // sai da conta antes de qualquer outra coisa, e nenhuma volta sozinha.
+              void clearServerGym(token)
+                .then(() => settleGymClear(userId))
+                .catch(() => setServerGym(undefined));
             }
           },
           style: 'destructive',

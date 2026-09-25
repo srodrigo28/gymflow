@@ -15,6 +15,9 @@ const MAX_CHECKINS = 200;
 // Tudo da funcionalidade mora numa chave só: a academia e o histórico saem juntos ao apagar a conta.
 type GymCheckinStore = {
   checkins: GymCheckin[];
+  // A academia saiu deste aparelho e a troca ainda não chegou à conta (sem conexão na hora). Enquanto for
+  // true, o aparelho não copia a academia da conta: ela seria a que a pessoa acabou de tirar.
+  clearPending: boolean;
   gym: Gym | null;
 };
 
@@ -30,7 +33,7 @@ function serialize<T>(task: () => Promise<T>): Promise<T> {
 }
 
 function emptyStore(): GymCheckinStore {
-  return { checkins: [], gym: null };
+  return { checkins: [], clearPending: false, gym: null };
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -91,6 +94,7 @@ function sanitize(raw: unknown): GymCheckinStore {
 
   return {
     checkins: checkins.sort((a, b) => b.at - a.at).slice(0, MAX_CHECKINS),
+    clearPending: data.clearPending === true,
     gym: sanitizeGym(data.gym),
   };
 }
@@ -144,17 +148,36 @@ export function saveGym(userId: string, input: GymInput): Promise<Gym> {
       savedAt: Date.now(),
     };
 
-    await write(userId, { ...store, gym });
+    await write(userId, { ...store, clearPending: false, gym });
 
     return gym;
   });
 }
 
-/** Desmarca a academia. Os check-ins ficam: valem para a academia da época. */
+/**
+ * Desmarca a academia. Os check-ins ficam: valem para a academia da época. Até a conta confirmar a troca
+ * (settleGymClear), o aparelho não copia a academia da conta.
+ */
 export function clearGym(userId: string): Promise<void> {
   return serialize(async () => {
     const store = await read(userId);
-    await write(userId, { ...store, gym: null });
+    await write(userId, { ...store, clearPending: true, gym: null });
+  });
+}
+
+/** A academia saiu daqui e a conta ainda não soube (sem conexão na hora da troca). */
+export function isGymClearPending(userId: string): Promise<boolean> {
+  return serialize(async () => (await read(userId)).clearPending);
+}
+
+/** A conta confirmou a troca: dali em diante, uma academia na conta volta a valer para este aparelho. */
+export function settleGymClear(userId: string): Promise<void> {
+  return serialize(async () => {
+    const store = await read(userId);
+
+    if (store.clearPending) {
+      await write(userId, { ...store, clearPending: false });
+    }
   });
 }
 
