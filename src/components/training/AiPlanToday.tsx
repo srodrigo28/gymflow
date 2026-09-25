@@ -4,13 +4,13 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { useSession } from '@/src/contexts/session-context';
-import { getWeeklyPlan } from '@/src/services/ai';
+import { getWeeklyPlan, readSavedWeeklyPlan } from '@/src/services/ai';
 import { ApiError } from '@/src/services/api';
 import { startAiPlanSession } from '@/src/services/training';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { AiPlanDay, AiWeeklyPlan } from '@/src/types/ai';
 import type { PlanExercise } from '@/src/types/coaching';
-import { saoPauloWeekday } from '@/src/utils/format';
+import { saoPauloWeekday, saoPauloWeekKey } from '@/src/utils/format';
 
 // O que a tela guarda da resposta, com a conta de quem pediu: trocar de conta esconde o plano da anterior.
 type Loaded = { kind: 'plan'; plan: AiWeeklyPlan; token: string } | { kind: 'limit'; message: string; token: string };
@@ -43,8 +43,8 @@ function askAboutActiveSession(sessionId: string, title: string) {
   ]);
 }
 
-// O dia do plano no formato da prescrição, que é o que monta a sessão. A carga sugerida fica de fora: as
-// séries nascem com a carga da última vez, como no treino do personal, e a pessoa ajusta ali.
+// O dia do plano no formato da prescrição, que é o que monta a sessão. A carga sugerida não entra nas séries:
+// elas nascem com a carga da última vez, como no treino do personal, e a sessão mostra a sugestão como alvo.
 function toPlanExercises(day: AiPlanDay): PlanExercise[] {
   return day.exercises.map(({ exerciseId, kind, modality, muscle, name, note, reps, restSec, sets }) => ({
     exerciseId,
@@ -66,8 +66,9 @@ function toPlanExercises(day: AiPlanDay): PlanExercise[] {
  * o consentimento (403) ou sem internet, fica em silêncio e valem as recomendações por regras.
  */
 export function AiPlanToday() {
-  const { session } = useSession();
+  const { refreshAccount, session } = useSession();
   const token = session?.token;
+  const userId = session?.user.id;
   const consentAt = session?.user.aiConsentAt ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   // Um pedido por foco e nunca dois ao mesmo tempo: a primeira chamada da semana gera o plano, e gerar
@@ -82,20 +83,37 @@ export function AiPlanToday() {
 
       pending.current = true;
 
-      void getWeeklyPlan(token)
+      void getWeeklyPlan(token, userId)
         .then(
           (response): Loaded | null =>
             response.status === 'ok' && response.content ? { kind: 'plan', plan: response.content, token } : null,
-          // Só o limite (429) tem o que dizer. O resto (503, 403, sem internet, plano recusado pelas regras)
-          // fica em silêncio.
-          (reason: unknown): Loaded | null =>
-            reason instanceof ApiError && reason.status === 429 ? { kind: 'limit', message: reason.message, token } : null,
+          async (reason: unknown): Promise<Loaded | null> => {
+            // O limite (429) tem o que dizer.
+            if (reason instanceof ApiError && reason.status === 429) {
+              return { kind: 'limit', message: reason.message, token };
+            }
+
+            // Sem internet, vale a cópia do plano desta semana guardada no aparelho.
+            if (!(reason instanceof ApiError) || reason.status === 0) {
+              const saved = userId ? await readSavedWeeklyPlan(userId) : null;
+
+              return saved && saved.weekKey === saoPauloWeekKey() ? { kind: 'plan', plan: saved, token } : null;
+            }
+
+            // 403: o consentimento pode ter sido retirado em outro aparelho. A conta é conferida de novo, e o
+            // cartão some. O resto (503, plano recusado pelas regras) fica em silêncio.
+            if (reason.status === 403) {
+              void refreshAccount();
+            }
+
+            return null;
+          },
         )
         .then((next) => {
           pending.current = false;
           setLoaded(next);
         });
-    }, [consentAt, token]),
+    }, [consentAt, refreshAccount, token, userId]),
   );
 
   // Consentimento retirado ou outra conta: some na hora, sem esperar o próximo pedido.
@@ -112,14 +130,14 @@ export function AiPlanToday() {
   const todayPlan = days.find((day) => day.weekday === today && day.exercises.length > 0);
 
   if (todayPlan) {
-    return <TodayCard day={todayPlan} safetyNotes={loaded.plan.safetyNotes} />;
+    return <TodayCard day={todayPlan} safetyNotes={loaded.plan.safetyNotes} weekKey={loaded.plan.weekKey} />;
   }
 
   return <NextDay day={days.find((day) => day.weekday > today)} today={today} />;
 }
 
 // Os cuidados da semana vão junto com o porquê: quem começa por aqui talvez nunca abra o plano inteiro.
-function TodayCard({ day, safetyNotes }: { day: AiPlanDay; safetyNotes: string[] }) {
+function TodayCard({ day, safetyNotes, weekKey }: { day: AiPlanDay; safetyNotes: string[]; weekKey: string }) {
   const styles = useStyles();
   const { theme } = useTheme();
   const [showWhy, setShowWhy] = useState(false);
@@ -138,7 +156,7 @@ function TodayCard({ day, safetyNotes }: { day: AiPlanDay; safetyNotes: string[]
     setError(null);
 
     try {
-      const result = await startAiPlanSession(toPlanExercises(day));
+      const result = await startAiPlanSession(toPlanExercises(day), { weekKey, weekday: day.weekday });
 
       if (result.busy) {
         askAboutActiveSession(result.id, day.title);

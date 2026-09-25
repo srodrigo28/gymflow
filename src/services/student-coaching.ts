@@ -2,7 +2,7 @@ import type { Href } from 'expo-router';
 
 import { listMyPlans } from '@/src/services/coaching';
 import { storage, storageKeys } from '@/src/services/storage';
-import type { PlanDay, PlanExercise, TrainingPlan } from '@/src/types/coaching';
+import type { PlanExercise, TrainingPlan } from '@/src/types/coaching';
 import type { SessionExercise } from '@/src/types/training';
 
 // Fase 5, o lado do aluno: a cópia das prescrições neste aparelho, os textos do alvo de cada exercício e
@@ -141,11 +141,15 @@ export function crefLabel(cref: string) {
 
 /**
  * O alvo de cada exercício da sessão, pelo id do exercício, na ordem do dia: um exercício que aparece duas
- * vezes na prescrição casa com as duas vezes na sessão. O que a pessoa acrescentou fica sem alvo.
+ * vezes na prescrição casa com as duas vezes na sessão. O que a pessoa acrescentou fica sem alvo. Serve
+ * também para um dia do plano da IA, que tem os mesmos campos e a carga sugerida.
  */
-export function matchPlanTargets(day: PlanDay | undefined, exercises: SessionExercise[]) {
-  const targets = new Map<string, PlanExercise>();
-  const queues = new Map<string, PlanExercise[]>();
+export function matchPlanTargets<T extends Pick<PlanExercise, 'exerciseId'> = PlanExercise>(
+  day: { exercises: T[] } | undefined,
+  exercises: SessionExercise[],
+) {
+  const targets = new Map<string, T>();
+  const queues = new Map<string, T[]>();
 
   for (const item of day?.exercises ?? []) {
     queues.set(item.exerciseId, [...(queues.get(item.exerciseId) ?? []), item]);

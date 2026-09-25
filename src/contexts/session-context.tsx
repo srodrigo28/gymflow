@@ -12,6 +12,7 @@ import {
 
 import { setDatabaseUser } from '@/src/db/client';
 import * as account from '@/src/services/account';
+import { forgetSavedWeeklyPlan } from '@/src/services/ai';
 import * as auth from '@/src/services/auth';
 import { stopPhotoSync } from '@/src/services/photo-sync';
 import { forgetPushToken } from '@/src/services/push';
@@ -25,6 +26,8 @@ type SessionContextValue = {
   confirmEmail: (code: string) => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
   isLoading: boolean;
+  // Traz de novo os dados da conta: um consentimento pode ter mudado em outro aparelho. Sem rede, nada muda.
+  refreshAccount: () => Promise<void>;
   session: AuthResponse | null;
   setAiConsent: (granted: boolean) => Promise<void>;
   setBodyDataConsent: (granted: boolean) => Promise<void>;
@@ -43,13 +46,22 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentToken = useRef<string | null>(null);
+  // A sessão aplicada por último, para o refreshAccount não mudar a cada troca de sessão (as telas o usam em
+  // efeitos, e um efeito que roda de novo a cada troca pediria a IA de novo).
+  const currentSession = useRef<AuthResponse | null>(null);
 
   // Toda troca de sessão passa por aqui. O banco local é por conta e precisa trocar antes de
   // as telas pedirem dados: os efeitos das telas rodam antes dos efeitos deste provider.
   const applySession = useCallback((next: AuthResponse | null) => {
     setDatabaseUser(next?.user.id ?? null);
     currentToken.current = next?.token ?? null;
+    currentSession.current = next;
     setSession(next);
+
+    // Sem o consentimento da IA (retirado aqui ou em outro aparelho), a cópia do plano dela sai do aparelho.
+    if (next && !next.user.aiConsentAt) {
+      void forgetSavedWeeklyPlan(next.user.id);
+    }
   }, []);
 
   useEffect(() => {
@@ -214,6 +226,22 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [applySession, session],
   );
 
+  // Uma rota respondeu que falta um consentimento que o aparelho achava que existia: a conta é conferida de
+  // novo, e as telas passam a mostrar o convite no lugar do erro. Só aplica se ninguém trocou de conta.
+  const refreshAccount = useCallback(async () => {
+    const current = currentSession.current;
+
+    if (!current) {
+      return;
+    }
+
+    const freshSession = await auth.refreshSession(current).catch(() => undefined);
+
+    if (freshSession !== undefined && currentToken.current === current.token) {
+      applySession(freshSession);
+    }
+  }, [applySession]);
+
   // Ao aceitar, as respostas locais sobem na hora; ao retirar, o servidor já apagou.
   const setQuestionnaireConsent = useCallback(
     async (granted: boolean) => {
@@ -254,6 +282,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       confirmEmail,
       deleteAccount,
       isLoading,
+      refreshAccount,
       session,
       setAiConsent,
       setBodyDataConsent,
@@ -269,6 +298,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       confirmEmail,
       deleteAccount,
       isLoading,
+      refreshAccount,
       session,
       setAiConsent,
       setBodyDataConsent,

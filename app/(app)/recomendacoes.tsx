@@ -11,6 +11,7 @@ import {
   getAiStatus,
   getMonthlySummary,
   getWeeklyPlan,
+  readSavedWeeklyPlan,
   regenerateWeeklyPlan,
   saveAiPreferences,
 } from '@/src/services/ai';
@@ -26,9 +27,10 @@ import type {
   AiPlanDay,
   AiPlanExercise,
   AiStatus,
+  AiWeeklyPlan,
   AiWeeklyPlanResponse,
 } from '@/src/types/ai';
-import { formatNumber, formatShortDate, monthLabel, parseDayKey, shiftDayKey } from '@/src/utils/format';
+import { formatNumber, formatShortDate, monthLabel, parseDayKey, saoPauloWeekKey, shiftDayKey } from '@/src/utils/format';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -53,6 +55,11 @@ type Section<T> = { state: 'loading' } | { data: T; state: 'ready' } | Failure;
 
 // 0 = segunda … 6 = domingo, como o plano conta.
 const weekdayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+// O plano guardado no aparelho, no formato da resposta da API: só para consulta, sem pedir outro.
+function savedPlanResponse(plan: AiWeeklyPlan): AiWeeklyPlanResponse {
+  return { canRegenerate: false, content: plan, generatedAt: null, message: null, reason: null, status: 'ok' };
+}
 
 // Como a tela fica quando uma rota da IA responde que ela não está ligada.
 const AI_OFF: AiStatus = { capUsd: 0, configured: false, consentAt: null, model: '', spentUsd: 0 };
@@ -169,7 +176,7 @@ function exerciseDescription(exercise: AiPlanExercise) {
 // O estado da IA e o que ela gerou. O estado vem a cada visita (a chave pode ter chegado ao servidor, e o
 // custo do mês muda); o plano e o resumo, quando a IA está ligada e há consentimento.
 function useAiRecommendations() {
-  const { session } = useSession();
+  const { refreshAccount, session } = useSession();
   const token = session?.token;
   const userId = session?.user.id;
   const consentAt = session?.user.aiConsentAt ?? null;
@@ -186,6 +193,8 @@ function useAiRecommendations() {
   // do plano sempre esperar por ele.
   const preferencesSent = useRef<{ consentAt: string; done: Promise<void> } | null>(null);
   const isOn = Boolean(consentAt && status?.configured);
+  // Sem rede na chegada, quem já aceitou vê o plano desta semana guardado no aparelho, só para consulta.
+  const [savedPlan, setSavedPlan] = useState<AiWeeklyPlan | null>(null);
 
   const loadStatus = useCallback(async () => {
     if (!token) {
@@ -211,6 +220,25 @@ function useAiRecommendations() {
     }, [loadStatus]),
   );
 
+  useEffect(() => {
+    if (status || !statusFailed || !consentAt || !userId) {
+      setSavedPlan(null);
+      return;
+    }
+
+    let isActive = true;
+
+    void readSavedWeeklyPlan(userId).then((saved) => {
+      if (isActive) {
+        setSavedPlan(saved && saved.weekKey === saoPauloWeekKey() ? saved : null);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [consentAt, status, statusFailed, userId]);
+
   // Uma rota da IA respondeu 503: a chave saiu do servidor, e a tela volta a ficar só com as regras.
   const markOff = useCallback(() => {
     setStatus((current) => (current ? { ...current, configured: false } : AI_OFF));
@@ -235,7 +263,7 @@ function useAiRecommendations() {
     setPlan({ state: 'loading' });
     setRegenerateError(null);
 
-    once(`plan:${userId}:${consentAt}`, () => preferences.then(() => getWeeklyPlan(token)))
+    once(`plan:${userId}:${consentAt}`, () => preferences.then(() => getWeeklyPlan(token, userId)))
       .then((data) => {
         if (isActive) {
           setPlan({ data, state: 'ready' });
@@ -251,6 +279,12 @@ function useAiRecommendations() {
         if (isAiOff(error)) {
           markOff();
         } else {
+          // 403: o consentimento pode ter saído em outro aparelho. A conta é conferida de novo, e a tela passa
+          // a mostrar o convite no lugar do erro.
+          if (error instanceof ApiError && error.status === 403) {
+            void refreshAccount();
+          }
+
           setPlan(toFailure(error));
         }
       });
@@ -258,7 +292,7 @@ function useAiRecommendations() {
     return () => {
       isActive = false;
     };
-  }, [consentAt, isOn, loadStatus, markOff, planAttempt, token, userId]);
+  }, [consentAt, isOn, loadStatus, markOff, planAttempt, refreshAccount, token, userId]);
 
   useEffect(() => {
     if (!isOn || !consentAt || !token || !userId) {
@@ -284,6 +318,10 @@ function useAiRecommendations() {
         if (isAiOff(error)) {
           markOff();
         } else {
+          if (error instanceof ApiError && error.status === 403) {
+            void refreshAccount();
+          }
+
           setSummary(toFailure(error));
         }
       });
@@ -291,7 +329,7 @@ function useAiRecommendations() {
     return () => {
       isActive = false;
     };
-  }, [consentAt, isOn, loadStatus, markOff, summaryAttempt, token, userId]);
+  }, [consentAt, isOn, loadStatus, markOff, refreshAccount, summaryAttempt, token, userId]);
 
   const regenerate = useCallback(async () => {
     if (!token || !userId) {
@@ -306,7 +344,7 @@ function useAiRecommendations() {
       const data = await once(`regenerate:${userId}:${consentAt}`, async () => {
         await sendTrainingPreferences(token, userId);
 
-        return regenerateWeeklyPlan(token);
+        return regenerateWeeklyPlan(token, userId);
       });
 
       setPlan({ data, state: 'ready' });
@@ -338,6 +376,7 @@ function useAiRecommendations() {
     regenerateError,
     retryPlan: () => setPlanAttempt((attempt) => attempt + 1),
     retrySummary: () => setSummaryAttempt((attempt) => attempt + 1),
+    savedPlan,
     status,
     statusFailed,
     summary,
@@ -404,12 +443,32 @@ export default function RecomendacoesScreen() {
           />
         ) : null}
 
-        {/* Sem rede logo na chegada, quem já aceitou fica sabendo por que o plano não apareceu. */}
+        {/* Sem rede logo na chegada, quem já aceitou fica sabendo por que o plano não apareceu, ou vê o plano
+            desta semana guardado no aparelho. */}
         {!ai.status && ai.statusFailed && ai.consentAt ? (
           <AiNote
             icon="cloud-off-outline"
-            text="O plano com IA não carregou agora; estas sugestões vêm das suas regras e dos seus dados."
+            text={
+              ai.savedPlan
+                ? 'Sem conexão agora: este é o plano da semana guardado no aparelho.'
+                : 'O plano com IA não carregou agora; estas sugestões vêm das suas regras e dos seus dados.'
+            }
           />
+        ) : null}
+
+        {!ai.isOn && ai.savedPlan ? (
+          <>
+            <WeeklyPlanSection
+              isRegenerating={false}
+              onRegenerate={() => undefined}
+              onRetry={() => undefined}
+              plan={{ data: savedPlanResponse(ai.savedPlan), state: 'ready' }}
+              regenerateError={null}
+            />
+            <Text accessibilityRole="header" style={[styles.sectionTitle, styles.rulesTitle]}>
+              Recomendações por regras
+            </Text>
+          </>
         ) : null}
 
         {ai.status?.configured && !ai.consentAt ? <AiConsentCard /> : null}

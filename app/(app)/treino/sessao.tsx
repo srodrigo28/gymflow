@@ -9,6 +9,7 @@ import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
+import { readSavedWeeklyPlan } from '@/src/services/ai';
 import { findMyPlan, matchPlanTargets, planHeadline, planTarget, restLabel } from '@/src/services/student-coaching';
 import {
   addSet,
@@ -23,11 +24,20 @@ import {
   updateSet,
 } from '@/src/services/training';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
+import type { AiPlanDay } from '@/src/types/ai';
 import type { PlanExercise, TrainingPlan } from '@/src/types/coaching';
 import type { ExerciseKind, SessionExercise, WorkoutSession, WorkoutSet } from '@/src/types/training';
 import { formatDuration } from '@/src/utils/format';
 
 const REST_SECONDS = 90;
+
+// O alvo de um exercício: o da prescrição do personal ou o do plano da IA, que também sugere a carga.
+type Target = PlanExercise & { targetWeightKg?: number | null };
+
+/** 42.5 → "42,5 kg"; 60 → "60 kg". */
+function kgLabel(value: number) {
+  return `${String(Math.round(value * 100) / 100).replace('.', ',')} kg`;
+}
 const MAX_REPS = 1000;
 const MAX_MINUTES = 24 * 60;
 const MAX_DISTANCE_KM = 1000;
@@ -57,6 +67,11 @@ export default function SessaoScreen() {
   const planId = session?.planId;
   // A prescrição de onde o treino veio. undefined enquanto procura; null quando ela não está mais na lista.
   const [plan, setPlan] = useState<TrainingPlan | null | undefined>(undefined);
+  // Treino começado pelo plano da IA: o dia dele, achado na cópia do plano guardada no aparelho. null quando a
+  // cópia é de outra semana ou saiu (consentimento retirado): o treino segue, só sem os alvos.
+  const aiWeek = session?.aiPlan?.weekKey;
+  const aiWeekday = session?.aiPlan?.weekday;
+  const [aiDay, setAiDay] = useState<AiPlanDay | null>(null);
 
   // A tela fica acesa durante o treino: ninguém quer desbloquear o celular a cada série.
   useKeepAwake();
@@ -121,6 +136,25 @@ export default function SessaoScreen() {
     };
   }, [planId, token, userId]);
 
+  useEffect(() => {
+    if (!aiWeek || aiWeekday === undefined || !userId) {
+      setAiDay(null);
+      return;
+    }
+
+    let isActive = true;
+
+    void readSavedWeeklyPlan(userId).then((saved) => {
+      if (isActive) {
+        setAiDay(saved?.weekKey === aiWeek ? (saved.days.find((day) => day.weekday === aiWeekday) ?? null) : null);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [aiWeek, aiWeekday, userId]);
+
   async function handleToggleDone(set: WorkoutSet, restSeconds = REST_SECONDS) {
     const result = await toggleSetDone(set.id, !set.done);
     await load();
@@ -156,7 +190,10 @@ export default function SessaoScreen() {
   }
 
   const planDay = plan && session?.planDay !== undefined ? plan.days[session.planDay] : undefined;
-  const targets = matchPlanTargets(planDay, session?.exercises ?? []);
+  // Os alvos vêm da prescrição do personal ou, no treino começado pelo plano da IA, do dia dele.
+  const targets: Map<string, Target> = aiDay
+    ? matchPlanTargets(aiDay, session?.exercises ?? [])
+    : matchPlanTargets(planDay, session?.exercises ?? []);
   const totalSets = session?.exercises.reduce((total, item) => total + item.sets.length, 0) ?? 0;
   const doneSets =
     session?.exercises.reduce((total, item) => total + item.sets.filter((set) => set.done).length, 0) ?? 0;
@@ -223,6 +260,16 @@ export default function SessaoScreen() {
           </View>
         ) : null}
 
+        {aiDay ? (
+          <View style={styles.planBanner}>
+            <Ionicons color={theme.domain.treino} name="sparkles-outline" size={18} style={styles.planIcon} />
+            <View style={styles.planText}>
+              <Text style={styles.planTitle}>{`${aiDay.title} · plano da semana da IA`}</Text>
+              <Text style={styles.planNote}>Sugerido pela IA e conferido pelas regras do Gyn Flow.</Text>
+            </View>
+          </View>
+        ) : null}
+
         {session?.exercises.map((item) => (
           <ExerciseCard
             item={item}
@@ -230,6 +277,7 @@ export default function SessaoScreen() {
             onChange={load}
             onToggleDone={handleToggleDone}
             target={targets.get(item.id)}
+            targetSource={aiDay ? 'ai' : 'coach'}
           />
         ))}
 
@@ -294,12 +342,14 @@ function ExerciseCard({
   onChange,
   onToggleDone,
   target,
+  targetSource = 'coach',
 }: {
   item: SessionExercise;
   onChange: () => Promise<void>;
   onToggleDone: (set: WorkoutSet, restSeconds?: number) => Promise<void>;
-  // O que a prescrição pede para este exercício, quando o treino veio de uma.
-  target?: PlanExercise;
+  // O que a prescrição (ou o plano da IA) pede para este exercício, quando o treino veio de um deles.
+  target?: Target;
+  targetSource?: 'ai' | 'coach';
 }) {
   const styles = useStyles();
   const { theme } = useTheme();
@@ -329,7 +379,7 @@ function ExerciseCard({
         </Pressable>
       </View>
 
-      {target ? <PlanTarget target={target} /> : null}
+      {target ? <PlanTarget source={targetSource} target={target} /> : null}
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeaderText, styles.colIndex]}>#</Text>
@@ -381,15 +431,18 @@ function ExerciseCard({
   );
 }
 
-// O alvo do personal para o exercício: séries × repetições, o descanso e a observação.
-function PlanTarget({ target }: { target: PlanExercise }) {
+// O alvo do exercício: séries × repetições, a carga sugerida (só no plano da IA), o descanso e a observação.
+// As séries nascem com a carga da última vez; a sugestão fica à vista para a pessoa ajustar.
+function PlanTarget({ source, target }: { source: 'ai' | 'coach'; target: Target }) {
   const styles = useStyles();
   const { theme } = useTheme();
   // Zero é pedido de propósito (bi-set): sem descanso entre um exercício e o outro.
   const rest =
     target.restSec === null ? null : target.restSec > 0 ? `descanso ${restLabel(target.restSec)}` : 'sem descanso';
+  const weight = target.targetWeightKg ? `carga sugerida ${kgLabel(target.targetWeightKg)}` : null;
   const label = [
-    `Alvo do personal: ${target.sets} ${target.sets === 1 ? 'série' : 'séries'} de ${target.reps}`,
+    `${source === 'ai' ? 'Sugerido pela IA' : 'Alvo do personal'}: ${target.sets} ${target.sets === 1 ? 'série' : 'séries'} de ${target.reps}`,
+    weight,
     rest,
     target.note ? `observação: ${target.note}` : null,
   ]
@@ -403,6 +456,12 @@ function PlanTarget({ target }: { target: PlanExercise }) {
           <Ionicons color={theme.domain.treino} name="flag-outline" size={13} />
           <Text style={[styles.targetChipText, { color: theme.domain.treino }]}>{planTarget(target)}</Text>
         </View>
+        {weight ? (
+          <View style={styles.targetChip}>
+            <Ionicons color={theme.text.secondary} name="barbell-outline" size={13} />
+            <Text style={styles.targetChipText}>{weight}</Text>
+          </View>
+        ) : null}
         {rest ? (
           <View style={styles.targetChip}>
             <Ionicons color={theme.text.secondary} name="timer-outline" size={13} />

@@ -217,3 +217,11 @@ const SAO_PAULO_OFFSET_MS = 3 * 60 * 60 * 1000;
 export function saoPauloWeekday(now = Date.now()) {
   return (new Date(now - SAO_PAULO_OFFSET_MS).getUTCDay() + 6) % 7;
 }
+
+/** A segunda-feira da semana agora em São Paulo (AAAA-MM-DD), que é a chave do plano da semana da IA. */
+export function saoPauloWeekKey(now = Date.now()) {
+  const local = new Date(now - SAO_PAULO_OFFSET_MS);
+  local.setUTCDate(local.getUTCDate() - ((local.getUTCDay() + 6) % 7));
+
+  return local.toISOString().slice(0, 10);
+}

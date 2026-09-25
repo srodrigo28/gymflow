@@ -60,6 +60,8 @@ export type SessionExercise = {
 };
 
 export type WorkoutSession = {
+  // Treino começado pelo plano da semana da IA: a semana (a segunda-feira) e o dia. Só no aparelho.
+  aiPlan?: { weekKey: string; weekday: number };
   exercises: SessionExercise[];
   finishedAt?: number;
   id: string;

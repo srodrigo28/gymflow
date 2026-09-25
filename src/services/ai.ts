@@ -1,10 +1,12 @@
 import { apiRequest } from '@/src/services/api';
+import { storage, storageKeys } from '@/src/services/storage';
 import type {
   AiDocument,
   AiMeasurementsReading,
   AiMonthlySummaryResponse,
   AiPreferences,
   AiStatus,
+  AiWeeklyPlan,
   AiWeeklyPlanResponse,
 } from '@/src/types/ai';
 
@@ -17,6 +19,37 @@ import type {
 
 const AI_TIMEOUT = 120000;
 
+type SavedWeeklyPlan = { plan: AiWeeklyPlan; savedAt: number };
+
+// O último plano da semana que chegou fica no aparelho: o cartão do Treino, a tela de Recomendações e os
+// alvos da sessão seguem sem internet. É só uma cópia, e cada plano novo troca esta.
+async function savePlanCopy(userId: string | undefined, response: AiWeeklyPlanResponse) {
+  if (!userId || response.status !== 'ok' || !response.content) {
+    return;
+  }
+
+  const saved: SavedWeeklyPlan = { plan: response.content, savedAt: Date.now() };
+  await storage.set(storageKeys.aiWeeklyPlan(userId), JSON.stringify(saved));
+}
+
+/** A cópia do plano da semana guardada no aparelho, ou null. */
+export async function readSavedWeeklyPlan(userId: string): Promise<AiWeeklyPlan | null> {
+  try {
+    const stored = await storage.get(storageKeys.aiWeeklyPlan(userId));
+    const plan = stored ? (JSON.parse(stored) as Partial<SavedWeeklyPlan>).plan : undefined;
+
+    return plan && typeof plan.weekKey === 'string' && Array.isArray(plan.days) ? plan : null;
+  } catch {
+    // Cópia corrompida vale como nenhuma; o próximo plano que chegar a substitui.
+    return null;
+  }
+}
+
+/** Sem o consentimento da IA, a cópia sai do aparelho, como o plano sai do servidor. */
+export async function forgetSavedWeeklyPlan(userId: string) {
+  await storage.remove(storageKeys.aiWeeklyPlan(userId));
+}
+
 export function getAiStatus(token: string) {
   return apiRequest<AiStatus>('/ai/status', { token });
 }
@@ -26,14 +59,24 @@ export async function saveAiPreferences(token: string, preferences: AiPreference
   await apiRequest('/ai/preferences', { body: preferences, method: 'PUT', token });
 }
 
-/** O plano desta semana: gerado na primeira abertura e guardado. */
-export function getWeeklyPlan(token: string) {
-  return apiRequest<AiWeeklyPlanResponse>('/ai/weekly-plan', { timeoutMs: AI_TIMEOUT, token });
+/** O plano desta semana: gerado na primeira abertura e guardado. Com `userId`, fica uma cópia no aparelho. */
+export async function getWeeklyPlan(token: string, userId?: string) {
+  const response = await apiRequest<AiWeeklyPlanResponse>('/ai/weekly-plan', { timeoutMs: AI_TIMEOUT, token });
+  await savePlanCopy(userId, response);
+
+  return response;
 }
 
-/** Pede outro plano para esta semana (no máximo um por dia). */
-export function regenerateWeeklyPlan(token: string) {
-  return apiRequest<AiWeeklyPlanResponse>('/ai/weekly-plan/regenerate', { method: 'POST', timeoutMs: AI_TIMEOUT, token });
+/** Pede outro plano para esta semana (no máximo um por dia). Com `userId`, a cópia do aparelho troca junto. */
+export async function regenerateWeeklyPlan(token: string, userId?: string) {
+  const response = await apiRequest<AiWeeklyPlanResponse>('/ai/weekly-plan/regenerate', {
+    method: 'POST',
+    timeoutMs: AI_TIMEOUT,
+    token,
+  });
+  await savePlanCopy(userId, response);
+
+  return response;
 }
 
 /** O resumo de um mês fechado (AAAA-MM). Sem mês, o anterior. */

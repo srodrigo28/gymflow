@@ -3,6 +3,9 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 export const storageKeys = {
+  // Último plano da semana da IA que chegou ({ plan, savedAt }): o treino de hoje pelo plano e os alvos da
+  // sessão seguem sem internet. Sai quando a sessão fica sem o consentimento da IA e ao apagar a conta.
+  aiWeeklyPlan: (userId: string) => `gynflow.aiWeeklyPlan.${userId}`,
   // Última lista das prescrições que o personal mandou ({ plans, savedAt }): o treino do dia abre sem
   // internet. É só uma cópia; a lista de verdade fica na conta e troca esta a cada carga.
   coachingPlans: (userId: string) => `gynflow.coachingPlans.${userId}`,

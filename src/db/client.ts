@@ -137,6 +137,13 @@ const migrations: string[] = [
   ALTER TABLE sessions ADD COLUMN plan_id TEXT;
   ALTER TABLE sessions ADD COLUMN plan_day INTEGER;
   `,
+  `
+  -- Treino começado pelo plano da semana da IA (Fase 6): a semana do plano (a segunda-feira, AAAA-MM-DD) e o
+  -- dia (0 = segunda). Ficam só no aparelho: o plano da IA não é prescrição de ninguém e não sobe com o
+  -- treino. A sessão usa os dois para achar os alvos na cópia do plano guardada aqui.
+  ALTER TABLE sessions ADD COLUMN ai_week TEXT;
+  ALTER TABLE sessions ADD COLUMN ai_weekday INTEGER;
+  `,
 ];
 
 let currentUserId: string | null = null;

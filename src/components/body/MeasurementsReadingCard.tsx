@@ -38,7 +38,7 @@ const SLOW_MS = 800;
  * internet ou com a leitura recusada pelas regras do servidor, fica em silêncio.
  */
 export function MeasurementsReadingCard() {
-  const { session } = useSession();
+  const { refreshAccount, session } = useSession();
   const token = session?.token;
   const hasAiConsent = Boolean(session?.user.aiConsentAt);
   const hasBodyConsent = Boolean(session?.user.bodyDataConsentAt);
@@ -74,9 +74,20 @@ export function MeasurementsReadingCard() {
             ? { kind: 'empty', message: response.message || 'Ainda não há medidas suficientes na conta.', token }
             : null;
         },
-        // Só o limite (429) tem o que dizer. O resto (503, 403, sem internet) fica em silêncio.
-        (reason: unknown): Loaded | null =>
-          reason instanceof ApiError && reason.status === 429 ? { kind: 'limit', message: reason.message, token } : null,
+        (reason: unknown): Loaded | null => {
+          // Só o limite (429) tem o que dizer. O resto (503, 403, sem internet) fica em silêncio.
+          if (reason instanceof ApiError && reason.status === 429) {
+            return { kind: 'limit', message: reason.message, token };
+          }
+
+          // 403: um consentimento que o aparelho achava que existia saiu em outro aparelho. A conta é conferida
+          // de novo, e o atalho passa a dizer o que falta.
+          if (reason instanceof ApiError && reason.status === 403) {
+            void refreshAccount();
+          }
+
+          return null;
+        },
       )
       .then((next) => {
         pending.current = false;
@@ -84,7 +95,7 @@ export function MeasurementsReadingCard() {
         setIsSlow(false);
         setLoaded(next);
       });
-  }, [ready, token]);
+  }, [ready, refreshAccount, token]);
 
   useFocusEffect(
     useCallback(() => {

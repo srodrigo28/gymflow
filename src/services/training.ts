@@ -148,10 +148,12 @@ export async function getSession(sessionId: string): Promise<WorkoutSession | nu
     finished_at: number | null;
     id: string;
     note: string | null;
+    ai_week: string | null;
+    ai_weekday: number | null;
     plan_day: number | null;
     plan_id: string | null;
     started_at: number;
-  }>('SELECT id, started_at, finished_at, note, plan_id, plan_day FROM sessions WHERE id = ?', [sessionId]);
+  }>('SELECT id, started_at, finished_at, note, plan_id, plan_day, ai_week, ai_weekday FROM sessions WHERE id = ?', [sessionId]);
 
   if (!session) {
     return null;
@@ -184,6 +186,10 @@ export async function getSession(sessionId: string): Promise<WorkoutSession | nu
   }));
 
   return {
+    aiPlan:
+      session.ai_week && session.ai_weekday !== null
+        ? { weekKey: session.ai_week, weekday: session.ai_weekday }
+        : undefined,
     exercises,
     finishedAt: session.finished_at ?? undefined,
     id: session.id,
@@ -215,13 +221,18 @@ export function startPlanSession(planId: string, planDay: number, exercises: Pla
  * em andamento (`busy`). A diferença é que a sessão nasce sem `plan_id` e `plan_day`. Esses campos sobem
  * com o treino como a prescrição do personal de onde ele veio (a API procura esse plano na conta, e a tela
  * da sessão mostra "prescrito pelo seu personal"), e o plano da IA não é prescrição de ninguém. Para a
- * conta, é um treino livre que já começa com os exercícios escolhidos.
+ * conta, é um treino livre que já começa com os exercícios escolhidos. No aparelho, a sessão guarda a
+ * semana e o dia do plano, para mostrar os alvos da IA (séries, repetições, carga sugerida e descanso).
  */
-export function startAiPlanSession(exercises: PlanExercise[]) {
-  return startPreparedSession(exercises, null);
+export function startAiPlanSession(exercises: PlanExercise[], aiPlan: { weekKey: string; weekday: number }) {
+  return startPreparedSession(exercises, null, aiPlan);
 }
 
-async function startPreparedSession(exercises: PlanExercise[], plan: { planDay: number; planId: string } | null) {
+async function startPreparedSession(
+  exercises: PlanExercise[],
+  plan: { planDay: number; planId: string } | null,
+  aiPlan: { weekKey: string; weekday: number } | null = null,
+) {
   const database = await getDatabase();
   const active = await getActiveSessionId();
 
@@ -238,10 +249,11 @@ async function startPreparedSession(exercises: PlanExercise[], plan: { planDay: 
 
   const id = active ?? (await startSession());
   const now = Date.now();
-  // Sem prescrição, os dois campos ficam nulos de propósito: um treino vazio reaproveitado não leva a de antes.
+  // Sem prescrição (ou sem plano da IA), os campos ficam nulos de propósito: um treino vazio reaproveitado
+  // não leva a de antes.
   await database.runAsync(
-    'UPDATE sessions SET plan_id = ?, plan_day = ?, started_at = ?, updated_at = ? WHERE id = ?',
-    [plan?.planId ?? null, plan?.planDay ?? null, now, now, id],
+    'UPDATE sessions SET plan_id = ?, plan_day = ?, ai_week = ?, ai_weekday = ?, started_at = ?, updated_at = ? WHERE id = ?',
+    [plan?.planId ?? null, plan?.planDay ?? null, aiPlan?.weekKey ?? null, aiPlan?.weekday ?? null, now, now, id],
   );
 
   for (const item of exercises) {
