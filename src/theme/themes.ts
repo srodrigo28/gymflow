@@ -10,7 +10,7 @@ export function withAlpha(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// Cores de domínio e de status são iguais em todos os temas:
+// Cores de domínio e de status são iguais em todos os temas escuros:
 // cada cor tem um único significado no app inteiro.
 const domain: Theme['domain'] = {
   treino: p.mint[400],
@@ -28,30 +28,62 @@ const status: Theme['status'] = {
   info: p.sky[400],
 };
 
+// No tema claro as mesmas cores ficam mais fechadas: as versões luminosas foram feitas para
+// fundo escuro e não têm contraste suficiente sobre branco.
+const lightDomain: Theme['domain'] = {
+  treino: p.jade[700],
+  sono: p.violet[600],
+  agua: p.cyan[700],
+  alimentacao: p.orange[700],
+  mente: p.pink[700],
+  conquista: p.amber[700],
+};
+
+const lightStatus: Theme['status'] = {
+  success: p.jade[700],
+  warning: p.amber[800],
+  danger: p.rose[700],
+  info: p.sky[700],
+};
+
+const darkBorder: Theme['border'] = {
+  subtle: 'rgba(255, 255, 255, 0.07)',
+  strong: 'rgba(255, 255, 255, 0.14)',
+  focus: '',
+};
+
+const lightBorder: Theme['border'] = {
+  subtle: 'rgba(21, 26, 35, 0.10)',
+  strong: 'rgba(21, 26, 35, 0.20)',
+  focus: '',
+};
+
 type ThemeConfig = Pick<Theme, 'name' | 'label' | 'description' | 'text' | 'gradient'> & {
   bg: Omit<Theme['bg'], 'overlay'>;
   accent: Omit<Theme['accent'], 'soft'>;
+  scheme?: Theme['scheme'];
 };
 
-function createTheme({ accent, bg, ...config }: ThemeConfig): Theme {
+function createTheme({ accent, bg, scheme = 'dark', ...config }: ThemeConfig): Theme {
+  const isLight = scheme === 'light';
+
   return {
     ...config,
-    scheme: 'dark',
+    scheme,
     bg: {
       ...bg,
       overlay: withAlpha(bg.surface, 0.72),
     },
     border: {
-      subtle: 'rgba(255, 255, 255, 0.07)',
-      strong: 'rgba(255, 255, 255, 0.14)',
+      ...(isLight ? lightBorder : darkBorder),
       focus: accent.primary,
     },
     accent: {
       ...accent,
       soft: withAlpha(accent.primary, 0.14),
     },
-    status,
-    domain,
+    status: isLight ? lightStatus : status,
+    domain: isLight ? lightDomain : domain,
   };
 }
 
@@ -69,6 +101,21 @@ export const themes: Record<ThemeName, Theme> = {
       secondary: p.cyan[400],
     },
     gradient: { aurora: [p.mint[400], p.cyan[400], p.violet[350]] },
+  }),
+  dia: createTheme({
+    name: 'dia',
+    label: 'Dia',
+    description: 'Fundo claro para treinar sob o sol. As mesmas cores, com mais contraste.',
+    scheme: 'light',
+    bg: { base: p.day[50], surface: p.day[0], raised: p.day[100], high: p.day[200] },
+    text: { primary: p.day[900], secondary: p.day[700], muted: p.day[500] },
+    accent: {
+      primary: p.jade[700],
+      pressed: p.jade[800],
+      onPrimary: p.day[0],
+      secondary: p.cyan[700],
+    },
+    gradient: { aurora: [p.jade[500], p.cyan[400], p.violet[350]] },
   }),
   meiaNoite: createTheme({
     name: 'meiaNoite',

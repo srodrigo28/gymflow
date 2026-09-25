@@ -28,6 +28,16 @@ export const palette = {
     900: '#201E3A',
     950: '#16152B',
   },
+  // Tema claro "Dia": neutros frios da mesma família do Flow.
+  day: {
+    0: '#FFFFFF',
+    50: '#F2F5F9',
+    100: '#E6EBF2',
+    200: '#D5DDE8',
+    500: '#5F697D',
+    700: '#3B4558',
+    900: '#151A23',
+  },
   ember: {
     50: '#FFF7F3',
     300: '#D6C6BF',
@@ -46,12 +56,14 @@ export const palette = {
     400: '#1FD99A',
     500: '#12B981',
     700: '#0F8C6A',
+    800: '#0B6E54',
     950: '#04200F',
   },
   violet: {
     300: '#A597FF',
     350: '#9D8CFF',
     400: '#8E7DF5',
+    600: '#5B4FCF',
     950: '#15103A',
   },
   coral: {
@@ -61,23 +73,30 @@ export const palette = {
   },
   cyan: {
     400: '#4FD6F2',
+    700: '#0E8DA8',
   },
   amber: {
     300: '#FFD35C',
     350: '#FFC65C',
     400: '#FFC23D',
+    700: '#B37400',
+    800: '#9A6400',
   },
   orange: {
     400: '#FFA65C',
+    700: '#C2620F',
   },
   pink: {
     400: '#F58BD8',
+    700: '#B4338F',
   },
   rose: {
     400: '#FF7A85',
     450: '#FF6B7A',
+    700: '#C2323F',
   },
   sky: {
     400: '#6CB8FF',
+    700: '#2563EB',
   },
 } as const;

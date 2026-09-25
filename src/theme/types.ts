@@ -1,4 +1,4 @@
-export type ThemeName = 'flow' | 'meiaNoite' | 'aurora' | 'brasa';
+export type ThemeName = 'flow' | 'dia' | 'meiaNoite' | 'aurora' | 'brasa';
 
 export type DomainName = 'treino' | 'sono' | 'agua' | 'alimentacao' | 'mente' | 'conquista';
 
