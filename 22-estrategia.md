@@ -962,6 +962,9 @@ está em produção, e os commits do app foram enviados para o repositório.
 | Fim da tarde, API | 142 testes (4 novos: as métricas do painel, as URLs de foto do personal e do desafio, e a IA com pedidos em paralelo, escolhas sem consentimento e o questionário enxuto; os testes da regra de carga e do depoimento ganharam conferências), typecheck e build; CI verde em `0cefe14` e `63ae755` |
 | Fim da tarde, produção | API publicada até `63ae755` (tag `v2026.09.25-2`), com a conferência do salvek99 batendo; em `0cefe14`, com duas contas temporárias apagadas no fim: diário e medidas gravando com o consentimento travado, a retirada do diário apagando, escolhas da IA sem consentimento com 403, o mesmo convite de novo com 410 e o depoimento com 409 para outro texto e 204 para o lido |
 | Fim da tarde, emulador | o painel com as sete métricas da estratégia e o custo da IA no mês, com os números da base de teste local; o depoimento trocado por trás, e o Aprovar mostrou o aviso com o texto novo; aprovado de novo, a página pública passou a mostrar o texto novo |
+| Noite, web | com o Playwright (Chromium com tamanho de celular) contra a API local, no servidor de desenvolvimento e no build exportado servido com os dois cabeçalhos: as 20 telas principais sem erro; treino pela prescrição até a conta (0 na fila); foto de 4000 × 3000 guardada como 1600 × 1200; capa que continua depois de recarregar; consentimento das fotos retirado e dado de novo; convite copiado; card baixado em 1080 × 1350; fotos do mural do desafio vindas de /files; conta nova criada e apagada (o login dela passou a dar 401) |
+| Noite, Android | depois das mudanças: a sessão pela prescrição abre com a tela acesa; o alerta de "Baixar de novo da conta"; a folha de compartilhar com a imagem do card e a de texto do convite; foto da galeria guardada e enviada à conta local |
+| Noite, produção | API em `5ed63a9` com a conferência do salvek99 batendo; /health com `same-origin` e /files com `cross-origin` |
 | Não exercitado | o Claude de verdade (sem chave); GPS e push (só num celular); sem teste que force: dois envios do mesmo convite ao mesmo tempo, uma gravação no meio da retirada de um consentimento e apagar fotos sem o segredo (o caminho normal de cada um está coberto) |
 
 ### Ainda não feito
@@ -970,7 +973,8 @@ está em produção, e os commits do app foram enviados para o repositório.
   as fotos do hero e do login, celular físico, iPhone, build de loja e Health Connect com Apple Health.
 - **Versão web** continua parcial: o treino usa SQLite, que não roda no servidor web de desenvolvimento.
 
-As outras quatro pontas que estavam aqui foram fechadas na mesma tarde (seção seguinte).
+As outras quatro pontas que estavam aqui foram fechadas na mesma tarde (seção seguinte), e a versão web, à noite
+(seção "Noite: a versão web no navegador").
 
 ### Depois do fechamento: as pontas abertas (25/09, tarde)
 
@@ -1065,6 +1069,47 @@ número e a tela não mostrava.
 - **A carga sugerida continua como alvo, sem preencher as séries.** O motivo técnico da seção anterior caiu,
   porque a regra agora olha as repetições, mas preencher a série com a sugestão ainda pediria que a pessoa
   confirmasse sem pensar. Se o dono preferir preencher, é uma troca pequena no app.
+
+### Noite: a versão web no navegador (25/09)
+
+Pedido do dono: "quero que continue fazendo que consegue fazer sozinho". A única ponta de código do registro era a
+versão web: o treino usava o SQLite, que não abria no navegador. A causa era de configuração, e depois dela
+apareceram os pontos em que o app contava com o celular. O app ganhou quatro commits de código, e a API um, publicado.
+
+**O que foi feito**
+
+- **O banco local no navegador**: o expo-sqlite roda o SQLite em WebAssembly num worker, que conversa com a página
+  por SharedArrayBuffer. O `metro.config.js` passa a aceitar o `.wasm` e a mandar os cabeçalhos COOP e COEP no
+  servidor de desenvolvimento. A raiz, que o Expo responde antes desses cabeçalhos, recarrega uma vez pela /splash.
+- **O build de produção**: o `import('expo-sqlite')` à parte fazia o `expo export` pôr num pedaço comum módulos que o
+  worker também usa, e o worker quebrava ("Requiring unknown module"). O import passou a ser estático, e o build ficou
+  com dois arquivos: o app e o worker.
+- **O que o navegador não tem**: o Alert do React Native não faz nada lá, e 17 alertas (entre eles os consentimentos
+  das medidas, das fotos, do diário e do questionário) passam por um `showAlert` que usa o `confirm` do navegador. Os
+  convites vão pela folha de compartilhar ou, sem ela, para a área de transferência. O card de recorde e o de foto são
+  desenhados pelo html2canvas e vão como arquivo ou são baixados, porque o `captureRef` do view-shot não funciona com
+  o react-native-web atual. A tela acesa do treino trata a recusa do navegador.
+- **Fotos no navegador**: sem a pasta privada do app, a foto de evolução vira um JPEG de até 1600 px, sem metadados,
+  guardado no banco local; a capa também, porque a imagem inteira passava do limite do armazenamento da página e
+  sumia ao recarregar. As telas dizem que, no navegador, as fotos ficam só nele.
+- **A página**: `lang` pt-BR, a cor da splash desde o primeiro instante e o aviso de JavaScript em português
+  (`public/index.html`; o `app/+html.tsx` só vale no modo "static").
+- **Na API**: `/files` passa a responder `Cross-Origin-Resource-Policy: cross-origin`, porque o navegador bloqueava
+  as fotos do mural quando o app web está noutra origem. A URL assinada já é a permissão; o resto segue
+  `same-origin`.
+
+**Decisões (para o dono revisar)**
+
+- **No navegador, as fotos de evolução ficam só nele e não sobem para a conta.** A sincronização das fotos (miniatura,
+  foto inteira, consentimento por aparelho) foi feita para o celular, e em produção o armazenamento das fotos ainda
+  responde 503. Levar isso para o navegador é um trabalho à parte, que vale quando o armazenamento estiver ligado.
+- **Onde publicar o web é decisão sua** (próximos passos do manual). O mais simples é na mesma origem da API, em
+  99dev.pro, sem CORS. A hospedagem precisa mandar os dois cabeçalhos em toda resposta e devolver o `index.html`
+  nas rotas do app. O passo a passo está no README do app.
+- **Achado, sem mudança: o login leva à home, e a abertura seguinte leva ao questionário.** Numa conta que entra num
+  aparelho sem as respostas do questionário (e sem o consentimento de guardá-las na conta), o login vai direto para a
+  home, mas a splash, na próxima abertura, manda para o questionário de 23 etapas. Vale no celular também. Dá para
+  alinhar os dois caminhos para um lado ou para o outro; a escolha é de produto.
 
 ## Fontes da pesquisa
 

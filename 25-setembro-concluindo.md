@@ -59,6 +59,9 @@ Ontem à noite o app estava em 90%, a API em 92% e o plano completo em 84%. O qu
 - **Fim da tarde**: revisão de segurança da API (duas falhas médias e quatro baixas, corrigidas e conferidas em
   produção), a carga sugerida pela IA limitada também pelas repetições e as métricas da seção 6 no painel, com
   o custo da IA. A API foi publicada com 142 testes e a tag `v2026.09.25-2`.
+- **Noite**: a versão web passou a funcionar no navegador, no desenvolvimento e no build de produção: o banco local
+  em WebAssembly, as confirmações, os compartilhamentos e as fotos guardadas no próprio navegador. Publicar o web é um
+  passo seu (próximos passos do manual).
 - **Tudo o que está "a fazer" no manual depende de você**: é a lista abaixo.
 
 ---

@@ -8,9 +8,9 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
-| **App** (frontend em Expo) | 85 | 2 | 4 | **95%** |
+| **App** (frontend em Expo) | 86 | 1 | 5 | **94%** |
 | **API** (gymflow-api) | 61 | 0 | 2 | **97%** |
-| **Geral** (Fases 1 a 6, app e API) | 146 | 2 | 6 | **95%** |
+| **Geral** (Fases 1 a 6, app e API) | 147 | 1 | 7 | **95%** |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -33,8 +33,9 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 2. **Volume e segredo das fotos na VPS** (Publicação): Criar /var/lib/99dev/gymflow/fotos (dono 1000:1000), DEPLOY_VOLUMES no painel, STORAGE_DIR=/app/storage e STORAGE_SECRET gerado com openssl rand -hex 32. Liga as fotos na conta e o check-in com foto em produção. Passo a passo no guia de deploy.
 3. **Chave da Anthropic na VPS** (Publicação): ANTHROPIC_API_KEY no .env.deploy, com limite de gasto na conta da Anthropic. Liga a Fase 6 em produção; na primeira semana, conferir no painel de administração o custo real por pessoa contra o teto de US$ 0,20.
 4. **Fotos definitivas do hero e do login** (App): Duas fotos próprias ou licenciadas no lugar dos mockups gerados.
-5. **Celular físico, iPhone e build de loja (EAS)** (Publicação): GPS e push só se exercitam num celular com development build; a etapa 13 (VoiceOver e fonte grande) no iPhone; depois, o build de loja, como decidido em 23/09.
-6. **Health Connect e Apple Health** (App): Passos, batimentos e sono alimentando as recomendações. Só com o build nativo.
+5. **Publicar a versão web** (Publicação): Escolher o endereço (na mesma origem da API, em 99dev.pro, não precisa de CORS; num subcaminho, o build pede experiments.baseUrl no app.json), gerar com npx expo export -p web e hospedar a pasta dist com os cabeçalhos COOP same-origin e COEP credentialless e o index.html nas rotas do app. Passo a passo no README do app.
+6. **Celular físico, iPhone e build de loja (EAS)** (Publicação): GPS e push só se exercitam num celular com development build; a etapa 13 (VoiceOver e fonte grande) no iPhone; depois, o build de loja, como decidido em 23/09.
+7. **Health Connect e Apple Health** (App): Passos, batimentos e sono alimentando as recomendações. Só com o build nativo.
 
 ## App (frontend)
 
@@ -176,10 +177,11 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Plataformas e loja · Publicação
 
-50% · 2 prontas, 1 parcial, 2 a fazer
+50% · 3 prontas, 0 parciais, 3 a fazer
 
 - ✅ **Android** · Testado no emulador com o Expo Go.
-- 🟨 **Web** · As telas de entrada funcionam. O treino usa SQLite, que não roda no servidor web de desenvolvimento.
+- ✅ **Web** · Funciona no navegador desde 25/09 (noite), no servidor de desenvolvimento e no build exportado: treinos (com o banco local em WebAssembly), medidas, diário, desafios, liga, personal, painel e conta, com confirmações e compartilhamento próprios do navegador. As fotos de evolução e a capa ficam só no navegador, reduzidas; câmera com guia, check-in por GPS e notificações, só no celular. Validado com o Playwright contra a API local.
+- ⬜ **Versão web publicada** · Depende de você: escolher o endereço e hospedar o build com os dois cabeçalhos do banco local. Passo a passo no README do app.
 - ⬜ **iPhone**
 - ⬜ **Build de loja (EAS)** · Adiado em 23/09: primeiro as funções que faltam.
 - ✅ **App apontando para a API publicada** · expo.extra.apiUrl = https://99dev.pro/gymflow-api; sem .env.local o app já usa a produção. Testado de ponta a ponta no emulador em 24/09: cadastro, consentimento e medida, treino com recorde, desafio com convite e exclusão da conta, tudo conferido na API publicada. · `app.json`
@@ -214,7 +216,7 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 - ✅ **Consentimento para medidas na conta** · Liga e desliga; sem ele, as rotas de medidas respondem 403 CONSENT_REQUIRED. Retirar apaga todas as medidas da conta na hora, e um novo aceite grava um instante novo. · `PUT /me/consents/body-data`
 - ✅ **Receber as medidas da fila do app** · Lotes de até 50, validação medida a medida, versão mais nova vence; medida apagada vira só uma marca, sem valores. · `POST /sync/measurements`
 - ✅ **Devolver as medidas da conta** · Em páginas de até 50, para restaurar num aparelho novo. · `GET /sync/measurements`
-- ✅ **Fotos de evolução com consentimento próprio** · Armazenamento privado, imagem refeita sem metadados (até 1600 px) e miniatura, URL assinada de 10 minutos que confere o consentimento na hora. Coberto por 7 testes. Em produção responde 503 até o volume e o segredo serem configurados. Cada URL vale para a conta que a pediu: o personal perde as fotos quando o aluno desliga a chave (coberto por teste). · `POST, GET e DELETE /sync/photos · GET /files/:token`
+- ✅ **Fotos de evolução com consentimento próprio** · Armazenamento privado, imagem refeita sem metadados (até 1600 px) e miniatura, URL assinada de 10 minutos que confere o consentimento na hora. Coberto por 7 testes. Em produção responde 503 até o volume e o segredo serem configurados. Cada URL vale para a conta que a pediu: o personal perde as fotos quando o aluno desliga a chave (coberto por teste). A rota /files é a única que outra origem pode embutir (CORP cross-origin), para o app web mostrar a imagem. · `POST, GET e DELETE /sync/photos · GET /files/:token`
 - ✅ **Modalidade de cada exercício no treino** · Opcional: o app antigo continua aceito. · `POST /sync/workouts`
 - ✅ **Diário do dia na conta** · Consentimento próprio; retirar apaga tudo; a versão mais nova vence. · `POST e GET /sync/daily-logs`
 
@@ -299,6 +301,15 @@ npx expo start --port 8097
 ```
 
 A porta 8090 está ocupada neste computador. Com .env.local, o app fala com a API local (EXPO_PUBLIC_API_URL); sem ele, com a publicada. No emulador Android, rode adb reverse tcp:3333 tcp:3333.
+
+**Web** (`D:\dev\gynflow\gymflow-mobile`)
+
+```bash
+npx expo start --web --port 8099
+npx expo export -p web
+```
+
+O banco local do navegador pede a página isolada de outras origens: o servidor de desenvolvimento manda os cabeçalhos (metro.config.js) e a raiz se recarrega uma vez pela /splash. Contra a API local, suba a API com CORS_ORIGINS=http://localhost:8099. O build sai em dist e precisa de hospedagem com Cross-Origin-Opener-Policy: same-origin e Cross-Origin-Embedder-Policy: credentialless em toda resposta.
 
 **API** (`D:\dev\gynflow\gymflow-api`)
 

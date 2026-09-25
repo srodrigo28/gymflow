@@ -126,6 +126,26 @@ Rodar no navegador:
 npm run web
 ```
 
+O banco local do navegador (o SQLite em WebAssembly do expo-sqlite) só liga com a página isolada de outras origens. O
+servidor de desenvolvimento manda esses cabeçalhos (`metro.config.js`), e a raiz se recarrega uma vez pela `/splash`
+para recebê-los. Contra a API local, ela precisa liberar a origem do navegador:
+
+```powershell
+$env:CORS_ORIGINS = 'http://localhost:8081'; npm run dev   # na pasta da API
+```
+
+Build do web para hospedar (pasta `dist`):
+
+```powershell
+npx expo export -p web
+```
+
+A hospedagem precisa mandar `Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: credentialless`
+em toda resposta e devolver o `index.html` nas rotas do app (ex.: `/treino`). Na mesma origem da API (99dev.pro), não
+precisa de CORS; noutra origem, ela entra em `CORS_ORIGINS` da API. Num subcaminho, o build pede
+`experiments.baseUrl` no `app.json`. No navegador, as fotos de evolução e a capa ficam só nele, e a câmera com guia, o
+check-in por GPS e as notificações ficam só no app do celular.
+
 Rodar no Android:
 
 ```powershell
