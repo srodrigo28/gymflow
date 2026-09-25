@@ -25,7 +25,7 @@ Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-esta
 - Onboarding de até 26 telas (22 a 26, conforme as respostas); as respostas ficam só no aparelho
 - Registro de treino offline, com histórico, recordes e "o que está faltando"
 - Treinos concluídos sobem sozinhos para a conta quando há internet, e voltam sozinhos num aparelho novo
-- Evolução: medidas com gráfico, foto do mês e comparador. Com consentimento específico (LGPD), as medidas ficam guardadas na conta e voltam num aparelho novo; as fotos continuam só no aparelho
+- Evolução: medidas com gráfico, foto do mês e comparador. Com consentimentos específicos (LGPD) e separados, as medidas e as fotos ficam guardadas na conta e voltam num aparelho novo; as fotos sobem sem metadados e só abrem por links de 10 minutos
 - Desafios entre amigos: convite por link, placar de dias com treino
 - Card compartilhável de recorde e de resumo da semana
 - Painel de administração com o total de cadastros (o gatilho dos 200)
@@ -35,7 +35,12 @@ Aplicativo mobile em Expo/React Native para acompanhar treino, saúde e bem-esta
 - Recuperação de senha e confirmação de e-mail por código; Termos de Uso e Política de Privacidade; questionário na conta com consentimento próprio
 - Amigos, cards de sequência e do mês, recorde com card na hora, check-in na academia, câmera com guia de contorno e compartilhar fotos com tarja
 - Notificações dos desafios (lembrete do dia e placar final) pelo Expo Push: o aparelho se registra ao abrir um desafio; chegam num development build ou no app da loja, não no Expo Go
-- Liga e temporada (Fase 4): XP e nível, meta da semana, ligas semanais Bronze, Prata, Ouro e Elite, temporada do mês entre amigos por categoria, força relativa por DOTS com consentimento, check-in verificado na conta e troféus e selos
+- Liga e temporada (Fase 4): XP e nível, meta da semana, sequência de semanas com 2 escudos por mês, ligas semanais Bronze, Prata, Ouro e Elite, temporada do mês entre amigos com as oito categorias (pontualidade com a agenda, modalidades e equilíbrio incluídos), força relativa por DOTS com consentimento, check-in verificado na conta e troféus e selos
+- Catálogo de 55 exercícios em nove modalidades (musculação, corrida, bike, natação, funcional, luta, yoga, mobilidade e cardio), com séries só de tempo para yoga, luta e mobilidade, e a agenda da semana nas Escolhas de treino
+- Diário do dia: sono, água e humor, com consentimento próprio para ficar na conta
+- Check-in com foto nos desafios: um por dia, visível só para o grupo, com mural do dia e moderação (quem criou oculta; dois participantes também)
+- Personal e academia (Fase 5): perfil de personal com página pública, convite por link, vínculo com três permissões que o aluno controla, painel de alunos, prescrição de treino (o aluno treina pela prescrição e o personal vê o feito contra o prescrito), ranking de personais e mural da academia
+- Recomendações com IA (Fase 6): plano da semana com o porquê de cada dia, resumo do mês e leitura das medidas, com consentimento próprio, regras de segurança por cima e teto de custo; sem a chave no servidor, ficam as recomendações por regras
 - API publicada em `https://99dev.pro/gymflow-api`, com a documentação das rotas em https://99dev.pro/gymflow-api/doc
 - App validado contra a API publicada no emulador Android (24/09): cadastro, consentimento e medida, treino com recorde, desafio com convite e exclusão da conta
 
@@ -68,6 +73,14 @@ app/
     _layout.tsx
     home.tsx
     appearance.tsx
+    treino/      (sessão, histórico, exercícios, escolhas e agenda, check-in e mural da academia)
+    corpo/       (medidas, fotos, câmera, comparar)
+    desafios/    (lista, placar, mural do dia, check-in com foto)
+    liga/        (liga, temporada, força)
+    alunos/      (painel do personal, aluno, prescrever, ranking)
+    diario.tsx, recomendacoes.tsx, perfil.tsx…
+  convite/[code].tsx            (convite de desafio)
+  personal/convite/[code].tsx   (convite de personal)
 
 src/
   components/
@@ -169,9 +182,11 @@ Com `.env.local`, o app usa o endereço dele em vez do publicado. As chamadas fi
 
 ## Próximos passos
 
-- Testar num celular físico e no iPhone (no emulador Android já foi)
-- Fotos de evolução na conta, com o mesmo consentimento específico das medidas (precisam de armazenamento privado com URL assinada)
+O que falta depende de configuração na VPS e de aparelhos (lista completa em `25-setembro-concluindo.md`):
+
 - Configurar SMTP e SUPPORT_EMAIL na VPS (libera recuperação de senha, confirmação de e-mail e o alerta da sonda em produção)
-- Check-in com foto nos desafios (Fase 3) e um development build para ver as notificações chegando
-- Fase 4: pontualidade, modalidade e equilíbrio na temporada e os escudos da sequência; Fase 5: personal e academia
-- Build de loja (EAS), depois das funções acima
+- Volume e segredo das fotos na VPS (liga as fotos na conta e o check-in com foto em produção)
+- Chave da Anthropic na VPS (liga as recomendações com IA em produção)
+- Fotos definitivas do hero e do login
+- Testar num celular físico (GPS e push precisam de development build) e no iPhone
+- Build de loja (EAS) e Health Connect e Apple Health, que dependem dele

@@ -40,8 +40,11 @@ out.push('## Resumo', '');
 out.push('| Área | Prontas | Parciais | A fazer | Andamento |', '| --- | ---: | ---: | ---: | ---: |');
 out.push(`| **App** (frontend em Expo) | ${app.done} | ${app.partial} | ${app.todo} | **${app.pct}%** |`);
 out.push(`| **API** (gymflow-api) | ${api.done} | ${api.partial} | ${api.todo} | **${api.pct}%** |`);
-out.push(`| **Geral**, escopo atual (Fases 1 a 3 e API) | ${current.done} | ${current.partial} | ${current.todo} | **${current.pct}%** |`);
-out.push(`| Plano completo, com as Fases 4 a 6 | ${full.done} | ${full.partial} | ${full.todo} | ${full.pct}% |`, '');
+out.push(`| **Geral** (Fases 1 a 6, app e API) | ${current.done} | ${current.partial} | ${current.todo} | **${current.pct}%** |`);
+if (full.total > current.total) {
+  out.push(`| Plano completo, com as próximas fases | ${full.done} | ${full.partial} | ${full.todo} | ${full.pct}% |`);
+}
+out.push('');
 out.push(
   '**Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.',
   '',
@@ -67,6 +70,7 @@ const sections = [
 ];
 
 for (const [area, heading] of sections) {
+  if (!data.groups.some((g) => g.area === area)) continue;
   out.push(`## ${heading}`, '');
   for (const group of data.groups.filter((g) => g.area === area)) {
     const stats = tally(group.items);

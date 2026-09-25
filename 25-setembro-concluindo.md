@@ -28,15 +28,32 @@ Ontem à noite o app estava em 90%, a API em 92% e o plano completo em 84%. O qu
 
 | # | Bloco | Status | Tempo previsto | Depende de |
 | --- | --- | --- | --- | --- |
-| 0 | Abertura: portões verdes, commit do que ficou de 24/09, emulador no ar | ⬜ | 30 min | (nada) |
-| 1 | Fase 4 completa: pontualidade, modalidade, equilíbrio, escudos | ⬜ | 2 h | 0 |
-| 2 | Fotos na conta e check-in com foto (fecha a Fase 3 e o que a Fase 2 pode fechar) | ⬜ | 2 h | 0, D1 |
-| 3 | Fase 5: personal e academia (inclui o ranking e o mural da academia) | ⬜ | 3 h | 1 |
-| 4 | Fase 6: recomendação com IA | ⬜ | 2 h | 1, D2 |
-| 5 | Fechamento: manual, estratégia, READMEs, publicação e conferência | ⬜ | 1 h | todos |
+| 0 | Abertura: portões verdes, commit do que ficou de 24/09, emulador no ar | ✅ | 30 min | (nada) |
+| 1 | Fase 4 completa: pontualidade, modalidade, equilíbrio, escudos | ✅ | 2 h | 0 |
+| 2 | Fotos na conta e check-in com foto (fecha a Fase 3 e o que a Fase 2 pode fechar) | ✅ | 2 h | 0, D1 |
+| 3 | Fase 5: personal e academia (inclui o ranking e o mural da academia) | ✅ | 3 h | 1 |
+| 4 | Fase 6: recomendação com IA | ✅ | 2 h | 1, D2 |
+| 5 | Fechamento: manual, estratégia, READMEs, publicação e conferência | ✅ | 1 h | todos |
 | 6 | O que só você destrava | ⏸️ | (você) | (você) |
 
 > O bloco 5 atualiza este painel com o que foi feito de verdade.
+
+**Fechamento (25/09, tarde).** Os blocos 0 a 5 rodaram como estavam escritos, com as decisões D1 a D9.
+
+| Área | Prontas | Parciais | A fazer | Andamento |
+| --- | ---: | ---: | ---: | ---: |
+| App | 85 | 2 | 4 | 95% |
+| API | 59 | 0 | 2 | 97% |
+| Geral (Fases 1 a 6) | 144 | 2 | 6 | 95% |
+
+- **API**: 138 testes, publicada a cada bloco e marcada com a tag `v2026.09.25`. Fotos e IA respondem 503 em
+  produção até os itens 2 e 3 da lista abaixo.
+- **App**: commits por frente (catálogo e agenda, diário e escudos, fotos, check-in com foto, personal e
+  academia, IA, documentação) e push para `srodrigo28/gymflow`.
+- **Validação**: cada bloco no emulador contra a API local e uma rodada final do app contra a produção, com
+  contas temporárias apagadas no fim. O que o emulador exercitou e o que não exercitou está em
+  **Registro da conclusão (25/09)**, no fim de `22-estrategia.md`.
+- **Tudo o que está "a fazer" no manual depende de você**: é a lista abaixo.
 
 ---
 

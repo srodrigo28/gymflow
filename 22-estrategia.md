@@ -298,7 +298,7 @@ semanal e mensal com volume por grupo muscular. Use os tokens do tema e as
 cores de domínio. Rode typecheck e lint.
 ```
 
-### Fase 2 — Corpo e fotos 🟨 (em 24/09)
+### Fase 2 — Corpo e fotos 🟨 (em 25/09)
 
 **Objetivo:** a evolução ficar visível.
 
@@ -318,6 +318,13 @@ Detalhes em **Registro da Fase 2** no fim do documento.
 destacado (cartão na Evolução), e voltam num aparelho novo; retirar o consentimento apaga tudo do
 servidor na hora. Fotos continuam só no aparelho. Detalhes em **Registro das medidas na conta**.
 
+**Situação em 25/09:** as fotos também podem ficar na conta, com consentimento próprio, separado do das
+medidas. O servidor refaz cada foto sem metadados, guarda numa pasta privada e só a entrega por links de 10
+minutos que conferem o consentimento na hora; retirar apaga tudo do servidor. O personal só vê as fotos com
+a permissão do aluno, e perde o acesso no instante em que ela é desligada (coberto por teste). Em produção,
+liga quando o volume e o segredo das fotos forem configurados na VPS. Falta o Health Connect e o Apple
+Health, que dependem do build nativo. Detalhes em **Registro da conclusão (25/09)**.
+
 **Critérios de aceite**: enviar duas fotos de meses diferentes e ver a comparação; revogar o compartilhamento e a foto sumir para o outro lado na hora.
 
 ```txt
@@ -328,7 +335,7 @@ padrão, consentimento específico para dados de saúde, revogação imediata).
 Fotos em armazenamento privado com URL assinada. Rode typecheck e lint.
 ```
 
-### Fase 3 — Social e desafios 🟨 (em 24/09)
+### Fase 3 — Social e desafios ✅ (em 25/09)
 
 **Objetivo:** ligar o primeiro laço viral.
 
@@ -339,9 +346,13 @@ Quem não tem conta vê o convite, se cadastra por ele e entra no desafio. Falta
 com foto, que pede armazenamento de fotos no servidor.
 Detalhes em **Registro da Fase 3** e **Registro da API** no fim do documento.
 
+**Situação em 25/09:** com os amigos (24/09) e o check-in com foto no desafio, a fase fechou. O check-in é um
+por dia, visível só para quem participa, com mural do dia e moderação do grupo (quem criou oculta na hora;
+dois participantes também), e o dia com check-in conta no placar. Em produção, liga com o volume das fotos.
+
 **Critérios de aceite**: criar um desafio e entrar por link em menos de 30 segundos, sem cadastro prévio obrigatório até o momento de pontuar.
 
-### Fase 4 — Ranking, ligas e premiação 🟨 (em 24/09)
+### Fase 4 — Ranking, ligas e premiação ✅ (em 25/09)
 
 **Entregas**: XP, ligas semanais, temporada mensal, as oito categorias da seção 3.3, DOTS para força relativa, check-in verificado, troféus e selos.
 
@@ -352,15 +363,33 @@ selos prontos no app e na API, e os dois critérios de aceite cobertos por teste
 três (pontualidade, modalidade e equilíbrio), e faltam os escudos da sequência. Detalhes em **Registro da
 Fase 4** no fim do documento.
 
-### Fase 5 — Personal e academia ⬜
+**Situação em 25/09:** as três categorias que faltavam entraram: pontualidade (com a agenda da semana),
+modalidades (com o catálogo de nove modalidades) e equilíbrio (com o diário de sono, água e humor). Entraram
+também os escudos da sequência e o ranking da academia, no mural da Fase 5. As oito categorias da seção 3.3
+existem.
+
+### Fase 5 — Personal e academia ✅ (em 25/09)
 
 **Entregas**: vínculo por convite com permissões granulares, painel do personal, prescrição, página do profissional, mural da academia.
 
-### Fase 6 — Recomendação com IA ⬜
+**Situação em 25/09:** pronta no app e na API. Perfil de personal com página pública (CREF como informado,
+sem verificação), vínculo por convite com três permissões que o aluno liga e desliga, painel com aderência e
+quem está parado, prescrição com o feito contra o prescrito, ranking de personais e mural da academia com
+avisos e o ranking do mês por constância verificada.
+
+### Fase 6 — Recomendação com IA ✅ (em 25/09)
 
 **Entregas**: plano semanal gerado por IA com explicação, resumo mensal, leitura das medidas; regras de segurança por cima; execução em lote de madrugada com cache de prompt; medição de custo por usuário.
 
 **Critérios de aceite**: custo medido por usuário ativo abaixo de US$ 0,20/mês; nenhuma sugestão fora dos limites das regras.
+
+**Situação em 25/09:** pronta no app e na API, com o Claude (`claude-opus-5`) pela API da Anthropic: plano
+da semana com o porquê de cada dia, resumo do mês, leitura das medidas e o treino de hoje pelo plano, com
+consentimento próprio. O critério "nenhuma sugestão fora dos limites das regras" está coberto por teste: a
+resposta que quebra uma regra é descartada e o app segue com as recomendações por regras. O custo é medido a
+cada chamada, com teto de US$ 0,20 por pessoa por mês, mas o valor real só se conhece com a chave: até aqui
+rodou só o provedor simulado. Em produção, as rotas respondem 503 até a chave ser configurada. Detalhes em
+**Registro da conclusão (25/09)**.
 
 ---
 
@@ -765,6 +794,182 @@ dependia de código. Dois agentes fizeram as telas do app em paralelo, sobre um 
 funcional, luta, natação e yoga no catálogo) e equilíbrio (precisa de registro diário de sono, água e humor
 na conta); os escudos da sequência (seção 3.2); o ranking e o mural da academia (Fase 5); o check-in na tela
 num celular de verdade.
+
+## Registro da conclusão (25/09)
+
+Pedido do dono: rodar o prompt de 25-setembro-concluindo.md ("perfeito continue"). O dia seguiu os blocos
+do documento, com as decisões D1 a D9 como estavam escritas. Em cada bloco, o contrato do app (tipos e
+serviços) veio primeiro; dois agentes fizeram as telas em paralelo enquanto a API era construída, testada
+e publicada; depois, a validação no emulador contra a API local e os commits do app por frente.
+
+### Bloco 0: abertura
+
+Os portões estavam verdes (105 testes na API, typecheck e lint no app). O trabalho de 24/09, que estava sem
+commit no app, virou oito commits por frente (contas, medidas, tema Dia, social, corpo, aceleração, Fase 4 e
+documentação). O `deploy-api-success.png` solto na raiz do app ficou de fora, sem commit. O painel 99dev
+mudou de pasta (agora `D:\dev\vps-panel`); a skill salvek99 e o script de conferência foram corrigidos.
+
+### Bloco 1: a Fase 4 completa
+
+**O que foi construído**
+
+- **Modalidades**: o catálogo passou de 37 para 55 exercícios, em nove modalidades (musculação, corrida e
+  caminhada, bike, natação, funcional, luta, yoga, mobilidade, cardio na academia). Exercício de yoga, luta,
+  mobilidade e circuito registra só o tempo (kind `tempo`). O treino sobe com a modalidade de cada exercício.
+- **Agenda e pontualidade**: até 7 compromissos por semana, gravados na conta pelas Escolhas de treino. A
+  pontualidade é a parte dos compromissos passados no mês com treino começando até 1 h 30 antes ou depois.
+- **Diário do dia**: sono, água (os mesmos copos da Alimentação) e humor, com consentimento próprio; sobe e
+  desce da conta. O Equilíbrio conta os dias com treino e diário completo.
+- **Escudos**: a Liga mostra a sequência de semanas com a meta e os 2 escudos do mês. Selo de 8 semanas.
+- **Temporada**: as oito categorias da seção 3.3 existem; a lista de indisponíveis veio vazia.
+
+**Decisões (para o dono revisar)**
+
+- **Modalidades e equilíbrio só entre quem mostra detalhes aos amigos**, como tonelagem e cardio: contam o
+  tipo de treino e a saúde, que a promessa de "amigo vê só nome e dias com treino" não cobria. O interruptor
+  virou "Mostrar detalhes aos amigos". Pontualidade aparece para todos os amigos, como a constância (é uma
+  porcentagem, sem horários).
+- **Musculação fica fora do pódio de modalidades**: ela já tem constância, força, evolução e tonelagem.
+- **Pontualidade conta cada dia com a agenda que valia nele**: um horário que sai da agenda não apaga o
+  passado, e só entra quem tem 4 compromissos passados no mês.
+- **O escudo só é gasto quando há sequência para proteger**, e segura a semana sem somar.
+- **Um treino recusado pela API agora volta com o motivo do formato completo**, e não mais "Entrada inválida".
+
+### Bloco 2: fotos na conta e check-in com foto
+
+**O que foi construído**
+
+- **Armazenamento privado** no disco da VPS (driver de disco, trocável por S3 ou R2), com URLs assinadas de
+  10 minutos que conferem, na hora de abrir, se a foto ainda pode ser vista.
+- **Toda foto é refeita pelo servidor**: até 1600 px, JPEG, sem metadados (sem a posição do GPS), com
+  miniatura de 320 px.
+- **Fotos de evolução na conta** com consentimento próprio, separado do das medidas: fila, restauração num
+  aparelho novo (miniatura primeiro) e retirada que apaga tudo na hora.
+- **Check-in com foto nos desafios**: um por dia, visível só para quem participa; o dia com check-in conta no
+  placar e silencia o lembrete. Moderação do grupo: quem criou oculta na hora; dois participantes também.
+- **Backup diário** passa a incluir a pasta de fotos, quando ela existir.
+
+**Decisões (para o dono revisar)**
+
+- **Um check-in oculto só aparece para o autor, sem a foto**, com a linha "Ocultado pelo grupo".
+- **Sair do desafio apaga os check-ins da pessoa nele.**
+- **A câmera frontal do check-in não espelha**: a foto sai como o grupo vê a pessoa.
+- **Foto HEIC ou acima de 5 MB fica no aparelho** com uma linha no cartão (o app não tem conversor).
+- **Uma foto que ainda subia quando o consentimento foi retirado é apagada no servidor** (correção feita
+  depois de um agente apontar a janela).
+
+### Bloco 3: a Fase 5, personal e academia
+
+**O que foi construído**
+
+- **Perfil de personal** no Perfil: endereço da página pública, CREF como o profissional informou (sem
+  verificação, e a página diz isso), apresentação e cidade.
+- **Vínculo por convite** de 8 letras (7 dias, uso único), pelo link `/p/convite/<código>` ou pelo código,
+  com três permissões separadas (treinos, medidas, fotos) que o aluno liga, desliga e revoga no cartão "Meu
+  personal"; cada leitura do personal confere a permissão na hora.
+- **Painel do personal**: aderência da semana e do mês, quem está há 7 dias sem treinar, evolução do mês,
+  prescrição ativa e depoimento pendente; o aluno em detalhe só com o que liberou.
+- **Prescrição**: até 7 dias com exercícios do catálogo, séries, repetições alvo, descanso e observação. O
+  aluno começa o treino pela prescrição e o personal vê o feito contra o prescrito.
+- **Página pública do profissional**, com as conquistas dos alunos que aceitaram aparecer e os depoimentos
+  aprovados; **ranking de personais** por aderência e evolução média.
+- **Mural da academia** no check-in: avisos do responsável e o ranking do mês por constância verificada.
+
+**Decisões (para o dono revisar)**
+
+- **Só medidas e fotos que o aluno guarda na conta chegam ao personal**, mesmo com a chave ligada: o
+  personal não abre nada que o próprio aluno não guardou.
+- **O ranking de personais só conta alunos que compartilham os treinos**, com mínimo de 3: a média de quem
+  não liberou os treinos não entra nem de forma agregada.
+- **Desfazer o vínculo apaga as prescrições entre os dois**; os treinos continuam com o aluno.
+- **Deixar de ser personal leva convites, vínculos e prescrições.**
+- **O responsável pelo mural é quem marcou a academia primeiro**; o administrador transfere pelo painel
+  (`PATCH /admin/gyms/:id/owner`), só para alguém que marcou a mesma academia.
+
+### Bloco 4: a Fase 6, recomendação com IA
+
+**O que foi construído**
+
+- **Claude pela API da Anthropic** (`claude-opus-5`), com saída estruturada validada por Zod, thinking
+  adaptativo, a parte fixa do pedido em cache e `fallbacks: "default"` contra recusas.
+- **Plano da semana** com o porquê de cada dia, **resumo do mês** e **leitura das medidas**, com consentimento
+  próprio e as regras de segurança conferindo cada resposta antes de ela chegar à pessoa.
+- **Custo medido** em cada chamada, pela tabela de preços, com teto de US$ 0,20 por pessoa por mês e o custo
+  por pessoa ativa no painel de administração.
+- **Lote de madrugada** pela Batch API (metade do preço): o plano da semana no domingo à noite e o resumo no
+  dia 1, com coleta de hora em hora, já instalados no cron da VPS.
+- **No app**: o cartão de consentimento, o plano da semana, o resumo do mês e o uso do mês em Recomendações;
+  o "Treino de hoje pelo plano" no Treino, depois da prescrição do personal; e a leitura das medidas na
+  Evolução. Sem a IA no servidor, as telas ficam com as recomendações por regras, sem erro.
+
+**Decisões (para o dono revisar)**
+
+- **Modelo `claude-opus-5` com esforço médio**: é o padrão da estratégia; o custo real só se mede com a
+  chave. Se passar do teto com frequência, a troca para `claude-sonnet-5` é uma variável (`AI_MODEL`), mas
+  vale comparar a qualidade antes.
+- **Limite de carga: o menor entre 10% e 5 kg** acima da melhor marca das últimas 8 semanas, e nenhuma carga
+  para exercício sem histórico.
+- **Um plano novo por dia**, e o primeiro da semana sai na primeira abertura.
+- **A resposta descartada fica guardada com o motivo** (para auditoria) e nunca chega à pessoa.
+- **Retirar o consentimento apaga o que a IA gerou**; o registro de custo (sem conteúdo) fica.
+- **Texto a aprovar**: o cartão da IA diz que o custo é do Gyn Flow, "sem cobrança para você". A estratégia
+  pede nenhum preço em tela, e um valor em dólar sem esse contexto pode parecer cobrança. Se não quiser, é
+  tirar uma frase.
+- **Um pedido de IA em andamento não se repete** ao sair e voltar da tela: a API não trava pedidos
+  simultâneos, e cada um contaria no teto.
+- **O treino começado pelo plano da IA não leva o id do plano**: o id é o da prescrição do personal, e o
+  personal veria um treino da IA como se fosse dele.
+
+### As decisões D1 a D9, para revisar
+
+Todas foram aplicadas como estavam no documento do dia. Onde o código precisou de um detalhe a mais, ou se
+afastou do texto, a coluna da direita diz.
+
+| # | Como ficou | O que revisar |
+| --- | --- | --- |
+| D1 | Fotos no disco da VPS, pasta privada, driver `disk`, links assinados de 10 minutos, foto refeita sem metadados (até 1600 px) com miniatura de 320 px, backup diário com a pasta. | Em produção as rotas respondem 503 até o volume e o `STORAGE_SECRET` existirem (item 2 da lista do dono). |
+| D2 | `claude-opus-5` com esforço médio, thinking adaptativo, saída estruturada, a parte fixa do pedido em cache, 503 sem chave, consentimento próprio, teto de US$ 0,20 por pessoa por mês e o lote de madrugada. | O custo real por pessoa não foi medido: sem a chave, só o provedor simulado rodou. |
+| D3 | Commits do app por frente, `salvek99` a cada bloco com API nova e a tag `v2026.09.25` no fechamento. | Nada. |
+| D4 | Escudos automáticos, 2 por mês, para a semana a um dia da meta. | O escudo só é gasto quando há sequência para proteger. |
+| D5 | Diário do dia com consentimento próprio; o Equilíbrio mostra só a contagem de dias. | O interruptor da temporada virou "Mostrar detalhes aos amigos" e passou a valer também para as modalidades. |
+| D6 | Até 7 compromissos, janela de 90 minutos, entra com 4 compromissos passados no mês. | Cada dia conta com a agenda que valia nele: tirar um horário não apaga o passado. |
+| D7 | Nove modalidades (entrou "cardio na academia"), séries só de tempo para yoga, luta, mobilidade e circuito, e um pódio por modalidade com 2 pessoas. | Desvio: o pódio aparece só entre quem mostra detalhes aos amigos, e a musculação fica fora dele (já tem força, evolução e tonelagem). |
+| D8 | CREF informado e sem verificação, três permissões revogáveis, responsável da academia é quem marcou primeiro, transferência pelo administrador, ranking de personais com mínimo de 3 alunos, ranking da academia por constância verificada com a opção de sair. | O ranking de personais conta só alunos que compartilham os treinos; desfazer o vínculo apaga as prescrições entre os dois. |
+| D9 | Um check-in por dia no fuso do desafio, só para quem participa, dia do placar com treino ou check-in, ocultar por quem criou ou por dois participantes. | O check-in oculto aparece só para o autor, sem a foto; sair do desafio apaga os check-ins da pessoa nele. |
+
+### Bloco 5: fechamento
+
+O manual saiu de 90% (app) e 92% (API) para 95% e 97%: os grupos das Fases 5 e 6 deixaram "Próximas fases" e
+viraram um grupo do app e um da API cada, e o que ficou em "a fazer" depende só do dono (a lista está em
+`25-setembro-concluindo.md` e nos próximos passos do manual). A API ganhou a tag `v2026.09.25` no commit que
+está em produção, e os commits do app foram enviados para o repositório.
+
+### Como foi validado
+
+| Verificação | Resultado |
+| --- | --- |
+| API | 138 testes (33 novos: 13 da Fase 4 completa, 7 de fotos e check-in, 6 de personal e academia, 7 da IA com o provedor simulado), typecheck e build |
+| App | typecheck e lint sem erros nem avisos antes de cada commit por frente |
+| Produção | API publicada a cada bloco, até `59e9d65`, com as migrações aplicadas, 104 operações no /doc e a conferência do salvek99 batendo; o cron da VPS tem as três linhas do lote da IA; fotos e IA respondem 503, como esperado sem volume e sem chave |
+| Rodada da API em produção | 20 verificações com uma conta temporária (agenda, diário, sequência, temporada, fotos, personal, página pública, convite, ranking, IA, privacidade), apagada no fim |
+| Bloco 1 no emulador | a modalidade Yoga com os exercícios dela; 30 min de yoga subiram como tempo e yoga; agenda carregada da conta e o sábado salvo; diário subindo e descendo; temporada com pontualidade de 60%, equilíbrio 4 × 2 e pódio de yoga 3, 2 e 1; 2 semanas de sequência, a de 7/09 segurada por um escudo |
+| Bloco 2 no emulador | 2 fotos subiram e a retirada apagou tudo do servidor, com as fotos mantidas no aparelho; check-in pela câmera virtual, mural com o check-in de outra pessoa e ocultar como quem criou (o ponto voltou a 0) |
+| Bloco 3 no emulador | cartões do Perfil; painel com dois alunos e o detalhe de um; depoimento aprovado, que apareceu na página pública; treino pela prescrição, e o personal viu 3 × 8-12 feito com 50 kg × 10 e o exercício que faltou; mural com aviso, ranking do mês e a chave de sair; ranking de personais vazio, com as regras |
+| Bloco 4 no emulador | com o provedor simulado: aceitar gerou o plano da semana na primeira abertura (a sexta marcada como hoje) e o resumo de agosto; o uso do mês subiu a cada chamada; o cartão do Treino abriu a sessão com 3 exercícios e 9 séries; a leitura das medidas apareceu na Evolução; retirar apagou os 3 documentos e as escolhas no servidor e manteve os 3 registros de custo |
+| App contra a produção | login com uma conta temporária; convite de personal aceito pelo link; treino pela prescrição (40 kg × 10 e × 9), que chegou ao personal com o plano e o dia; liga com 54 XP e a temporada; agenda carregada da conta; diário com consentimento subindo para a conta; Recomendações com a linha de IA ainda não ligada; fotos com o aviso de servidor não pronto; as duas contas apagadas, a do aluno pelo Perfil |
+| Não exercitado | a restauração das fotos num aparelho novo; ocultar um check-in por dois participantes na tela; o formulário de prescrever e a publicação de aviso na tela (os dois testados pela API); o Claude de verdade (sem chave); GPS e push (só num celular) |
+
+### Ainda não feito
+
+- **O que depende do dono**: SMTP e e-mail de contato, o volume e o segredo das fotos, a chave da Anthropic,
+  as fotos do hero e do login, celular físico, iPhone, build de loja e Health Connect com Apple Health.
+- **Carga e repetições da IA dentro da sessão**: o treino começado pelo plano da IA abre com a carga da última
+  vez, e as metas do plano só aparecem em Recomendações.
+- **Plano da IA sem internet**: não fica cópia no aparelho, então o cartão do Treino some offline.
+- **Academia num aparelho novo**: o ponto da academia fica no aparelho, então o check-in pede para marcar de
+  novo, mesmo com a academia na conta (o mural já aparece).
+- **Consentimento da IA retirado em outro aparelho**: até o app reabrir, o plano mostra a mensagem do servidor.
+- **Versão web** continua parcial: o treino usa SQLite, que não roda no servidor web de desenvolvimento.
 
 ## Fontes da pesquisa
 
