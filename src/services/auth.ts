@@ -39,6 +39,65 @@ export async function changePassword(session: AuthResponse, currentPassword: str
   });
 }
 
+// Consentimento específico (LGPD) para guardar as medidas do corpo na conta. Retirar apaga todas
+// as medidas da conta no servidor; as do aparelho continuam.
+export async function setBodyDataConsent(session: AuthResponse, granted: boolean) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/me/consents/body-data', {
+    body: { granted },
+    method: 'PUT',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
+// Recuperar a senha: o código de 6 números chega por e-mail e vale 15 minutos. A resposta é a
+// mesma com ou sem conta.
+export async function requestPasswordReset(email: string) {
+  const { message } = await apiRequest<{ message: string }>('/auth/password-reset/request', {
+    body: { email },
+    method: 'POST',
+  });
+
+  return message;
+}
+
+// A senha nova encerra todas as sessões da conta, inclusive a de outro aparelho que estivesse aberto.
+export async function confirmPasswordReset(email: string, code: string, newPassword: string) {
+  await apiRequest('/auth/password-reset/confirm', { body: { code, email, newPassword }, method: 'POST' });
+}
+
+export async function requestEmailVerification(session: AuthResponse) {
+  const { message } = await apiRequest<{ message: string; user: AuthUser }>('/auth/email-verification/request', {
+    method: 'POST',
+    token: session.token,
+  });
+
+  return message;
+}
+
+export async function confirmEmailVerification(session: AuthResponse, code: string) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/auth/email-verification/confirm', {
+    body: { code },
+    method: 'POST',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
+// Consentimento próprio para as respostas do questionário na conta. Retirar apaga as respostas
+// do servidor; as do aparelho continuam.
+export async function setQuestionnaireConsent(session: AuthResponse, granted: boolean) {
+  const { user } = await apiRequest<{ user: AuthUser }>('/me/consents/questionnaire', {
+    body: { granted },
+    method: 'PUT',
+    token: session.token,
+  });
+
+  return persistSession({ ...session, user });
+}
+
 export async function getSession(): Promise<AuthResponse | null> {
   const storedSession = await secureStorage.get(storageKeys.session);
 
@@ -53,8 +112,18 @@ export async function getSession(): Promise<AuthResponse | null> {
       return null;
     }
 
-    // Sessões gravadas antes de existir o papel entram como pessoa comum.
-    return { token: session.token, user: { ...session.user, role: session.user.role ?? 'user' } };
+    // Sessões gravadas antes de existir o papel entram como pessoa comum; antes do consentimento
+    // das medidas, como quem ainda não aceitou. O servidor confirma os dois ao abrir o app.
+    return {
+      token: session.token,
+      user: {
+        ...session.user,
+        bodyDataConsentAt: session.user.bodyDataConsentAt ?? null,
+        emailVerifiedAt: session.user.emailVerifiedAt ?? null,
+        questionnaireConsentAt: session.user.questionnaireConsentAt ?? null,
+        role: session.user.role ?? 'user',
+      },
+    };
   } catch {
     return null;
   }

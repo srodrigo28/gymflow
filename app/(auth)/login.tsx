@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -27,21 +27,23 @@ const benefits: Benefit[] = [
 
 export default function LoginScreen() {
   const styles = useStyles();
-  const [showRecoveryNotice, setShowRecoveryNotice] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   const { signIn } = useSession();
   const redirectAfterSignIn = useRedirectAfterSignIn();
   // Veio de um convite: volta para ele depois de entrar.
   const { convite } = useLocalSearchParams<{ convite?: string }>();
+  // Vindo da recuperação de senha, o e-mail já vem preenchido.
+  const { email: presetEmail } = useLocalSearchParams<{ email?: string }>();
   const {
     control,
+    getValues,
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
   } = useForm<SignInPayload>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: '',
+      email: presetEmail ?? '',
       password: '',
     },
   });
@@ -122,16 +124,12 @@ export default function LoginScreen() {
         <Pressable
           accessibilityRole="button"
           hitSlop={8}
-          onPress={() => setShowRecoveryNotice(true)}
+          onPress={() =>
+            router.push({ params: { email: getValues('email').trim() }, pathname: '/(auth)/recuperar-senha' })
+          }
           style={styles.forgot}>
           <Text style={styles.forgotText}>Esqueci minha senha</Text>
         </Pressable>
-
-        {showRecoveryNotice ? (
-          <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.notice}>
-            A recuperação de senha chega em breve.
-          </Animated.Text>
-        ) : null}
 
         {errors.root?.message ? (
           <Animated.Text accessibilityLiveRegion="polite" entering={FadeIn} style={styles.error}>
@@ -168,12 +166,6 @@ const useStyles = makeStyles((theme) => ({
     color: theme.text.secondary,
     fontFamily: fonts.semibold,
     fontSize: 14,
-  },
-  notice: {
-    color: theme.status.info,
-    fontFamily: fonts.medium,
-    fontSize: 14,
-    textAlign: 'center',
   },
   error: {
     color: theme.status.danger,

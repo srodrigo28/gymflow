@@ -12,8 +12,9 @@ import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { useSession } from '@/src/contexts/session-context';
 import { BODY_LIMITS } from '@/src/schemas/onboarding';
 import { ApiError } from '@/src/services/api';
-import { changePassword } from '@/src/services/auth';
+import { changePassword, requestEmailVerification } from '@/src/services/auth';
 import { getBodyTrend, saveMeasurement } from '@/src/services/body';
+import { legalLabels, openLegalPage } from '@/src/services/legal';
 import { getOnboardingProfile, updateOnboardingProfile } from '@/src/services/onboarding';
 import { getProfilePhoto, pickProfilePhoto, removeProfilePhoto } from '@/src/services/profile-photo';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
@@ -25,6 +26,7 @@ import {
   targetJourneyLevel,
   type JourneyLevel,
 } from '@/src/utils/journey';
+import { formatShortDate } from '@/src/utils/format';
 
 const DELETE_TITLE = 'Apagar a conta?';
 const DELETE_MESSAGE = 'Não dá para desfazer: a conta, os treinos, as medidas e as fotos saem para sempre.';
@@ -74,11 +76,33 @@ export default function PerfilScreen() {
 
         <CoverPhotoCard />
         <NameCard />
+        <EmailCard />
         <BodyGoalCard />
+        <QuestionnaireCard />
         <PasswordCard />
         <DeleteAccountCard />
+        <LegalLinks />
       </KeyboardAwareScrollView>
     </Screen>
+  );
+}
+
+// Os mesmos documentos do cadastro, à mão para quem já tem conta.
+function LegalLinks() {
+  const styles = useStyles();
+
+  return (
+    <View style={styles.legalRow}>
+      {(['termos', 'privacidade'] as const).map((page) => (
+        <Pressable
+          accessibilityRole="link"
+          key={page}
+          onPress={() => void openLegalPage(page)}
+          style={({ pressed }) => [pressed ? styles.pressed : null]}>
+          <Text style={styles.legalLink}>{legalLabels[page]}</Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -222,14 +246,121 @@ function NameCard() {
         </View>
       ) : null}
 
-      <View style={styles.divider} />
+    </View>
+  );
+}
 
+// O e-mail da conta e a confirmação por código. Confirmar prova que o e-mail é da pessoa: é o que
+// garante que a recuperação de senha chega a quem deve.
+function EmailCard() {
+  const styles = useStyles();
+  const { theme } = useTheme();
+  const { confirmEmail, session } = useSession();
+  const verifiedAt = session?.user.emailVerifiedAt ?? null;
+  const [isSent, setIsSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+
+  async function sendCode() {
+    if (!session) {
+      return;
+    }
+
+    setIsBusy(true);
+    setError(null);
+
+    try {
+      setNotice(await requestEmailVerification(session));
+      setIsSent(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível enviar o código.');
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function confirm() {
+    if (!/^\d{6}$/.test(code)) {
+      setError('O código tem 6 números.');
+      return;
+    }
+
+    setIsBusy(true);
+    setError(null);
+
+    try {
+      await confirmEmail(code);
+      setNotice('E-mail confirmado.');
+      setIsSent(false);
+      setCode('');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível confirmar o e-mail.');
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  return (
+    <View style={styles.card}>
       <View accessible style={styles.infoRow}>
         <Text style={styles.infoLabel}>E-mail</Text>
         <Text selectable style={styles.infoValue}>
           {session?.user.email}
         </Text>
       </View>
+
+      {verifiedAt ? (
+        <View accessibilityLiveRegion="polite" style={styles.savedRow}>
+          <Ionicons color={theme.status.success} name="checkmark-circle" size={18} />
+          <Text style={styles.savedText}>Confirmado em {formatShortDate(Date.parse(verifiedAt))}.</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.cardText}>
+            Ainda não confirmado. Confirmar garante que a recuperação de senha chega a você, e não a um e-mail
+            digitado errado.
+          </Text>
+          {isSent ? (
+            <>
+              <Input
+                autoComplete="one-time-code"
+                error={error ?? undefined}
+                keyboardType="number-pad"
+                label="Código de 6 números"
+                maxLength={6}
+                onChangeText={(text) => {
+                  setCode(text.replace(/\D/g, ''));
+                  setError(null);
+                }}
+                onSubmitEditing={() => void confirm()}
+                placeholder="000000"
+                returnKeyType="done"
+                textContentType="oneTimeCode"
+                value={code}
+              />
+              <Button loading={isBusy} onPress={() => void confirm()} title="Confirmar e-mail" variant="outline" />
+              <Button disabled={isBusy} onPress={() => void sendCode()} title="Enviar outro código" variant="ghost" />
+            </>
+          ) : (
+            <Button
+              icon="mail-outline"
+              loading={isBusy}
+              onPress={() => void sendCode()}
+              title="Enviar código de confirmação"
+              variant="outline"
+            />
+          )}
+          {error && !isSent ? <Text style={styles.errorText}>{error}</Text> : null}
+        </>
+      )}
+
+      {notice ? (
+        <Text accessibilityLiveRegion="polite" style={styles.noticeText}>
+          {notice}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -353,7 +484,7 @@ function BodyGoalCard() {
       <Text accessibilityRole="header" style={styles.cardTitle}>
         Corpo e objetivo
       </Text>
-      <Text style={styles.cardText}>Vêm do questionário do início e ficam só neste aparelho.</Text>
+      <Text style={styles.cardText}>Vêm do questionário do início. Ficam neste aparelho e, se você aceitar no cartão abaixo, também na conta.</Text>
       <Input
         error={errors.weight}
         helperText="Se mudar, o peso novo entra também na Evolução, como a pesagem de hoje."
@@ -453,6 +584,67 @@ function validatePasswords(current: string, next: string, confirmation: string) 
   }
 
   return errors;
+}
+
+// As respostas do questionário na conta, com consentimento próprio: elas têm dados de saúde (sono,
+// humor, fumo) e por isso não sobem com os treinos. Com o aceite, voltam num aparelho novo.
+function QuestionnaireCard() {
+  const styles = useStyles();
+  const { session, setQuestionnaireConsent } = useSession();
+  const consentAt = session?.user.questionnaireConsentAt ?? null;
+  const [isBusy, setIsBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function apply(granted: boolean) {
+    setIsBusy(true);
+    setError(null);
+
+    try {
+      await setQuestionnaireConsent(granted);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível salvar sua escolha.');
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  function askToGrant() {
+    Alert.alert(
+      'Guardar respostas na conta',
+      'As respostas do questionário incluem sono, humor, fumo e bebida: dados de saúde. Com o seu consentimento, o Gyn Flow guarda essas respostas na sua conta, só para elas voltarem num aparelho novo. Ninguém mais as vê.\n\nVocê pode retirar o consentimento quando quiser: aí apagamos tudo do servidor na hora.',
+      [
+        { style: 'cancel', text: 'Agora não' },
+        { onPress: () => void apply(true), text: 'Aceito e quero guardar' },
+      ],
+    );
+  }
+
+  function askToRevoke() {
+    Alert.alert('Parar de guardar na conta', 'Apagamos agora as respostas do servidor. As deste aparelho continuam aqui.', [
+      { style: 'cancel', text: 'Cancelar' },
+      { onPress: () => void apply(false), style: 'destructive', text: 'Parar e apagar' },
+    ]);
+  }
+
+  return (
+    <View style={styles.card}>
+      <Text accessibilityRole="header" style={styles.cardTitle}>
+        Questionário na conta
+      </Text>
+      <Text style={styles.cardText}>
+        {consentAt
+          ? `Desde ${formatShortDate(Date.parse(consentAt))}, as respostas do questionário ficam na sua conta e voltam num aparelho novo.`
+          : 'As respostas do questionário ficam só neste aparelho. Com o seu consentimento, elas ficam na conta e voltam num celular novo.'}
+      </Text>
+      <Button
+        loading={isBusy}
+        onPress={consentAt ? askToRevoke : askToGrant}
+        title={consentAt ? 'Parar e apagar da conta' : 'Guardar na conta'}
+        variant={consentAt ? 'ghost' : 'outline'}
+      />
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
 }
 
 function PasswordCard() {
@@ -638,9 +830,9 @@ function DeleteAccountCard() {
         Apagar conta
       </Text>
       <Text style={styles.cardText}>
-        Sua conta sai do servidor com os treinos enviados, e você deixa os desafios (eles continuam para os outros
-        participantes). Neste aparelho, saem os treinos, as medidas, as fotos e as respostas do questionário. Não dá
-        para desfazer.
+        Sua conta sai do servidor com os treinos e as medidas enviados, e você deixa os desafios (eles continuam
+        para os outros participantes). Neste aparelho, saem os treinos, as medidas, as fotos e as respostas do
+        questionário. Não dá para desfazer.
       </Text>
       <Input
         autoCapitalize="none"
@@ -813,6 +1005,30 @@ const useStyles = makeStyles((theme) => ({
     color: theme.status.danger,
     fontFamily: fonts.extrabold,
     fontSize: 18,
+  },
+  errorText: {
+    color: theme.status.danger,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+  },
+  noticeText: {
+    color: theme.status.info,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  legalLink: {
+    color: theme.text.muted,
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
   pressed: {
     opacity: 0.75,

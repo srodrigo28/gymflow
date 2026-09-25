@@ -17,6 +17,7 @@ export default function AuthLayout() {
       <Stack.Screen name="welcome" options={{ animation: 'fade', animationDuration: 400 }} />
       <Stack.Screen name="login" />
       <Stack.Screen name="sign-up" />
+      <Stack.Screen name="recuperar-senha" />
     </Stack>
   );
 }

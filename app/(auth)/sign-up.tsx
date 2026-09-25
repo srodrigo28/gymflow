@@ -11,6 +11,7 @@ import { PasswordStrength } from '@/src/components/auth/PasswordStrength';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { useRedirectAfterSignIn, useSession } from '@/src/contexts/session-context';
+import { openLegalPage } from '@/src/services/legal';
 import { fonts, makeStyles, radius, withAlpha } from '@/src/theme';
 import type { SignUpPayload } from '@/src/types/auth';
 
@@ -193,7 +194,21 @@ export default function SignUpScreen() {
             />
           </View>
           <Text style={styles.terms}>
-            Ao criar a conta você concorda com os Termos de Uso e a Política de Privacidade.
+            Ao criar a conta você concorda com os{' '}
+            <Text
+              accessibilityRole="link"
+              onPress={() => void openLegalPage('termos')}
+              style={styles.termsLink}>
+              Termos de Uso
+            </Text>{' '}
+            e a{' '}
+            <Text
+              accessibilityRole="link"
+              onPress={() => void openLegalPage('privacidade')}
+              style={styles.termsLink}>
+              Política de Privacidade
+            </Text>
+            .
           </Text>
         </Animated.View>
       </View>
@@ -215,6 +230,11 @@ const useStyles = makeStyles((theme) => ({
   ctaGlow: {
     borderRadius: radius.md,
     boxShadow: `0 10px 28px ${withAlpha(theme.accent.primary, 0.3)}`,
+  },
+  termsLink: {
+    color: theme.accent.primary,
+    fontFamily: fonts.semibold,
+    textDecorationLine: 'underline',
   },
   terms: {
     color: theme.text.muted,

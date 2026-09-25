@@ -19,6 +19,7 @@ import { AuroraBackground } from '@/src/components/visual/AuroraBackground';
 import { heroPeopleImage, loginPeopleImage } from '@/src/constants/images';
 import { useSession } from '@/src/contexts/session-context';
 import { hasCompletedOnboarding } from '@/src/services/onboarding';
+import { syncQuestionnaire } from '@/src/services/questionnaire-sync';
 import { makeStyles, nativeSplashBackground, radius, useTheme } from '@/src/theme';
 import type { AuthResponse } from '@/src/types/auth';
 
@@ -35,6 +36,12 @@ function wait(ms: number) {
 async function destinationFor(session: AuthResponse | null): Promise<Href> {
   if (!session) {
     return '/(auth)/welcome';
+  }
+
+  // Aparelho novo com as respostas guardadas na conta: baixa antes de decidir, sem segurar a
+  // splash por mais que alguns segundos.
+  if (session.user.questionnaireConsentAt && !(await hasCompletedOnboarding(session.user.id))) {
+    await Promise.race([syncQuestionnaire(session).catch(() => {}), wait(3000)]);
   }
 
   return (await hasCompletedOnboarding(session.user.id)) ? '/(app)/home' : '/(onboarding)/start';
