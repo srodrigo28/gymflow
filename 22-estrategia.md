@@ -957,19 +957,43 @@ está em produção, e os commits do app foram enviados para o repositório.
 | Bloco 3 no emulador | cartões do Perfil; painel com dois alunos e o detalhe de um; depoimento aprovado, que apareceu na página pública; treino pela prescrição, e o personal viu 3 × 8-12 feito com 50 kg × 10 e o exercício que faltou; mural com aviso, ranking do mês e a chave de sair; ranking de personais vazio, com as regras |
 | Bloco 4 no emulador | com o provedor simulado: aceitar gerou o plano da semana na primeira abertura (a sexta marcada como hoje) e o resumo de agosto; o uso do mês subiu a cada chamada; o cartão do Treino abriu a sessão com 3 exercícios e 9 séries; a leitura das medidas apareceu na Evolução; retirar apagou os 3 documentos e as escolhas no servidor e manteve os 3 registros de custo |
 | App contra a produção | login com uma conta temporária; convite de personal aceito pelo link; treino pela prescrição (40 kg × 10 e × 9), que chegou ao personal com o plano e o dia; liga com 54 XP e a temporada; agenda carregada da conta; diário com consentimento subindo para a conta; Recomendações com a linha de IA ainda não ligada; fotos com o aviso de servidor não pronto; as duas contas apagadas, a do aluno pelo Perfil |
-| Não exercitado | a restauração das fotos num aparelho novo; ocultar um check-in por dois participantes na tela; o formulário de prescrever e a publicação de aviso na tela (os dois testados pela API); o Claude de verdade (sem chave); GPS e push (só num celular) |
+| Tarde, no emulador | a sessão pelo plano da IA com banner e alvos (3 × 8-12, carga sugerida 60 kg, descanso de 1 min 30 s); sem rota para a API e com o Expo Go reaberto, o Treino e as Recomendações com o plano guardado, sem nenhum pedido chegar à API; consentimento da IA retirado por outra sessão, e o app recebeu 403, conferiu a conta e voltou ao convite; a academia da conta no check-in sem marcar de novo; "Trocar academia" sem conexão, e na volta da conexão a academia saiu da conta e não voltou; aviso publicado pelo formulário; prescrição salva pelo formulário (segunda, supino 3 × 8-12, 60 s); ocultar por dois participantes, e o dia saiu do placar de quem postou |
+| Aparelho novo | com os dados do Expo Go apagados e a conta entrando de novo: treinos, medidas e as 2 fotos voltaram (as miniaturas antes das fotos inteiras), e a academia veio da conta com o mural |
+| Não exercitado | o Claude de verdade (sem chave); GPS e push (só num celular) |
 
 ### Ainda não feito
 
 - **O que depende do dono**: SMTP e e-mail de contato, o volume e o segredo das fotos, a chave da Anthropic,
   as fotos do hero e do login, celular físico, iPhone, build de loja e Health Connect com Apple Health.
-- **Carga e repetições da IA dentro da sessão**: o treino começado pelo plano da IA abre com a carga da última
-  vez, e as metas do plano só aparecem em Recomendações.
-- **Plano da IA sem internet**: não fica cópia no aparelho, então o cartão do Treino some offline.
-- **Academia num aparelho novo**: o ponto da academia fica no aparelho, então o check-in pede para marcar de
-  novo, mesmo com a academia na conta (o mural já aparece).
-- **Consentimento da IA retirado em outro aparelho**: até o app reabrir, o plano mostra a mensagem do servidor.
 - **Versão web** continua parcial: o treino usa SQLite, que não roda no servidor web de desenvolvimento.
+
+As outras quatro pontas que estavam aqui foram fechadas na mesma tarde (seção seguinte).
+
+### Depois do fechamento: as pontas abertas (25/09, tarde)
+
+Pedido do dono: "continue". Tudo o que restava no manual dependia dele, então a tarde fechou as pontas de
+código que o registro listava e as validações que o emulador ainda não tinha feito. Só o app mudou; a API
+ficou como está em produção.
+
+- **Alvos da IA na sessão**: a sessão começada pelo plano da IA guarda, só no aparelho, a semana e o dia do
+  plano, e mostra o banner e os alvos de cada exercício, como a do personal.
+- **Plano da IA sem internet**: o último plano da semana fica numa cópia no aparelho, usada pelo cartão do
+  Treino e pela tela de Recomendações quando não há conexão. A cópia sai quando a sessão fica sem o
+  consentimento da IA e ao apagar a conta.
+- **Consentimento retirado em outro aparelho**: a primeira resposta 403 da IA faz o app conferir a conta de
+  novo, e a tela troca o erro pelo convite.
+- **Academia num aparelho novo**: o check-in passa a usar a academia da conta quando o aparelho não tem
+  nenhuma. Uma troca feita sem conexão fica pendente e tira a academia da conta na próxima abertura com
+  internet, para a antiga não voltar sozinha.
+
+**Decisões (para o dono revisar)**
+
+- **A carga sugerida pela IA aparece como alvo e não preenche as séries**, que seguem com a carga da última
+  vez. A regra do servidor limita a sugestão pela melhor carga recente, mas não olha as repetições: uma melhor
+  marca de poucas repetições permitiria sugerir a mesma carga para 8 a 12. Preencher a série com ela seria
+  pedir que a pessoa confirme sem pensar.
+- **Quem é responsável pelo mural e tira a academia continua responsável**: se voltar, volta a publicar;
+  enquanto isso, ninguém publica, e o administrador pode transferir, como na decisão D8.
 
 ## Fontes da pesquisa
 

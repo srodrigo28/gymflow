@@ -53,6 +53,9 @@ Ontem à noite o app estava em 90%, a API em 92% e o plano completo em 84%. O qu
 - **Validação**: cada bloco no emulador contra a API local e uma rodada final do app contra a produção, com
   contas temporárias apagadas no fim. O que o emulador exercitou e o que não exercitou está em
   **Registro da conclusão (25/09)**, no fim de `22-estrategia.md`.
+- **Tarde**: as quatro pontas de código do registro foram fechadas no app (alvos da IA na sessão, plano da IA
+  sem internet, consentimento conferido de novo e academia da conta num aparelho novo), e o emulador passou
+  pelo que faltava: fotos num aparelho novo, ocultar por dois participantes, prescrever e publicar aviso.
 - **Tudo o que está "a fazer" no manual depende de você**: é a lista abaixo.
 
 ---
