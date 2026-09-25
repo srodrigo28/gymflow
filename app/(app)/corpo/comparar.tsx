@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
 import { listPhotos } from '@/src/services/body';
 import { fonts, makeStyles, radius, typography, useTheme } from '@/src/theme';
@@ -88,9 +89,24 @@ export default function CompararScreen() {
             </View>
 
             {left && right && left !== right ? (
-              <Text style={styles.caption}>
-                {monthLabel(left)} · {monthLabel(right)}
-              </Text>
+              <>
+                <Text style={styles.caption}>
+                  {monthLabel(left)} · {monthLabel(right)}
+                </Text>
+                {leftPhoto && rightPhoto ? (
+                  <Button
+                    icon="share-social-outline"
+                    onPress={() =>
+                      router.push({
+                        params: { ids: `${leftPhoto.id},${rightPhoto.id}` },
+                        pathname: '/(app)/corpo/compartilhar-foto',
+                      })
+                    }
+                    title="Compartilhar com tarja"
+                    variant="outline"
+                  />
+                ) : null}
+              </>
             ) : (
               <Text style={styles.caption}>Escolha dois meses diferentes para ver a diferença.</Text>
             )}

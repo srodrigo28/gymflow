@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/ui/Screen';
 import { deletePhoto, listPhotos, savePhoto } from '@/src/services/body';
@@ -16,6 +16,9 @@ const poses: { hint: string; label: string; value: Pose }[] = [
   { hint: 'De perfil, o mesmo lado todo mês.', label: 'Lado', value: 'lado' },
   { hint: 'De costas, ombros relaxados.', label: 'Costas', value: 'costas' },
 ];
+
+// O guia de contorno usa a câmera nativa; no web fica só o fluxo antigo.
+const hasGuide = Platform.OS !== 'web';
 
 /** Últimos seis meses, do atual para trás: quase toda foto atrasada cai aqui. */
 function recentMonths() {
@@ -154,13 +157,33 @@ export default function FotosScreen() {
           ) : null}
 
           <View style={styles.addButtons}>
+            {hasGuide ? (
+              <Pressable
+                accessibilityLabel="Tirar foto com guia de contorno"
+                accessibilityRole="button"
+                onPress={() => {
+                  // A rota é nova e os tipos gerados pelo expo-router ainda não a listam: o objeto
+                  // `{ pathname, params }` não passa nem com `as Href`, então o href vai como string.
+                  // Com os tipos regenerados, dá para voltar ao objeto e tirar o cast.
+                  const href = `/(app)/corpo/camera?month=${month}&pose=${pose}`;
+                  router.push(href as Href);
+                }}
+                style={({ pressed }) => [styles.addButton, pressed ? styles.pressed : null]}>
+                <Ionicons color={theme.accent.onPrimary} name="body-outline" size={20} />
+                <Text style={styles.addButtonText}>Tirar com guia</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityLabel="Tirar foto agora"
               accessibilityRole="button"
               onPress={() => add('camera')}
-              style={({ pressed }) => [styles.addButton, pressed ? styles.pressed : null]}>
-              <Ionicons color={theme.accent.onPrimary} name="camera" size={20} />
-              <Text style={styles.addButtonText}>Tirar foto</Text>
+              style={({ pressed }) => [
+                styles.addButton,
+                hasGuide ? styles.addButtonGhost : null,
+                pressed ? styles.pressed : null,
+              ]}>
+              <Ionicons color={hasGuide ? theme.accent.primary : theme.accent.onPrimary} name="camera" size={20} />
+              <Text style={[styles.addButtonText, hasGuide ? styles.addButtonGhostText : null]}>Tirar foto</Text>
             </Pressable>
             <Pressable
               accessibilityLabel="Escolher foto da galeria"
