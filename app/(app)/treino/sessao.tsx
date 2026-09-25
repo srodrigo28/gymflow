@@ -12,6 +12,7 @@ import {
   addSet,
   deleteSet,
   discardSession,
+  exerciseGroupLabel,
   finishSession,
   getSession,
   removeSessionExercise,
@@ -19,8 +20,8 @@ import {
   updateSet,
 } from '@/src/services/training';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
-import type { SessionExercise, WorkoutSession, WorkoutSet } from '@/src/types/training';
-import { formatDuration, muscleLabel } from '@/src/utils/format';
+import type { ExerciseKind, SessionExercise, WorkoutSession, WorkoutSet } from '@/src/types/training';
+import { formatDuration } from '@/src/utils/format';
 
 const REST_SECONDS = 90;
 // Acima disso é erro de digitação. Ficam abaixo dos limites da API, senão o treino não subiria.
@@ -28,6 +29,14 @@ const MAX_WEIGHT_KG = 1000;
 const MAX_REPS = 1000;
 const MAX_MINUTES = 24 * 60;
 const MAX_DISTANCE_KM = 1000;
+
+// As colunas de cada série. Força: carga e repetições. Cardio: minutos e quilômetros. Tempo (yoga,
+// luta, mobilidade, circuito): só os minutos, sem carga, repetições nem distância.
+const setColumns: Record<ExerciseKind, string[]> = {
+  cardio: ['min', 'km'],
+  forca: ['kg', 'reps'],
+  tempo: ['min'],
+};
 
 export default function SessaoScreen() {
   const styles = useStyles();
@@ -239,7 +248,9 @@ function ExerciseCard({
 }) {
   const styles = useStyles();
   const { theme } = useTheme();
-  const isCardio = item.exercise.kind === 'cardio';
+  // Um tipo que esta versão não conhece (treino de um app mais novo, baixado da conta) vira força.
+  const kind: ExerciseKind =
+    item.exercise.kind === 'cardio' || item.exercise.kind === 'tempo' ? item.exercise.kind : 'forca';
 
   return (
     <View style={styles.card}>
@@ -247,7 +258,7 @@ function ExerciseCard({
         <View style={styles.cardTitleGroup}>
           <Text style={styles.cardTitle}>{item.exercise.name}</Text>
           <Text style={styles.cardSubtitle}>
-            {muscleLabel(item.exercise.muscle)} · {item.exercise.equipment}
+            {exerciseGroupLabel(item.exercise)} · {item.exercise.equipment}
           </Text>
         </View>
         <Pressable
@@ -264,16 +275,19 @@ function ExerciseCard({
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeaderText, styles.colIndex]}>#</Text>
-        <Text style={[styles.setHeaderText, styles.colField]}>{isCardio ? 'min' : 'kg'}</Text>
-        <Text style={[styles.setHeaderText, styles.colField]}>{isCardio ? 'km' : 'reps'}</Text>
+        {setColumns[kind].map((column) => (
+          <Text key={column} style={[styles.setHeaderText, styles.colField]}>
+            {column}
+          </Text>
+        ))}
         <Text style={[styles.setHeaderText, styles.colCheck]}> </Text>
       </View>
 
       {item.sets.map((set, index) => (
         <SetRow
           index={index + 1}
-          isCardio={isCardio}
           key={set.id}
+          kind={kind}
           onChange={onChange}
           onToggleDone={onToggleDone}
           set={set}
@@ -311,29 +325,36 @@ function ExerciseCard({
 
 function SetRow({
   index,
-  isCardio,
+  kind,
   onChange,
   onToggleDone,
   set,
 }: {
   index: number;
-  isCardio: boolean;
+  kind: ExerciseKind;
   onChange: () => Promise<void>;
   onToggleDone: (set: WorkoutSet) => Promise<void>;
   set: WorkoutSet;
 }) {
   const styles = useStyles();
   const { theme } = useTheme();
-  const first = isCardio ? set.durationSec && set.durationSec / 60 : set.weightKg;
+  // O primeiro campo é a carga na força e os minutos no cardio e no tempo. O segundo (repetições ou
+  // quilômetros) não existe no tempo: ali a série é só quanto durou.
+  const isStrength = kind === 'forca';
+  const isCardio = kind === 'cardio';
+  const hasSecondField = kind !== 'tempo';
+  const first = isStrength ? set.weightKg : set.durationSec && set.durationSec / 60;
   const second = isCardio ? set.distanceM && set.distanceM / 1000 : set.reps;
+  const firstLimit = isStrength ? MAX_WEIGHT_KG : MAX_MINUTES;
+  const secondLimit = isCardio ? MAX_DISTANCE_KM : MAX_REPS;
   // Campos controlados: o texto digitado vive aqui. Num campo não controlado, qualquer
   // mudança de estilo (o vermelho abaixo) devolvia o texto ao valor inicial no Android.
   const [firstText, setFirstText] = useState(first ? String(first) : '');
   const [secondText, setSecondText] = useState(second ? String(second) : '');
   // Limites de bom senso: acima disso é erro de digitação (6000 kg em vez de 60). O valor
   // não é salvo, e o campo fica vermelho até ser corrigido.
-  const firstTooBig = exceeds(firstText, isCardio ? MAX_MINUTES : MAX_WEIGHT_KG);
-  const secondTooBig = exceeds(secondText, isCardio ? MAX_DISTANCE_KM : MAX_REPS);
+  const firstTooBig = exceeds(firstText, firstLimit);
+  const secondTooBig = exceeds(secondText, secondLimit);
 
   // Salvamos a cada tecla (e não só ao sair do campo) porque o gesto real é
   // digitar a carga, as repetições e tocar no check em seguida. As escritas são
@@ -360,19 +381,19 @@ function SetRow({
       </View>
       <TextInput
         accessibilityHint={firstTooBig ? 'Valor alto demais, não foi salvo.' : undefined}
-        accessibilityLabel={isCardio ? `Minutos da série ${index}` : `Carga da série ${index} em quilos`}
+        accessibilityLabel={isStrength ? `Carga da série ${index} em quilos` : `Minutos da série ${index}`}
         keyboardType="decimal-pad"
         onChangeText={(text) => {
           setFirstText(text);
 
-          if (exceeds(text, isCardio ? MAX_MINUTES : MAX_WEIGHT_KG)) {
+          if (exceeds(text, firstLimit)) {
             return;
           }
 
           const value = parse(text);
           void updateSet(
             set.id,
-            isCardio ? { durationSec: value ? Math.round(value * 60) : undefined } : { weightKg: value },
+            isStrength ? { weightKg: value } : { durationSec: value ? Math.round(value * 60) : undefined },
           );
         }}
         onEndEditing={() => {
@@ -383,34 +404,36 @@ function SetRow({
         style={[styles.setInput, styles.colField, firstTooBig ? styles.setInputInvalid : null]}
         value={firstText}
       />
-      <TextInput
-        accessibilityHint={secondTooBig ? 'Valor alto demais, não foi salvo.' : undefined}
-        accessibilityLabel={isCardio ? `Quilômetros da série ${index}` : `Repetições da série ${index}`}
-        // Repetição é número inteiro: sem vírgula no teclado.
-        keyboardType={isCardio ? 'decimal-pad' : 'number-pad'}
-        onChangeText={(text) => {
-          setSecondText(text);
+      {hasSecondField ? (
+        <TextInput
+          accessibilityHint={secondTooBig ? 'Valor alto demais, não foi salvo.' : undefined}
+          accessibilityLabel={isCardio ? `Quilômetros da série ${index}` : `Repetições da série ${index}`}
+          // Repetição é número inteiro: sem vírgula no teclado.
+          keyboardType={isCardio ? 'decimal-pad' : 'number-pad'}
+          onChangeText={(text) => {
+            setSecondText(text);
 
-          if (exceeds(text, isCardio ? MAX_DISTANCE_KM : MAX_REPS)) {
-            return;
-          }
+            if (exceeds(text, secondLimit)) {
+              return;
+            }
 
-          const value = parse(text);
-          void updateSet(
-            set.id,
-            isCardio
-              ? { distanceM: value ? Math.round(value * 1000) : undefined }
-              : { reps: value === undefined ? undefined : Math.round(value) },
-          );
-        }}
-        onEndEditing={() => {
-          void onChange();
-        }}
-        placeholder="—"
-        placeholderTextColor={theme.text.muted}
-        style={[styles.setInput, styles.colField, secondTooBig ? styles.setInputInvalid : null]}
-        value={secondText}
-      />
+            const value = parse(text);
+            void updateSet(
+              set.id,
+              isCardio
+                ? { distanceM: value ? Math.round(value * 1000) : undefined }
+                : { reps: value === undefined ? undefined : Math.round(value) },
+            );
+          }}
+          onEndEditing={() => {
+            void onChange();
+          }}
+          placeholder="—"
+          placeholderTextColor={theme.text.muted}
+          style={[styles.setInput, styles.colField, secondTooBig ? styles.setInputInvalid : null]}
+          value={secondText}
+        />
+      ) : null}
       <Pressable
         accessibilityLabel={set.done ? `Desmarcar série ${index}` : `Concluir série ${index}`}
         accessibilityRole="button"

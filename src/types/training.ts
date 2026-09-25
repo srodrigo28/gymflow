@@ -11,12 +11,29 @@ export type MuscleGroup =
 // Padrão de movimento, para checar o equilíbrio do treino.
 export type MovementPattern = 'empurrar' | 'puxar' | 'pernas' | 'core' | 'cardio';
 
-export type ExerciseKind = 'forca' | 'cardio';
+// Como a série é registrada: força (carga e repetições), cardio (tempo e distância) ou só tempo
+// (yoga, luta, mobilidade, circuito).
+export type ExerciseKind = 'forca' | 'cardio' | 'tempo';
+
+// Modalidade do exercício (22-estrategia.md, seção 2.1). Vai junto com o treino para a API, que
+// monta um pódio por modalidade na temporada (menos musculação, que já tem constância, força,
+// evolução e tonelagem).
+export type Modality =
+  | 'musculacao'
+  | 'corrida'
+  | 'bike'
+  | 'natacao'
+  | 'funcional'
+  | 'luta'
+  | 'yoga'
+  | 'mobilidade'
+  | 'cardio';
 
 export type Exercise = {
   equipment: string;
   id: string;
   kind: ExerciseKind;
+  modality: Modality;
   muscle: MuscleGroup;
   name: string;
   pattern: MovementPattern;
@@ -69,6 +86,7 @@ export type MuscleVolume = {
 
 export type PeriodSummary = {
   byMuscle: MuscleVolume[];
+  // Minutos de cardio somados aos das práticas só de tempo (yoga, luta, mobilidade, circuito).
   cardioMinutes: number;
   from: number;
   sessionCount: number;

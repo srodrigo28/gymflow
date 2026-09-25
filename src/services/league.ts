@@ -5,6 +5,8 @@ import type {
   DotsFormula,
   LeagueOverview,
   LeagueTier,
+  Schedule,
+  ScheduleSlot,
   Season,
   ServerCheckin,
   ServerGym,
@@ -68,8 +70,8 @@ export function getSeason(token: string, month?: string) {
 }
 
 /**
- * Mostrar (ou não) tonelagem, evolução e cardio aos amigos na temporada. Desligado, a pessoa some
- * dessas três categorias para os outros e deixa de ver os amigos nelas.
+ * "Mostrar detalhes aos amigos" na temporada: volume (tonelagem), evolução, cardio, modalidades e
+ * equilíbrio. Desligado, a pessoa some dessas categorias para os outros e deixa de ver os amigos nelas.
  */
 export async function setSeasonSharing(token: string, share: boolean) {
   const result = await apiRequest<{ share: boolean }>('/me/season-sharing', { body: { share }, method: 'PUT', token });
@@ -153,4 +155,17 @@ export async function setGymConfirmation(token: string, id: string, confirmed: b
   });
 
   return gym;
+}
+
+/** A agenda de treinos da conta (pontualidade). */
+export function getSchedule(token: string) {
+  return apiRequest<Schedule>('/me/schedule', { token });
+}
+
+/**
+ * Troca a agenda inteira (até 7 compromissos; lista vazia tira a pessoa da pontualidade). Um compromisso
+ * que sai não apaga o passado: a pontualidade do mês conta cada dia com a agenda que valia nele.
+ */
+export function saveSchedule(token: string, slots: ScheduleSlot[]) {
+  return apiRequest<Schedule>('/me/schedule', { body: { slots }, method: 'PUT', token });
 }

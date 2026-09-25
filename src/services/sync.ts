@@ -2,9 +2,11 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
+import { modalities } from '@/src/constants/modalities';
 import { getDatabase } from '@/src/db/client';
 import { onSyncQueued } from '@/src/db/outbox';
 import { ApiError, apiRequest } from '@/src/services/api';
+import type { Modality } from '@/src/types/training';
 
 const BATCH_SIZE = 25;
 const MAX_ROUNDS = 20;
@@ -21,7 +23,32 @@ type SessionRow = {
   updated_at: number;
 };
 
-type ExerciseRow = { exercise_id: string; id: string; kind: string; muscle: string; name: string; position: number };
+type ExerciseRow = {
+  exercise_id: string;
+  id: string;
+  kind: string;
+  modality: string;
+  muscle: string;
+  name: string;
+  position: number;
+};
+
+const knownModalities = new Set<string>(modalities.map((item) => item.id));
+
+function isModality(value: unknown): value is Modality {
+  return typeof value === 'string' && knownModalities.has(value);
+}
+
+// A modalidade do exercício, como está no catálogo. Treino antigo da conta (sem modalidade) ou de
+// uma versão mais nova do app (com uma que esta não conhece) fica com a do tipo de série: musculação
+// para força, cardio para o resto. O envio passa por aqui também: a API recusa modalidade desconhecida.
+function modalityOf(value: unknown, kind: string): Modality {
+  if (isModality(value)) {
+    return value;
+  }
+
+  return kind === 'forca' ? 'musculacao' : 'cardio';
+}
 
 type SetRow = {
   created_at: number;
@@ -55,7 +82,7 @@ async function workoutPayload(sessionId: string) {
   }
 
   const exercises = await database.getAllAsync<ExerciseRow>(
-    `SELECT se.id, se.exercise_id, se.position, e.name, e.muscle, e.kind
+    `SELECT se.id, se.exercise_id, se.position, e.name, e.muscle, e.kind, e.modality
      FROM session_exercises se
      JOIN exercises e ON e.id = se.exercise_id
      WHERE se.session_id = ?
@@ -76,6 +103,7 @@ async function workoutPayload(sessionId: string) {
       exerciseId: exercise.exercise_id,
       id: exercise.id,
       kind: exercise.kind,
+      modality: modalityOf(exercise.modality, exercise.kind),
       muscle: exercise.muscle,
       name: exercise.name,
       position: exercise.position,
@@ -168,6 +196,8 @@ type RemoteWorkout = {
     exerciseId: string;
     id: string;
     kind: string;
+    // null nos treinos que subiram antes das modalidades.
+    modality?: string | null;
     muscle: string;
     name: string;
     position: number;
@@ -202,10 +232,18 @@ async function saveRemoteWorkout(database: SQLiteDatabase, workout: RemoteWorkou
     );
 
     for (const exercise of workout.exercises) {
-      // O catálogo vem do app. Um exercício que saiu dele volta com o nome e o grupo do servidor.
+      // O catálogo vem do app. Um exercício que saiu dele volta com o nome, o grupo e a modalidade
+      // do servidor; um que ainda está nele fica como o catálogo diz.
       await database.runAsync(
-        `INSERT OR IGNORE INTO exercises (id, name, muscle, pattern, equipment, kind) VALUES (?, ?, ?, '', '', ?)`,
-        [exercise.exerciseId, exercise.name, exercise.muscle, exercise.kind],
+        `INSERT OR IGNORE INTO exercises (id, name, muscle, pattern, equipment, kind, modality)
+         VALUES (?, ?, ?, '', '', ?, ?)`,
+        [
+          exercise.exerciseId,
+          exercise.name,
+          exercise.muscle,
+          exercise.kind,
+          modalityOf(exercise.modality, exercise.kind),
+        ],
       );
       await database.runAsync(
         'INSERT INTO session_exercises (id, session_id, exercise_id, position) VALUES (?, ?, ?, ?)',

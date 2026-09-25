@@ -114,6 +114,13 @@ const migrations: string[] = [
     value TEXT NOT NULL
   );
   `,
+  `
+  -- Modalidade do exercício (corrida, natação, luta, yoga...). O que já estava no banco nasce como
+  -- musculação e o catálogo acerta cada um logo em seguida (seedExercises). Os que vieram só da
+  -- conta, fora do catálogo, ficam com a modalidade do tipo de série: cardio quando não é força.
+  ALTER TABLE exercises ADD COLUMN modality TEXT NOT NULL DEFAULT 'musculacao';
+  UPDATE exercises SET modality = 'cardio' WHERE kind <> 'forca';
+  `,
 ];
 
 let currentUserId: string | null = null;
@@ -156,11 +163,20 @@ async function migrate(database: SQLiteDatabase) {
 async function seedExercises(database: SQLiteDatabase) {
   for (const exercise of exercisesSeed) {
     await database.runAsync(
-      `INSERT INTO exercises (id, name, muscle, pattern, equipment, kind)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO exercises (id, name, muscle, pattern, equipment, kind, modality)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (id) DO UPDATE SET name = excluded.name, muscle = excluded.muscle,
-         pattern = excluded.pattern, equipment = excluded.equipment, kind = excluded.kind`,
-      [exercise.id, exercise.name, exercise.muscle, exercise.pattern, exercise.equipment, exercise.kind],
+         pattern = excluded.pattern, equipment = excluded.equipment, kind = excluded.kind,
+         modality = excluded.modality`,
+      [
+        exercise.id,
+        exercise.name,
+        exercise.muscle,
+        exercise.pattern,
+        exercise.equipment,
+        exercise.kind,
+        exercise.modality,
+      ],
     );
   }
 }

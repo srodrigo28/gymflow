@@ -40,6 +40,23 @@ export type WeeklyGoal = {
   reached: boolean;
 };
 
+// Sequência de semanas com a meta batida (22-estrategia.md, seção 3.2). Os escudos são automáticos:
+// uma semana que ficou a UM dia da meta é coberta por um escudo, se ainda houver no mês (2 por mês,
+// contados pelo mês da segunda-feira da semana). O escudo segura a sequência, mas não soma semana nem
+// dá o XP da meta. Sem sequência em andamento, nenhum escudo é gasto.
+export type Streak = {
+  // Melhor sequência das últimas 52 semanas (contando a atual, se já bateu a meta).
+  bestWeeks: number;
+  // A semana atual já bateu a meta e por isso já conta em `weeks`. false: ainda em aberto, não quebra nada.
+  currentWeekReached: boolean;
+  // Semanas deste mês cobertas por escudo (segunda-feira, AAAA-MM-DD), da mais antiga para a mais nova.
+  protectedWeeks: string[];
+  shieldsLeft: number;
+  shieldsPerMonth: number;
+  // Semanas seguidas com a meta batida até agora.
+  weeks: number;
+};
+
 export type XpSummary = {
   // XP em dobro até este instante (ISO), por ter trazido alguém pelo convite de um desafio.
   boostUntil: string | null;
@@ -50,6 +67,7 @@ export type XpSummary = {
   month: { key: string; xp: number };
   nextLevelXp: number;
   rules: XpRules;
+  streak: Streak;
   totalXp: number;
   week: {
     breakdown: XpBreakdown;
@@ -108,7 +126,7 @@ export type LeagueOverview = {
   week: { endsAt: string; key: string; startsAt: string };
 };
 
-export type SeasonUnit = 'xp' | 'dias' | 'pontos' | 'percent' | 'kg' | 'minutos';
+export type SeasonUnit = 'xp' | 'dias' | 'pontos' | 'percent' | 'kg' | 'minutos' | 'treinos';
 
 export type SeasonEntry = {
   isMe: boolean;
@@ -122,7 +140,9 @@ export type SeasonCategory = {
   description: string;
   // Quem tem valor na categoria (você e seus amigos), do primeiro ao último. Empate divide a posição.
   entries: SeasonEntry[];
-  // 'xp', 'constancia', 'constancia-verificada', 'forca', 'evolucao', 'tonelagem' ou 'cardio:<exercício>'.
+  // 'xp', 'constancia', 'constancia-verificada', 'pontualidade', 'forca', 'evolucao', 'tonelagem',
+  // 'equilibrio', 'cardio:<exercício>' ou 'modalidade:<modalidade>'. Evolução, tonelagem, equilíbrio,
+  // cardio e modalidades só aparecem entre quem liga "Mostrar detalhes aos amigos" (PUT /me/season-sharing).
   id: string;
   // hint: por que você não aparece (ou o que falta), quando não aparece.
   me: { hint: string | null; rank: number | null; value: number | null };
@@ -157,10 +177,12 @@ export type Season = {
   firstSeasonKey: string;
   friendsCount: number;
   month: { closed: boolean; endsAt: string; key: string; startsAt: string };
-  // A pessoa escolheu mostrar volume (tonelagem), evolução e cardio aos amigos. Sem isso ela não
-  // aparece nessas três categorias para ninguém e também não vê os amigos nelas (vale nos dois sentidos).
+  // A pessoa ligou "Mostrar detalhes aos amigos": volume (tonelagem), evolução, cardio, modalidades e
+  // equilíbrio. Sem isso ela não aparece nessas categorias para ninguém e também não vê os amigos nelas
+  // (vale nos dois sentidos). Do equilíbrio, os amigos veem só a contagem de dias.
   sharing: boolean;
-  // Categorias da estratégia que ainda não dá para medir, com o motivo.
+  // Categorias da estratégia que ainda não dá para medir, com o motivo. Vem vazia desde que as oito
+  // categorias passaram a ser medidas; o campo fica para o caso de alguma um dia ficar sem dado.
   unavailable: { id: string; reason: string; title: string }[];
 };
 
@@ -201,4 +223,25 @@ export type AdminGym = ServerGym & {
   confirmedBy: 'members' | 'admin' | null;
   createdAt: string;
   memberCount: number;
+};
+
+// Agenda de treinos (pontualidade, 22-estrategia.md seção 3.3): até 7 compromissos por semana, no
+// fuso de São Paulo. Só conta para quem agendou: sem agenda, a pessoa não entra na pontualidade.
+export type ScheduleSlot = {
+  // Hora marcada, "HH:MM" (24 h).
+  time: string;
+  // 0 = segunda … 6 = domingo.
+  weekday: number;
+};
+
+export type Schedule = {
+  rules: {
+    maxSlots: number;
+    // Compromissos já passados no mês para a pessoa entrar na categoria.
+    minPastSlots: number;
+    // O treino conta como pontual se começar até esta quantidade de minutos antes ou depois da hora.
+    windowMinutes: number;
+  };
+  slots: ScheduleSlot[];
+  timezone: string;
 };

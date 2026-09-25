@@ -1,8 +1,10 @@
+import { modalityLabels } from '@/src/constants/modalities';
 import { createId, getDatabase } from '@/src/db/client';
 import { queueSync } from '@/src/db/outbox';
-import { startOfWeek } from '@/src/utils/format';
+import { muscleLabel, startOfWeek } from '@/src/utils/format';
 import type {
   Exercise,
+  Modality,
   MuscleGroup,
   PeriodSummary,
   SessionExercise,
@@ -26,10 +28,31 @@ type ExerciseRow = {
   equipment: string;
   id: string;
   kind: Exercise['kind'];
+  modality: Modality;
   muscle: MuscleGroup;
   name: string;
   pattern: Exercise['pattern'];
 };
+
+// Só os campos do exercício: as consultas com JOIN trazem colunas da sessão junto.
+function toExercise(row: ExerciseRow): Exercise {
+  return {
+    equipment: row.equipment,
+    id: row.id,
+    kind: row.kind,
+    modality: row.modality,
+    muscle: row.muscle,
+    name: row.name,
+    pattern: row.pattern,
+  };
+}
+
+/** Linha de apoio do exercício: o grupo muscular na musculação; nas outras modalidades, o nome dela. */
+export function exerciseGroupLabel(exercise: Pick<Exercise, 'modality' | 'muscle'>) {
+  return exercise.modality === 'musculacao'
+    ? muscleLabel(exercise.muscle)
+    : (modalityLabels[exercise.modality] ?? muscleLabel(exercise.muscle));
+}
 
 type SetRow = {
   distance_m: number | null;
@@ -86,7 +109,7 @@ export async function listExercises(filter: { muscle?: MuscleGroup; search?: str
     params,
   );
 
-  return rows as Exercise[];
+  return rows.map(toExercise);
 }
 
 export async function getActiveSessionId() {
@@ -151,14 +174,7 @@ export async function getSession(sessionId: string): Promise<WorkoutSession | nu
   );
 
   const exercises: SessionExercise[] = exerciseRows.map((row) => ({
-    exercise: {
-      equipment: row.equipment,
-      id: row.id,
-      kind: row.kind,
-      muscle: row.muscle,
-      name: row.name,
-      pattern: row.pattern,
-    },
+    exercise: toExercise(row),
     id: row.session_exercise_id,
     position: row.position,
     sets: setRows.filter((set) => set.session_exercise_id === row.session_exercise_id).map(toSet),
@@ -272,7 +288,8 @@ export async function deleteSet(setId: string) {
 /**
  * Conclui ou desmarca uma série. Ao concluir, compara com o histórico do
  * exercício e marca recorde quando a carga ou a carga estimada para 1 repetição
- * superam tudo o que já foi feito.
+ * superam tudo o que já foi feito. Recorde é de carga: só existe em exercício de
+ * força. Cardio e as práticas por tempo (yoga, luta, mobilidade) não têm carga.
  */
 export function toggleSetDone(setId: string, done: boolean) {
   return serialize(async () => {
@@ -283,9 +300,10 @@ export function toggleSetDone(setId: string, done: boolean) {
       return { isPr: false };
     }
 
-    const set = await database.getFirstAsync<SetRow & { exercise_id: string }>(
-      `SELECT s.*, se.exercise_id FROM sets s
+    const set = await database.getFirstAsync<SetRow & { exercise_id: string; kind: Exercise['kind'] }>(
+      `SELECT s.*, se.exercise_id, e.kind FROM sets s
        JOIN session_exercises se ON se.id = s.session_exercise_id
+       JOIN exercises e ON e.id = se.exercise_id
        WHERE s.id = ?`,
       [setId],
     );
@@ -296,7 +314,7 @@ export function toggleSetDone(setId: string, done: boolean) {
 
     let isPr = false;
 
-    if (set.weight_kg && set.reps) {
+    if (set.kind === 'forca' && set.weight_kg && set.reps) {
       const best = await database.getFirstAsync<{
         best_weight: number | null;
         best_e1rm: number | null;
@@ -500,6 +518,7 @@ export async function getTrainingStreak() {
   return { best, daysThisWeek, weeks: current };
 }
 
+// Volume é carga × repetições: as séries de cardio e de tempo não têm carga e ficam de fora sozinhas.
 export async function getPeriodSummary(from: number, to: number): Promise<PeriodSummary> {
   const database = await getDatabase();
   const totals = await database.getFirstAsync<{
@@ -531,11 +550,13 @@ export async function getPeriodSummary(from: number, to: number): Promise<Period
     [from, to],
   );
 
+  // Os minutos somam o cardio e as práticas registradas só por tempo (yoga, luta, mobilidade,
+  // circuito, hidroginástica). Sem eles, uma semana de jiu-jitsu apareceria vazia no resumo.
   const cardio = await database.getFirstAsync<{ seconds: number | null }>(
     `SELECT SUM(st.duration_sec) AS seconds
      FROM sessions s
      JOIN session_exercises se ON se.session_id = s.id
-     JOIN exercises e ON e.id = se.exercise_id AND e.kind = 'cardio'
+     JOIN exercises e ON e.id = se.exercise_id AND e.kind IN ('cardio', 'tempo')
      JOIN sets st ON st.session_exercise_id = se.id AND st.done = 1
      WHERE s.finished_at IS NOT NULL AND s.started_at BETWEEN ? AND ?`,
     [from, to],
