@@ -94,6 +94,13 @@ export async function listMeasurements(limit = 60) {
   return rows.map(toMeasurement);
 }
 
+export async function countMeasurements() {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<{ total: number }>('SELECT COUNT(*) AS total FROM measurements');
+
+  return row?.total ?? 0;
+}
+
 export async function deleteMeasurement(id: string) {
   const database = await getDatabase();
   await database.runAsync('DELETE FROM measurements WHERE id = ?', [id]);

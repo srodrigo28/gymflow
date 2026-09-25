@@ -1,12 +1,14 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { MeasurementsBackupCard } from '@/src/components/body/MeasurementsBackupCard';
 import { WeightChart } from '@/src/components/body/WeightChart';
 import { Screen } from '@/src/components/ui/Screen';
 import { getBodyTrend, getWeightSeries, listPhotos } from '@/src/services/body';
+import { onMeasurementsSynced } from '@/src/services/body-sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { BodyTrend, ProgressPhoto } from '@/src/types/body';
 import { formatDelta, formatShortDate, monthLabel } from '@/src/utils/format';
@@ -37,6 +39,10 @@ export default function CorpoScreen() {
       void load();
     }, [load]),
   );
+
+  // Medidas que chegam da conta (num aparelho novo, ou logo depois do consentimento) entram no
+  // gráfico na hora.
+  useEffect(() => onMeasurementsSynced(() => void load()), [load]);
 
   const latest = trend?.latest;
   const months = [...new Set(photos.map((photo) => photo.month))];
@@ -129,8 +135,10 @@ export default function CorpoScreen() {
           </Text>
         )}
 
+        <MeasurementsBackupCard />
+
         <Text style={styles.privacy}>
-          Medidas e fotos ficam só neste aparelho. Nada é publicado nem enviado enquanto você não pedir.
+          Fotos ficam só neste aparelho. Nada é publicado nem enviado enquanto você não pedir.
         </Text>
       </ScrollView>
     </Screen>
