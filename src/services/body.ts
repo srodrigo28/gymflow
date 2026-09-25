@@ -1,8 +1,10 @@
 import { Directory, File, Paths } from 'expo-file-system';
+import { Platform } from 'react-native';
 
 import { createId, getDatabase } from '@/src/db/client';
 import { queueSync } from '@/src/db/outbox';
 import type { BodyTrend, Measurement, ProgressPhoto, Pose } from '@/src/types/body';
+import { webImageDataUri } from '@/src/utils/web-image';
 
 type MeasurementRow = {
   arm_cm: number | null;
@@ -146,6 +148,24 @@ export async function getWeightSeries(limit = 40) {
   return rows.map((row) => ({ takenAt: row.taken_at, weightKg: row.weight_kg })).reverse();
 }
 
+const photoListeners = new Set<() => void>();
+
+// Foto guardada ou apagada neste aparelho. No celular a fila de envio também avisa (db/outbox.ts); no
+// navegador as fotos não entram na fila, e é este aviso que atualiza o cartão das fotos.
+export function onPhotosChanged(listener: () => void) {
+  photoListeners.add(listener);
+
+  return () => {
+    photoListeners.delete(listener);
+  };
+}
+
+function notifyPhotosChanged() {
+  for (const listener of photoListeners) {
+    listener();
+  }
+}
+
 // A pasta privada das fotos de evolução. As que voltam da conta (services/photo-sync.ts) descem aqui também.
 export function photosDirectory() {
   const directory = new Directory(Paths.document, PHOTOS_FOLDER);
@@ -161,22 +181,38 @@ export function photosDirectory() {
  * Copia a foto escolhida para a pasta privada do app. O arquivo original fica
  * na galeria ou no cache da câmera e pode sumir; a cópia é nossa e não sai do
  * aparelho enquanto não houver compartilhamento explícito.
+ *
+ * No navegador não há essa pasta: a foto fica no banco local, reduzida e como texto, e não entra na fila
+ * de envio, porque as fotos só sobem pelo app do celular (services/photo-sync.ts).
  */
 export async function savePhoto(values: { month: string; pose: Pose; takenAt?: number; uri: string }) {
   const database = await getDatabase();
   const id = createId();
-  const source = new File(values.uri);
-  const extension = source.extension || '.jpg';
-  const destination = new File(photosDirectory(), `${id}${extension}`);
+  const isWeb = Platform.OS === 'web';
+  let uri: string;
 
-  source.copy(destination);
+  if (isWeb) {
+    uri = await webImageDataUri(values.uri);
+  } else {
+    const source = new File(values.uri);
+    const extension = source.extension || '.jpg';
+    const destination = new File(photosDirectory(), `${id}${extension}`);
+
+    source.copy(destination);
+    uri = destination.uri;
+  }
 
   const now = Date.now();
   await database.runAsync(
     'INSERT INTO photos (id, uri, month, pose, taken_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, destination.uri, values.month, values.pose, values.takenAt ?? now, now],
+    [id, uri, values.month, values.pose, values.takenAt ?? now, now],
   );
-  await queueSync('photo', id, 'create');
+
+  if (!isWeb) {
+    await queueSync('photo', id, 'create');
+  }
+
+  notifyPhotosChanged();
 
   return id;
 }
@@ -218,6 +254,11 @@ export async function listPhotoMonths() {
 // Apaga os arquivos de todas as fotos da conta atual (quando a pessoa apaga a conta). A pasta
 // de fotos é do app inteiro; quais arquivos são dela está no banco dela.
 export async function deleteAllPhotoFiles() {
+  // No navegador a foto é uma linha do banco, que sai com ele.
+  if (Platform.OS === 'web') {
+    return;
+  }
+
   const database = await getDatabase();
   const rows = await database.getAllAsync<{ uri: string }>('SELECT uri FROM photos');
 
@@ -238,6 +279,12 @@ export async function deletePhoto(id: string) {
     return;
   }
 
+  if (Platform.OS === 'web') {
+    await database.runAsync('DELETE FROM photos WHERE id = ?', [id]);
+    notifyPhotosChanged();
+    return;
+  }
+
   const file = new File(row.uri);
 
   if (file.exists) {
@@ -246,4 +293,5 @@ export async function deletePhoto(id: string) {
 
   await database.runAsync('DELETE FROM photos WHERE id = ?', [id]);
   await queueSync('photo', id, 'delete');
+  notifyPhotosChanged();
 }

@@ -1,13 +1,15 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { useSession } from '@/src/contexts/session-context';
 import { onSyncQueued } from '@/src/db/outbox';
+import { onPhotosChanged } from '@/src/services/body';
 import { getPhotoBackupStatus, onPhotosSynced, type PhotoBackupStatus } from '@/src/services/photo-sync';
 import { fonts, makeStyles, radius, useTheme, withAlpha } from '@/src/theme';
+import { showAlert } from '@/src/utils/alert';
 import { formatShortDate } from '@/src/utils/format';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -38,6 +40,13 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 
 // O estado do envio numa linha: o que acontece agora, ou o que falta.
 function statusLine(status: PhotoBackupStatus, hasConsent: boolean) {
+  // No navegador as fotos não sobem (services/body.ts): ficam só nele, com ou sem o consentimento.
+  if (Platform.OS === 'web') {
+    return status.total > 0
+      ? `${plural(status.total, 'foto guardada', 'fotos guardadas')} só neste navegador.`
+      : 'Nenhuma foto neste navegador.';
+  }
+
   if (!hasConsent) {
     return status.total > 0
       ? `${plural(status.total, 'foto guardada', 'fotos guardadas')} só aqui.`
@@ -63,8 +72,8 @@ function statusLine(status: PhotoBackupStatus, hasConsent: boolean) {
   return status.total > 0 ? 'Tudo em dia com a conta.' : 'Nenhuma foto ainda.';
 }
 
-// O consentimento e o retrato das fotos, sempre em dia: ao ganhar foco, a cada foto nova na fila e a cada
-// envio ou download.
+// O consentimento e o retrato das fotos, sempre em dia: ao ganhar foco, a cada foto nova ou apagada neste
+// aparelho e a cada envio ou download.
 function usePhotoBackup() {
   const { session, setBodyPhotoConsent } = useSession();
   const consentAt = session?.user.bodyPhotoConsentAt ?? null;
@@ -81,6 +90,7 @@ function usePhotoBackup() {
   );
 
   useEffect(() => onSyncQueued(() => void refresh()), [refresh]);
+  useEffect(() => onPhotosChanged(() => void refresh()), [refresh]);
   useEffect(() => onPhotosSynced(() => void refresh()), [refresh]);
 
   return { consentAt, setBodyPhotoConsent, status };
@@ -107,14 +117,14 @@ export function PhotosBackupCard() {
   }
 
   function askToGrant() {
-    Alert.alert(CONSENT_TITLE, CONSENT_TEXT, [
+    showAlert(CONSENT_TITLE, CONSENT_TEXT, [
       { style: 'cancel', text: 'Agora não' },
       { onPress: () => void apply(true), text: 'Aceito e quero guardar' },
     ]);
   }
 
   function askToRevoke() {
-    Alert.alert(
+    showAlert(
       'Parar de guardar fotos na conta',
       'Apagamos agora todas as suas fotos da conta, e os links que ainda valiam deixam de abrir. As fotos deste aparelho continuam aqui.',
       [
@@ -142,7 +152,7 @@ export function PhotosBackupCard() {
         </View>
       </View>
 
-      {consentAt && status && status.total > 0 ? (
+      {consentAt && status && status.total > 0 && Platform.OS !== 'web' ? (
         <Text style={styles.counts}>
           {`${status.inAccount} na conta · ${status.total - status.inAccount} só neste aparelho`}
         </Text>

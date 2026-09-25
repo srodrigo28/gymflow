@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { createId } from '@/src/db/client';
 import { storage, storageKeys } from '@/src/services/storage';
+import { webImageDataUri } from '@/src/utils/web-image';
 
 const PHOTO_FOLDER = 'perfil';
 
@@ -47,8 +48,6 @@ export async function pickProfilePhoto(userId: string) {
     allowsEditing: true,
     // A proporção da capa na home.
     aspect: [3, 2],
-    // No web o seletor devolve um endereço blob:, que some ao recarregar a página.
-    base64: Platform.OS === 'web',
     mediaTypes: ['images'],
     quality: 0.8,
   });
@@ -60,8 +59,10 @@ export async function pickProfilePhoto(userId: string) {
 
   const key = storageKeys.profilePhoto(userId);
 
+  // No web o seletor devolve um endereço blob:, que some ao recarregar a página, e a imagem inteira como texto
+  // pode passar do limite do armazenamento do navegador (a gravação falharia calada): guarda a versão menor.
   if (Platform.OS === 'web') {
-    const uri = asset.base64 ? `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}` : asset.uri;
+    const uri = await webImageDataUri(asset.uri);
     await storage.set(key, uri);
     return uri;
   }

@@ -89,7 +89,13 @@ export default function FotosScreen() {
       return;
     }
 
-    await savePhoto({ month, pose, uri: result.assets[0].uri });
+    try {
+      await savePhoto({ month, pose, uri: result.assets[0].uri });
+    } catch {
+      setMessage('Não foi possível guardar a foto. Tente de novo.');
+      return;
+    }
+
     setMessage(null);
     await load();
   }
@@ -242,8 +248,9 @@ export default function FotosScreen() {
         </View>
 
         <Text style={styles.privacy}>
-          As fotos são copiadas para a área privada do app. Só vão para a sua conta com o consentimento acima, e
-          nada aparece para outra pessoa enquanto você não pedir.
+          {Platform.OS === 'web'
+            ? 'No navegador, as fotos ficam guardadas só nele, menores e sem os metadados, e não sobem para a conta: as tiradas pelo app do celular sobem com o consentimento acima. Nada aparece para outra pessoa enquanto você não pedir.'
+            : 'As fotos são copiadas para a área privada do app. Só vão para a sua conta com o consentimento acima, e nada aparece para outra pessoa enquanto você não pedir.'}
         </Text>
       </ScrollView>
     </Screen>

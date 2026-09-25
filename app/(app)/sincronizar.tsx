@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
@@ -11,12 +11,40 @@ import { onPhotosSynced } from '@/src/services/photo-sync';
 import { onWorkoutsRestored } from '@/src/services/sync';
 import { getSyncStatus, restoreFromAccount, syncNow, type SyncStatus } from '@/src/services/sync-status';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
+import { showAlert } from '@/src/utils/alert';
 import { formatSessionDate } from '@/src/utils/format';
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
+// Onde estão as fotos: no navegador, só nele; no celular, aqui e na conta, com o que falta subir.
+function photosLines(photos: SyncStatus['photos'] | undefined) {
+  if (!photos) {
+    return [];
+  }
+
+  if (Platform.OS === 'web') {
+    return [`${plural(photos.total, 'foto', 'fotos')} só neste navegador`];
+  }
+
+  if (!photos.hasConsent) {
+    return [`${plural(photos.total, 'foto', 'fotos')} só neste aparelho`];
+  }
+
+  const left =
+    photos.pending > 0
+      ? `${photos.pending} ${photos.pending === 1 ? 'falta' : 'faltam'} subir`
+      : 'nenhuma falta subir';
+
+  return [`${plural(photos.total, 'foto', 'fotos')} neste aparelho`, `${photos.inAccount} na conta · ${left}`];
+}
+
 // O que dizer das fotos: o servidor esperando, as que não puderam subir, ou onde fica o consentimento.
 function photosNote(photos: SyncStatus['photos'] | undefined, hasConsent: boolean) {
+  // No navegador as fotos ficam só nele (services/body.ts).
+  if (Platform.OS === 'web') {
+    return 'No navegador, as fotos não sobem para a conta. As tiradas pelo app do celular sobem com o consentimento e voltam num aparelho novo.';
+  }
+
   if (!hasConsent) {
     return 'Sobem só com o consentimento próprio das fotos, que fica na tela Fotos da Evolução.';
   }
@@ -112,9 +140,11 @@ export default function SincronizarScreen() {
   }
 
   function confirmRestore() {
-    Alert.alert(
+    showAlert(
       'Baixar de novo da conta?',
-      'Traz para este aparelho os treinos, as medidas e as fotos da conta que ainda não estão aqui. Nada do aparelho é apagado.',
+      Platform.OS === 'web'
+        ? 'Traz para este navegador os treinos e as medidas da conta que ainda não estão aqui. Nada daqui é apagado.'
+        : 'Traz para este aparelho os treinos, as medidas e as fotos da conta que ainda não estão aqui. Nada do aparelho é apagado.',
       [
         { style: 'cancel', text: 'Cancelar' },
         { onPress: () => void run('restore'), text: 'Baixar' },
@@ -190,20 +220,7 @@ export default function SincronizarScreen() {
 
         <StatusCard
           icon={photos?.hasConsent ? 'cloud-check-outline' : 'cloud-lock-outline'}
-          lines={
-            photos
-              ? photos.hasConsent
-                ? [
-                    `${plural(photos.total, 'foto', 'fotos')} neste aparelho`,
-                    `${photos.inAccount} na conta · ${
-                      photos.pending > 0
-                        ? `${photos.pending} ${photos.pending === 1 ? 'falta' : 'faltam'} subir`
-                        : 'nenhuma falta subir'
-                    }`,
-                  ]
-                : [`${plural(photos.total, 'foto', 'fotos')} só neste aparelho`]
-              : []
-          }
+          lines={photosLines(photos)}
           note={photosNote(photos, Boolean(bodyPhotoConsentAt))}
           title="Fotos de evolução"
           tone={theme.domain.conquista}
