@@ -10,6 +10,7 @@ import { getAdminMetrics, type AdminMetrics } from '@/src/services/admin';
 import { listAdminGyms, setGymConfirmation } from '@/src/services/league';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { AdminGym } from '@/src/types/league';
+import { formatNumber } from '@/src/utils/format';
 
 const UNDO_TITLE = 'Desfazer a confirmação?';
 
@@ -193,6 +194,9 @@ export default function AdminScreen() {
               {new Date(metrics.generatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })};
               puxe a tela para atualizar.
             </Text>
+
+            {metrics.strategy ? <StrategySection metrics={metrics} strategy={metrics.strategy} /> : null}
+            {metrics.ai ? <AiCostSection ai={metrics.ai} /> : null}
           </>
         ) : null}
 
@@ -282,6 +286,158 @@ function GymCard({ busy, gym, locked, onAction }: GymCardProps) {
         title={gym.confirmed ? 'Desfazer confirmação' : 'Confirmar'}
         variant={gym.confirmed ? 'ghost' : 'outline'}
       />
+    </View>
+  );
+}
+
+const NO_BASE = 'sem base ainda';
+
+/** Parte da base, ou null sem base (ninguém para contar ainda). */
+function ratio(part: number, base: number) {
+  return base > 0 ? part / base : null;
+}
+
+function percentLabel(value: number | null) {
+  return value === null ? NO_BASE : `${Math.round(value * 100)}%`;
+}
+
+function numberLabel(value: number | null, digits: number) {
+  return value === null ? NO_BASE : formatNumber(value, digits);
+}
+
+function usd(value: number, digits: number) {
+  return `US$ ${formatNumber(value, digits)}`;
+}
+
+type StrategyRowData = { detail: string; label: string; met: boolean; target: string; value: string };
+
+// As métricas da seção 6 da estratégia, com o alvo inicial ao lado e a base embaixo: com poucas pessoas, uma
+// porcentagem muda muito de um dia para o outro.
+function StrategySection({ metrics, strategy }: { metrics: AdminMetrics; strategy: NonNullable<AdminMetrics['strategy']> }) {
+  const styles = useStyles();
+  const perActive = ratio(metrics.workouts.finishedThisWeek, metrics.users.activeThisWeek);
+  const d7 = ratio(strategy.retention.d7.returned, strategy.retention.d7.eligible);
+  const d30 = ratio(strategy.retention.d30.returned, strategy.retention.d30.eligible);
+  const invites = ratio(strategy.invites.invitedSignups30d, strategy.invites.active30d);
+  const inChallenge = ratio(strategy.activeChallenge.users, strategy.activeChallenge.base);
+  const withPhoto = ratio(strategy.monthPhoto.users, strategy.monthPhoto.base);
+  const perCoach = ratio(strategy.coaches.links, strategy.coaches.withStudents);
+  const rows: StrategyRowData[] = [
+    {
+      detail: `${plural(metrics.workouts.finishedThisWeek, 'treino', 'treinos')} e ${plural(metrics.users.activeThisWeek, 'pessoa ativa', 'pessoas ativas')} na semana`,
+      label: 'Treinos por pessoa ativa na semana',
+      met: perActive !== null && perActive >= 3,
+      target: 'alvo: 3 ou mais',
+      value: numberLabel(perActive, 1),
+    },
+    {
+      detail: `${strategy.retention.d7.returned} de ${plural(strategy.retention.d7.eligible, 'cadastro', 'cadastros')} com 7 dias ou mais`,
+      label: 'Voltaram depois de 7 dias',
+      met: d7 !== null && d7 >= 0.4,
+      target: 'alvo: 40%',
+      value: percentLabel(d7),
+    },
+    {
+      detail: `${strategy.retention.d30.returned} de ${plural(strategy.retention.d30.eligible, 'cadastro', 'cadastros')} com 30 dias ou mais`,
+      label: 'Voltaram depois de 30 dias',
+      met: d30 !== null && d30 >= 0.2,
+      target: 'alvo: 20%',
+      value: percentLabel(d30),
+    },
+    {
+      detail: `${plural(strategy.invites.invitedSignups30d, 'conta nova', 'contas novas')} por convite de desafio e ${plural(strategy.invites.active30d, 'pessoa ativa', 'pessoas ativas')} em 30 dias`,
+      label: 'Convites aceitos por pessoa ativa',
+      met: invites !== null && invites >= 0.4,
+      target: 'alvo: 0,4 ou mais',
+      value: numberLabel(invites, 2),
+    },
+    {
+      detail: `${strategy.activeChallenge.users} de ${plural(strategy.activeChallenge.base, 'pessoa ativa', 'pessoas ativas')} na semana`,
+      label: 'Em desafio em andamento',
+      met: inChallenge !== null && inChallenge >= 0.35,
+      target: 'alvo: 35%',
+      value: percentLabel(inChallenge),
+    },
+    {
+      detail: `${strategy.monthPhoto.users} de ${plural(strategy.monthPhoto.base, 'pessoa ativa', 'pessoas ativas')} na semana. Só conta a foto guardada na conta: a que fica no aparelho não chega ao servidor.`,
+      label: 'Com foto do mês',
+      met: withPhoto !== null && withPhoto >= 0.3,
+      target: 'alvo: 30%',
+      value: percentLabel(withPhoto),
+    },
+    {
+      detail: `${plural(strategy.coaches.links, 'aluno', 'alunos')}; ${strategy.coaches.withStudents} de ${plural(strategy.coaches.profiles, 'personal', 'personais')} com aluno`,
+      label: 'Alunos por personal',
+      met: perCoach !== null && perCoach >= 12,
+      target: 'alvo: 12 ou mais',
+      value: numberLabel(perCoach, 1),
+    },
+  ];
+
+  return (
+    <>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        Métricas da estratégia
+      </Text>
+      <Text style={styles.sectionNote}>
+        As da seção 6 da estratégia, com o alvo inicial ao lado. Voltar depois de 7 ou 30 dias é abrir o app de novo
+        depois desse prazo, contado do cadastro.
+      </Text>
+      <View style={styles.strategyCard}>
+        {rows.map((row, index) => (
+          <StrategyRow first={index === 0} key={row.label} row={row} />
+        ))}
+      </View>
+    </>
+  );
+}
+
+// O custo é do Gyn Flow: a linha mostra quanto a IA gastou no mês e quanto isso dá por pessoa ativa, contra o
+// teto combinado (seção 2.5 da estratégia).
+function AiCostSection({ ai }: { ai: NonNullable<AdminMetrics['ai']> }) {
+  const styles = useStyles();
+  const row: StrategyRowData = {
+    detail: `${usd(ai.monthCostUsd, 2)} no mês; ${ai.usersWithAi} de ${plural(ai.activeUsers, 'pessoa ativa', 'pessoas ativas')} no mês usaram a IA`,
+    label: 'Custo da IA por pessoa ativa',
+    met: ai.costPerActiveUserUsd <= ai.capUsd,
+    target: `teto: ${usd(ai.capUsd, 2)}`,
+    value: usd(ai.costPerActiveUserUsd, 4),
+  };
+
+  return (
+    <>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
+        IA no mês
+      </Text>
+      <View style={styles.strategyCard}>
+        <StrategyRow first row={row} />
+      </View>
+    </>
+  );
+}
+
+function StrategyRow({ first, row }: { first: boolean; row: StrategyRowData }) {
+  const styles = useStyles();
+  const { theme } = useTheme();
+
+  return (
+    <View
+      accessibilityLabel={`${row.label}: ${row.value}, ${row.target}. ${row.detail}`}
+      accessible
+      style={[styles.strategyRow, first ? null : styles.strategyDivider]}>
+      <View style={styles.strategyTop}>
+        <Text style={styles.strategyLabel}>{row.label}</Text>
+        <Text
+          style={
+            row.value === NO_BASE
+              ? styles.strategyEmpty
+              : [styles.strategyValue, { color: row.met ? theme.accent.primary : theme.text.primary }]
+          }>
+          {row.value}
+        </Text>
+      </View>
+      <Text style={styles.strategyTarget}>{row.target}</Text>
+      <Text style={styles.strategyDetail}>{row.detail}</Text>
     </View>
   );
 }
@@ -406,6 +562,56 @@ const useStyles = makeStyles((theme) => ({
     lineHeight: 16,
   },
   footnote: {
+    color: theme.text.muted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  strategyCard: {
+    backgroundColor: theme.bg.surface,
+    borderColor: theme.border.subtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+  },
+  strategyRow: {
+    gap: 2,
+    paddingVertical: 14,
+  },
+  strategyDivider: {
+    borderTopColor: theme.border.subtle,
+    borderTopWidth: 1,
+  },
+  strategyTop: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  strategyLabel: {
+    color: theme.text.primary,
+    flex: 1,
+    fontFamily: fonts.semibold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  strategyValue: {
+    fontFamily: fonts.extrabold,
+    fontSize: 20,
+    fontVariant: ['tabular-nums'],
+  },
+  strategyEmpty: {
+    color: theme.text.muted,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+  },
+  strategyTarget: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  strategyDetail: {
     color: theme.text.muted,
     fontFamily: fonts.regular,
     fontSize: 12,
