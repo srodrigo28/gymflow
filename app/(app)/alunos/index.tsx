@@ -104,11 +104,20 @@ export default function AlunosScreen() {
     setBusyLinkId(student.linkId);
     setActionError(null);
 
+    const text = student.testimonial?.text;
+
+    if (!text) {
+      setBusyLinkId(null);
+      return;
+    }
+
     try {
-      await approveTestimonial(token, student.linkId);
+      await approveTestimonial(token, student.linkId, text);
       await load();
     } catch (reason) {
       setActionError(messageOf(reason, 'Não foi possível aprovar o depoimento.'));
+      // O aluno pode ter trocado o texto: a lista volta com o depoimento de agora.
+      void load();
     } finally {
       setBusyLinkId(null);
     }

@@ -122,8 +122,12 @@ export function getStudent(token: string, studentId: string) {
   return apiRequest<StudentDetail>(`/coaching/students/${enc(studentId)}`, { token });
 }
 
-export async function approveTestimonial(token: string, linkId: string) {
-  await apiRequest(`/coaching/links/${enc(linkId)}/testimonial/approve`, { method: 'POST', token });
+/**
+ * Aprova o depoimento com o texto que o personal leu. Se o aluno trocou o texto nesse meio tempo, a API
+ * responde 409 (TESTIMONIAL_CHANGED) e nada muda: a tela recarrega e mostra o texto novo.
+ */
+export async function approveTestimonial(token: string, linkId: string, text: string) {
+  await apiRequest(`/coaching/links/${enc(linkId)}/testimonial/approve`, { body: { text }, method: 'POST', token });
 }
 
 export async function listPlans(token: string, studentId?: string) {

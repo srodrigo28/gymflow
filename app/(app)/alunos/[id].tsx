@@ -308,6 +308,8 @@ export default function AlunoScreen() {
       await load();
     } catch (reason) {
       setActionError({ from, message: messageOf(reason, fallback) });
+      // O dado pode ter mudado do outro lado (o depoimento trocado, por exemplo): a tela volta com o de agora.
+      void load();
     } finally {
       setBusy(null);
     }
@@ -318,8 +320,18 @@ export default function AlunoScreen() {
       return;
     }
 
-    const { linkId } = detail.summary;
-    void run('testimonial', 'testimonial', () => approveTestimonial(token, linkId), 'Não foi possível aprovar o depoimento.');
+    const { linkId, testimonial } = detail.summary;
+
+    if (!testimonial) {
+      return;
+    }
+
+    void run(
+      'testimonial',
+      'testimonial',
+      () => approveTestimonial(token, linkId, testimonial.text),
+      'Não foi possível aprovar o depoimento.',
+    );
   }
 
   // A prescrição vai inteira de volta, só com a chave trocada: o servidor confere tudo de novo.
