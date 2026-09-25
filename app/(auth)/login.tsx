@@ -11,6 +11,7 @@ import type { Benefit } from '@/src/components/auth/BenefitRow';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { useRedirectAfterSignIn, useSession } from '@/src/contexts/session-context';
+import { personalInviteHref } from '@/src/services/student-coaching';
 import { fonts, makeStyles, radius, withAlpha } from '@/src/theme';
 import type { SignInPayload } from '@/src/types/auth';
 
@@ -30,8 +31,10 @@ export default function LoginScreen() {
   const passwordRef = useRef<TextInput>(null);
   const { signIn } = useSession();
   const redirectAfterSignIn = useRedirectAfterSignIn();
-  // Veio de um convite: volta para ele depois de entrar.
-  const { convite } = useLocalSearchParams<{ convite?: string }>();
+  // Veio de um convite: volta para ele depois de entrar. `personal` é o convite de um personal.
+  const { convite, personal } = useLocalSearchParams<{ convite?: string; personal?: string }>();
+  // O convite segue junto se a pessoa trocar para o cadastro.
+  const inviteParams = personal ? { personal } : convite ? { convite } : null;
   // Vindo da recuperação de senha, o e-mail já vem preenchido.
   const { email: presetEmail } = useLocalSearchParams<{ email?: string }>();
   const {
@@ -50,7 +53,13 @@ export default function LoginScreen() {
 
   async function handleSignIn(payload: SignInPayload) {
     try {
-      redirectAfterSignIn(convite ? { params: { code: convite }, pathname: '/convite/[code]' } : '/(app)/home');
+      redirectAfterSignIn(
+        personal
+          ? personalInviteHref(personal)
+          : convite
+            ? { params: { code: convite }, pathname: '/convite/[code]' }
+            : '/(app)/home',
+      );
       await signIn(payload);
     } catch (error) {
       redirectAfterSignIn(null);
@@ -68,7 +77,7 @@ export default function LoginScreen() {
       // Com o foco em qualquer um dos dois campos, a folha inteira fica acima do teclado.
       keyboardOffset={200}
       onFooterPress={() =>
-        router.replace(convite ? { params: { convite }, pathname: '/(auth)/sign-up' } : '/(auth)/sign-up')
+        router.replace(inviteParams ? { params: inviteParams, pathname: '/(auth)/sign-up' } : '/(auth)/sign-up')
       }
       subtitle="Continue de onde parou."
       title={['Bem-vindo\nde ', 'volta', '']}>

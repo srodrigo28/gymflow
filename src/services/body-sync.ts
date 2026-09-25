@@ -197,7 +197,9 @@ async function restoreMeasurements(database: SQLiteDatabase, token: string) {
 }
 
 let running: Promise<void> | null = null;
-let runAgain = false;
+// O pedido que chegou no meio de uma rodada, com os dados de quem pediu. A rodada seguinte usa estes, e
+// não os da rodada que terminou: se a conta mudou no meio, a conta nova não sobe com o token da anterior.
+let pending: { consentAt: string | null; token: string } | null = null;
 // A API publicada ainda sem as rotas de medidas (404): não insiste até o app abrir de novo.
 let unavailable = false;
 
@@ -210,7 +212,7 @@ export function syncMeasurements(token: string, consentAt: string | null): Promi
   }
 
   if (running) {
-    runAgain = true;
+    pending = { consentAt, token };
     return running;
   }
 
@@ -269,10 +271,11 @@ export function syncMeasurements(token: string, consentAt: string | null): Promi
       throw error;
     } finally {
       running = null;
+      const next = pending;
+      pending = null;
 
-      if (runAgain) {
-        runAgain = false;
-        void syncMeasurements(token, consentAt).catch(() => {});
+      if (next) {
+        void syncMeasurements(next.token, next.consentAt).catch(() => {});
       }
     }
   })();

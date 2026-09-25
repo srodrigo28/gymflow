@@ -64,6 +64,9 @@ export type WorkoutSession = {
   finishedAt?: number;
   id: string;
   note?: string;
+  // Treino começado por uma prescrição do personal: qual prescrição e a posição do dia nela.
+  planDay?: number;
+  planId?: string;
   startedAt: number;
 };
 

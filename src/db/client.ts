@@ -130,6 +130,13 @@ const migrations: string[] = [
   ALTER TABLE photos ADD COLUMN sync_error TEXT;
   ALTER TABLE photos ADD COLUMN full_pending INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  -- Treino começado por uma prescrição do personal (Fase 5): qual prescrição e qual dia dela (a posição
+  -- na lista de dias, a partir de 0). Sobem com o treino (planId e planDay) e voltam no download. Nulos
+  -- no treino livre e em todos os de antes.
+  ALTER TABLE sessions ADD COLUMN plan_id TEXT;
+  ALTER TABLE sessions ADD COLUMN plan_day INTEGER;
+  `,
 ];
 
 let currentUserId: string | null = null;

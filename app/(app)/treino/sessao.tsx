@@ -8,6 +8,8 @@ import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 
 import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
+import { useSession } from '@/src/contexts/session-context';
+import { findMyPlan, matchPlanTargets, planHeadline, planTarget, restLabel } from '@/src/services/student-coaching';
 import {
   addSet,
   deleteSet,
@@ -15,17 +17,17 @@ import {
   exerciseGroupLabel,
   finishSession,
   getSession,
+  MAX_WEIGHT_KG,
   removeSessionExercise,
   toggleSetDone,
   updateSet,
 } from '@/src/services/training';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
+import type { PlanExercise, TrainingPlan } from '@/src/types/coaching';
 import type { ExerciseKind, SessionExercise, WorkoutSession, WorkoutSet } from '@/src/types/training';
 import { formatDuration } from '@/src/utils/format';
 
 const REST_SECONDS = 90;
-// Acima disso é erro de digitação. Ficam abaixo dos limites da API, senão o treino não subiria.
-const MAX_WEIGHT_KG = 1000;
 const MAX_REPS = 1000;
 const MAX_MINUTES = 24 * 60;
 const MAX_DISTANCE_KM = 1000;
@@ -49,6 +51,12 @@ export default function SessaoScreen() {
   const [prRecord, setPrRecord] = useState<{ setId: string } | null>(null);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
   const prTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const { session: account } = useSession();
+  const userId = account?.user.id;
+  const token = account?.token;
+  const planId = session?.planId;
+  // A prescrição de onde o treino veio. undefined enquanto procura; null quando ela não está mais na lista.
+  const [plan, setPlan] = useState<TrainingPlan | null | undefined>(undefined);
 
   // A tela fica acesa durante o treino: ninguém quer desbloquear o celular a cada série.
   useKeepAwake();
@@ -90,12 +98,36 @@ export default function SessaoScreen() {
 
   useEffect(() => () => clearTimeout(prTimer.current), []);
 
-  async function handleToggleDone(set: WorkoutSet) {
+  // Treino de uma prescrição: o dia e os alvos vêm da cópia guardada no aparelho, então aparecem mesmo
+  // sem internet na academia.
+  useEffect(() => {
+    if (!planId || !userId) {
+      setPlan(undefined);
+      return;
+    }
+
+    let isActive = true;
+
+    void findMyPlan(userId, token, planId)
+      .catch(() => null)
+      .then((found) => {
+        if (isActive) {
+          setPlan(found);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [planId, token, userId]);
+
+  async function handleToggleDone(set: WorkoutSet, restSeconds = REST_SECONDS) {
     const result = await toggleSetDone(set.id, !set.done);
     await load();
 
     if (!set.done) {
-      setRest(REST_SECONDS);
+      // O descanso é o que o personal pediu para o exercício, quando pediu; zero é sem descanso (bi-set).
+      setRest(restSeconds > 0 ? restSeconds : null);
 
       if (Platform.OS !== 'web') {
         void Haptics.impactAsync(
@@ -123,6 +155,8 @@ export default function SessaoScreen() {
     router.replace('/(app)/treino');
   }
 
+  const planDay = plan && session?.planDay !== undefined ? plan.days[session.planDay] : undefined;
+  const targets = matchPlanTargets(planDay, session?.exercises ?? []);
   const totalSets = session?.exercises.reduce((total, item) => total + item.sets.length, 0) ?? 0;
   const doneSets =
     session?.exercises.reduce((total, item) => total + item.sets.filter((set) => set.done).length, 0) ?? 0;
@@ -177,8 +211,26 @@ export default function SessaoScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
+        {planId && plan !== undefined ? (
+          <View style={styles.planBanner}>
+            <Ionicons color={theme.domain.treino} name="clipboard-outline" size={18} style={styles.planIcon} />
+            <View style={styles.planText}>
+              <Text style={styles.planTitle}>
+                {plan ? planHeadline(plan, session?.planDay) : 'Treino prescrito pelo seu personal'}
+              </Text>
+              {plan?.note ? <Text style={styles.planNote}>{plan.note}</Text> : null}
+            </View>
+          </View>
+        ) : null}
+
         {session?.exercises.map((item) => (
-          <ExerciseCard key={item.id} item={item} onChange={load} onToggleDone={handleToggleDone} />
+          <ExerciseCard
+            item={item}
+            key={item.id}
+            onChange={load}
+            onToggleDone={handleToggleDone}
+            target={targets.get(item.id)}
+          />
         ))}
 
         <Button
@@ -241,10 +293,13 @@ function ExerciseCard({
   item,
   onChange,
   onToggleDone,
+  target,
 }: {
   item: SessionExercise;
   onChange: () => Promise<void>;
-  onToggleDone: (set: WorkoutSet) => Promise<void>;
+  onToggleDone: (set: WorkoutSet, restSeconds?: number) => Promise<void>;
+  // O que a prescrição pede para este exercício, quando o treino veio de uma.
+  target?: PlanExercise;
 }) {
   const styles = useStyles();
   const { theme } = useTheme();
@@ -258,7 +313,8 @@ function ExerciseCard({
         <View style={styles.cardTitleGroup}>
           <Text style={styles.cardTitle}>{item.exercise.name}</Text>
           <Text style={styles.cardSubtitle}>
-            {exerciseGroupLabel(item.exercise)} · {item.exercise.equipment}
+            {/* Exercício que veio só da conta ou da prescrição não tem equipamento no aparelho. */}
+            {[exerciseGroupLabel(item.exercise), item.exercise.equipment].filter(Boolean).join(' · ')}
           </Text>
         </View>
         <Pressable
@@ -272,6 +328,8 @@ function ExerciseCard({
           <Ionicons color={theme.text.muted} name="close" size={18} />
         </Pressable>
       </View>
+
+      {target ? <PlanTarget target={target} /> : null}
 
       <View style={styles.setHeader}>
         <Text style={[styles.setHeaderText, styles.colIndex]}>#</Text>
@@ -289,7 +347,7 @@ function ExerciseCard({
           key={set.id}
           kind={kind}
           onChange={onChange}
-          onToggleDone={onToggleDone}
+          onToggleDone={(done) => onToggleDone(done, target?.restSec ?? undefined)}
           set={set}
         />
       ))}
@@ -319,6 +377,40 @@ function ExerciseCard({
           </Pressable>
         ) : null}
       </View>
+    </View>
+  );
+}
+
+// O alvo do personal para o exercício: séries × repetições, o descanso e a observação.
+function PlanTarget({ target }: { target: PlanExercise }) {
+  const styles = useStyles();
+  const { theme } = useTheme();
+  // Zero é pedido de propósito (bi-set): sem descanso entre um exercício e o outro.
+  const rest =
+    target.restSec === null ? null : target.restSec > 0 ? `descanso ${restLabel(target.restSec)}` : 'sem descanso';
+  const label = [
+    `Alvo do personal: ${target.sets} ${target.sets === 1 ? 'série' : 'séries'} de ${target.reps}`,
+    rest,
+    target.note ? `observação: ${target.note}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return (
+    <View accessibilityLabel={label} accessible style={styles.target}>
+      <View style={styles.targetRow}>
+        <View style={[styles.targetChip, { backgroundColor: withAlpha(theme.domain.treino, 0.14) }]}>
+          <Ionicons color={theme.domain.treino} name="flag-outline" size={13} />
+          <Text style={[styles.targetChipText, { color: theme.domain.treino }]}>{planTarget(target)}</Text>
+        </View>
+        {rest ? (
+          <View style={styles.targetChip}>
+            <Ionicons color={theme.text.secondary} name="timer-outline" size={13} />
+            <Text style={styles.targetChipText}>{rest}</Text>
+          </View>
+        ) : null}
+      </View>
+      {target.note ? <Text style={styles.targetNote}>{target.note}</Text> : null}
     </View>
   );
 }
@@ -573,6 +665,66 @@ const useStyles = makeStyles((theme) => ({
   cardSubtitle: {
     ...typography.caption,
     color: theme.text.muted,
+  },
+  planBanner: {
+    alignItems: 'flex-start',
+    backgroundColor: withAlpha(theme.domain.treino, 0.1),
+    borderColor: withAlpha(theme.domain.treino, 0.35),
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
+  // Alinha o ícone com a primeira linha do texto ao lado.
+  planIcon: {
+    marginTop: 1,
+  },
+  planText: {
+    flex: 1,
+    gap: 4,
+  },
+  planTitle: {
+    color: theme.text.primary,
+    fontFamily: fonts.bold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  planNote: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  target: {
+    gap: 6,
+    paddingTop: 2,
+  },
+  targetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  targetChip: {
+    alignItems: 'center',
+    backgroundColor: theme.bg.raised,
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  targetChipText: {
+    color: theme.text.secondary,
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+  },
+  targetNote: {
+    color: theme.text.secondary,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
   },
   setHeader: {
     alignItems: 'center',

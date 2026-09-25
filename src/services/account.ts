@@ -30,6 +30,7 @@ export async function deleteAccount(session: AuthResponse, password: string) {
     ['a marca de onboarding concluído', () => storage.remove(storageKeys.onboardingCompleted(userId))],
     ['a marca das respostas enviadas', () => storage.remove(storageKeys.questionnaireUploaded(userId))],
     ['as escolhas de treino', () => clearTrainingPreferences(userId)],
+    ['a cópia das prescrições do personal', () => storage.remove(storageKeys.coachingPlans(userId))],
     ['a academia e os check-ins', () => clearGymCheckins(userId)],
     ['o diário do dia', () => clearDailyLog(userId)],
     ['o diário alimentar', () => clearNutritionData(userId)],

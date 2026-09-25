@@ -3,6 +3,9 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 export const storageKeys = {
+  // Última lista das prescrições que o personal mandou ({ plans, savedAt }): o treino do dia abre sem
+  // internet. É só uma cópia; a lista de verdade fica na conta e troca esta a cada carga.
+  coachingPlans: (userId: string) => `gynflow.coachingPlans.${userId}`,
   // Diário do dia: sono e humor por dia, a fila dos dias que ainda não subiram e o consentimento com
   // que este aparelho já acertou tudo com a conta. A água é a do diário alimentar, logo abaixo.
   dailyLog: (userId: string) => `gynflow.dailyLog.${userId}`,

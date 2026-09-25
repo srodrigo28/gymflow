@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { modalities } from '@/src/constants/modalities';
-import { getDatabase } from '@/src/db/client';
+import { getDatabase, getDatabaseUser } from '@/src/db/client';
 import { onSyncQueued } from '@/src/db/outbox';
 import { ApiError, apiRequest } from '@/src/services/api';
 import type { Modality } from '@/src/types/training';
@@ -19,6 +19,8 @@ type SessionRow = {
   finished_at: number | null;
   id: string;
   note: string | null;
+  plan_day: number | null;
+  plan_id: string | null;
   started_at: number;
   updated_at: number;
 };
@@ -68,7 +70,7 @@ type SetRow = {
 async function workoutPayload(sessionId: string) {
   const database = await getDatabase();
   const session = await database.getFirstAsync<SessionRow>(
-    'SELECT id, started_at, finished_at, note, updated_at FROM sessions WHERE id = ?',
+    'SELECT id, started_at, finished_at, note, updated_at, plan_id, plan_day FROM sessions WHERE id = ?',
     [sessionId],
   );
 
@@ -125,6 +127,10 @@ async function workoutPayload(sessionId: string) {
     finishedAt: session.finished_at,
     id: session.id,
     note: session.note,
+    // Treino feito a partir de uma prescrição do personal. A API confere se a prescrição é mesmo desta
+    // conta; se não for (ou se ela saiu com o vínculo desfeito), guarda o treino sem ela.
+    planDay: session.plan_day,
+    planId: session.plan_id,
     startedAt: session.started_at,
     updatedAt: session.updated_at,
   };
@@ -217,6 +223,9 @@ type RemoteWorkout = {
   finishedAt: number | null;
   id: string;
   note: string | null;
+  // A prescrição de onde o treino veio. Ausentes na API de antes da Fase 5.
+  planDay?: number | null;
+  planId?: string | null;
   startedAt: number;
   updatedAt: number;
 };
@@ -227,8 +236,18 @@ type RestorePage = { nextCursor: string | null; workouts: RemoteWorkout[] };
 async function saveRemoteWorkout(database: SQLiteDatabase, workout: RemoteWorkout) {
   await database.withTransactionAsync(async () => {
     await database.runAsync(
-      'INSERT INTO sessions (id, started_at, finished_at, note, updated_at, synced_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [workout.id, workout.startedAt, workout.finishedAt, workout.note, workout.updatedAt, Date.now()],
+      `INSERT INTO sessions (id, started_at, finished_at, note, updated_at, synced_at, plan_id, plan_day)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        workout.id,
+        workout.startedAt,
+        workout.finishedAt,
+        workout.note,
+        workout.updatedAt,
+        Date.now(),
+        workout.planId ?? null,
+        workout.planDay ?? null,
+      ],
     );
 
     for (const exercise of workout.exercises) {
@@ -347,33 +366,42 @@ async function restoreWorkouts(token: string) {
 }
 
 let running: Promise<void> | null = null;
-let runAgain = false;
+// O pedido que chegou no meio de uma rodada, com o token de quem pediu: a rodada seguinte usa este, e não o
+// da rodada que terminou. Se a conta mudou no meio, a conta nova não sobe com o token da anterior.
+let pendingToken: string | null = null;
 
 // Sobe os treinos concluídos que estão na fila e, na primeira vez da conta neste aparelho, baixa os
 // que já estavam nela. Uma execução por vez; um pedido no meio de outra roda de novo no fim, para
 // nada ficar para trás.
 export function syncWorkouts(token: string): Promise<void> {
   if (running) {
-    runAgain = true;
+    pendingToken = token;
     return running;
   }
 
   running = (async () => {
+    // Cada lote abre o banco da conta atual: se ela mudar no meio da rodada, a rodada para, para não
+    // mandar os treinos de uma conta com o token de outra.
+    const owner = getDatabaseUser();
+
     try {
       for (let round = 0; round < MAX_ROUNDS; round += 1) {
-        if ((await pushBatch(token)) < BATCH_SIZE) {
+        if (getDatabaseUser() !== owner || (await pushBatch(token)) < BATCH_SIZE) {
           break;
         }
       }
 
       // Só depois do envio: um treino apagado aqui já saiu da conta e não volta no download.
-      await restoreWorkouts(token);
+      if (getDatabaseUser() === owner) {
+        await restoreWorkouts(token);
+      }
     } finally {
       running = null;
+      const next = pendingToken;
+      pendingToken = null;
 
-      if (runAgain) {
-        runAgain = false;
-        void syncWorkouts(token).catch(() => {});
+      if (next) {
+        void syncWorkouts(next).catch(() => {});
       }
     }
   })();

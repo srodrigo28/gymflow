@@ -1,6 +1,7 @@
 import { modalityLabels } from '@/src/constants/modalities';
 import { createId, getDatabase } from '@/src/db/client';
 import { queueSync } from '@/src/db/outbox';
+import type { PlanExercise } from '@/src/types/coaching';
 import { muscleLabel, startOfWeek } from '@/src/utils/format';
 import type {
   Exercise,
@@ -147,8 +148,10 @@ export async function getSession(sessionId: string): Promise<WorkoutSession | nu
     finished_at: number | null;
     id: string;
     note: string | null;
+    plan_day: number | null;
+    plan_id: string | null;
     started_at: number;
-  }>('SELECT id, started_at, finished_at, note FROM sessions WHERE id = ?', [sessionId]);
+  }>('SELECT id, started_at, finished_at, note, plan_id, plan_day FROM sessions WHERE id = ?', [sessionId]);
 
   if (!session) {
     return null;
@@ -185,8 +188,61 @@ export async function getSession(sessionId: string): Promise<WorkoutSession | nu
     finishedAt: session.finished_at ?? undefined,
     id: session.id,
     note: session.note ?? undefined,
+    planDay: session.plan_day ?? undefined,
+    planId: session.plan_id ?? undefined,
     startedAt: session.started_at,
   };
+}
+
+// A prescrição pede de 1 a 10 séries; acima disso é dado estranho, e a tela não vira uma lista sem fim.
+const MAX_PLAN_SETS = 10;
+
+/**
+ * Começa o treino de um dia da prescrição do personal. A sessão nasce com os exercícios do dia, na ordem
+ * dele, e com as séries pedidas; cada série já vem com a carga da última vez, como no "repetir última
+ * série". A sessão guarda a prescrição e o dia, que sobem com o treino.
+ *
+ * Um treino em andamento com exercícios não é tocado: volta `busy` e a tela pergunta o que fazer. Um em
+ * andamento ainda vazio (a pessoa tocou em começar e voltou) vira este, com o relógio zerado.
+ */
+export async function startPlanSession(planId: string, planDay: number, exercises: PlanExercise[]) {
+  const database = await getDatabase();
+  const active = await getActiveSessionId();
+
+  if (active) {
+    const row = await database.getFirstAsync<{ total: number }>(
+      'SELECT COUNT(*) AS total FROM session_exercises WHERE session_id = ?',
+      [active],
+    );
+
+    if (row?.total) {
+      return { busy: true, id: active };
+    }
+  }
+
+  const id = active ?? (await startSession());
+  const now = Date.now();
+  await database.runAsync(
+    'UPDATE sessions SET plan_id = ?, plan_day = ?, started_at = ?, updated_at = ? WHERE id = ?',
+    [planId, planDay, now, now, id],
+  );
+
+  for (const item of exercises) {
+    // O personal escolhe do mesmo catálogo. Um exercício que este aparelho ainda não conhece (de uma
+    // versão mais nova do app) entra com o nome, o grupo e a modalidade da prescrição, como na restauração.
+    await database.runAsync(
+      `INSERT OR IGNORE INTO exercises (id, name, muscle, pattern, equipment, kind, modality)
+       VALUES (?, ?, ?, '', '', ?, ?)`,
+      [item.exerciseId, item.name, item.muscle, item.kind, item.modality],
+    );
+    const sessionExerciseId = await addExerciseToSession(id, item.exerciseId);
+
+    for (let set = 0; set < Math.min(Math.max(item.sets, 1), MAX_PLAN_SETS); set += 1) {
+      await addSet(sessionExerciseId);
+    }
+  }
+
+  return { busy: false, id };
 }
 
 export async function addExerciseToSession(sessionId: string, exerciseId: string) {
@@ -241,6 +297,11 @@ export async function addSet(sessionExerciseId: string) {
   return id;
 }
 
+// Acima disso é erro de digitação: a sessão pinta de vermelho e a API recusaria o treino.
+export const MAX_WEIGHT_KG = 1000;
+
+// A última série feita desse exercício em outra sessão, ignorando carga fora do limite: uma série com erro
+// de digitação não pode virar o ponto de partida das próximas (nem de um treino prescrito).
 async function getLastSetForSameExercise(sessionExerciseId: string) {
   const database = await getDatabase();
 
@@ -250,8 +311,9 @@ async function getLastSetForSameExercise(sessionExerciseId: string) {
      WHERE se.exercise_id = (SELECT exercise_id FROM session_exercises WHERE id = ?)
        AND s.session_exercise_id != ?
        AND s.done = 1
+       AND (s.weight_kg IS NULL OR s.weight_kg <= ?)
      ORDER BY s.created_at DESC LIMIT 1`,
-    [sessionExerciseId, sessionExerciseId],
+    [sessionExerciseId, sessionExerciseId, MAX_WEIGHT_KG],
   );
 }
 

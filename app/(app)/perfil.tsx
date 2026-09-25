@@ -5,6 +5,8 @@ import { Alert, Image, Platform, Pressable, Text, View, type TextInput } from 'r
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { PasswordStrength } from '@/src/components/auth/PasswordStrength';
+import { CoachLinksCard } from '@/src/components/coaching/CoachLinksCard';
+import { ProfessionalCard } from '@/src/components/coaching/ProfessionalCard';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { Screen } from '@/src/components/ui/Screen';
@@ -79,6 +81,8 @@ export default function PerfilScreen() {
         <EmailCard />
         <BodyGoalCard />
         <QuestionnaireCard />
+        <CoachLinksCard />
+        <ProfessionalCard />
         <PasswordCard />
         <DeleteAccountCard />
         <LegalLinks />

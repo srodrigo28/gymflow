@@ -3,6 +3,7 @@ import { router, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { PrescribedPlans } from '@/src/components/coaching/PrescribedPlans';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { getTodayCheckin } from '@/src/services/gym-checkin';
@@ -134,6 +135,9 @@ export default function TreinoScreen() {
           </View>
           <Ionicons color={theme.text.secondary} name="chevron-forward" size={22} />
         </Pressable>
+
+        {/* As prescrições do personal, com os dias de cada uma. Sem personal, a seção não aparece. */}
+        <PrescribedPlans />
 
         <View style={styles.pills}>
           <SummaryPill label="Treinos" value={`${week?.sessionCount ?? 0}`} />

@@ -12,6 +12,7 @@ import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { useRedirectAfterSignIn, useSession } from '@/src/contexts/session-context';
 import { openLegalPage } from '@/src/services/legal';
+import { personalInviteHref } from '@/src/services/student-coaching';
 import { fonts, makeStyles, radius, withAlpha } from '@/src/theme';
 import type { SignUpPayload } from '@/src/types/auth';
 
@@ -50,13 +51,20 @@ export default function SignUpScreen() {
   const confirmationRef = useRef<TextInput>(null);
   const { signUp } = useSession();
   const redirectAfterSignIn = useRedirectAfterSignIn();
-  // Veio de um convite: volta para ele depois do cadastro, e o onboarding fica para depois.
-  const { convite } = useLocalSearchParams<{ convite?: string }>();
+  // Veio de um convite: volta para ele depois do cadastro, e o onboarding fica para depois. `personal` é o
+  // convite de um personal.
+  const { convite, personal } = useLocalSearchParams<{ convite?: string; personal?: string }>();
+  // O convite segue junto se a pessoa trocar para o login.
+  const inviteParams = personal ? { personal } : convite ? { convite } : null;
 
   async function handleSignUp(payload: SignUpPayload) {
     try {
       redirectAfterSignIn(
-        convite ? { params: { code: convite }, pathname: '/convite/[code]' } : '/(onboarding)/start',
+        personal
+          ? personalInviteHref(personal)
+          : convite
+            ? { params: { code: convite }, pathname: '/convite/[code]' }
+            : '/(onboarding)/start',
       );
       await signUp(payload);
     } catch (error) {
@@ -72,7 +80,7 @@ export default function SignUpScreen() {
       footerAction="Entrar"
       footerText="Já tem conta?"
       onFooterPress={() =>
-        router.replace(convite ? { params: { convite }, pathname: '/(auth)/login' } : '/(auth)/login')
+        router.replace(inviteParams ? { params: inviteParams, pathname: '/(auth)/login' } : '/(auth)/login')
       }
       subtitle="Leva menos de um minuto."
       title={['Comece sua\n', 'evolução', '']}>

@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { GymBoard } from '@/src/components/coaching/GymBoard';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { Screen } from '@/src/components/ui/Screen';
@@ -774,6 +775,10 @@ export default function CheckinScreen() {
             </Pressable>
           </View>
         ) : null}
+
+        {/* O mural é da academia da conta: sem a resposta dela (carregando ou sem conexão), ele não aparece.
+            A chave troca o mural inteiro quando a academia da conta muda. */}
+        {token && serverGym ? <GymBoard gymId={serverGym.id} key={serverGym.id} onGymChanged={load} /> : null}
 
         {gym || hasHistory ? (
           <>
