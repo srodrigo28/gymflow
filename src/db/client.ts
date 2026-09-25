@@ -121,6 +121,15 @@ const migrations: string[] = [
   ALTER TABLE exercises ADD COLUMN modality TEXT NOT NULL DEFAULT 'musculacao';
   UPDATE exercises SET modality = 'cardio' WHERE kind <> 'forca';
   `,
+  `
+  -- Fotos na conta, com o consentimento das fotos (services/photo-sync.ts). synced_epoch: o
+  -- consentimento (o instante do aceite) com que a foto está na conta; nula, só neste aparelho.
+  -- sync_error: por que o servidor recusou a foto (formato ou tamanho); ela continua só aqui.
+  -- full_pending: 1 enquanto só a miniatura da conta chegou; a foto inteira vem logo depois.
+  ALTER TABLE photos ADD COLUMN synced_epoch TEXT;
+  ALTER TABLE photos ADD COLUMN sync_error TEXT;
+  ALTER TABLE photos ADD COLUMN full_pending INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 let currentUserId: string | null = null;
@@ -133,6 +142,12 @@ const openedByUser = new Map<string, Promise<SQLiteDatabase>>();
 // sincroniza os treinos de outra pessoa, e nada é apagado na troca de conta.
 export function setDatabaseUser(userId: string | null) {
   currentUserId = userId;
+}
+
+// A conta dona do banco que getDatabase() abre agora. Uma sincronização pedida por outra conta (que
+// saiu no meio da rodada) confere aqui antes de ler o banco: o que é de uma conta não sobe na outra.
+export function getDatabaseUser() {
+  return currentUserId;
 }
 
 async function databaseNameFor(userId: string) {

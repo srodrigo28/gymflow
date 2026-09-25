@@ -7,12 +7,44 @@ import { Button } from '@/src/components/ui/Button';
 import { Screen } from '@/src/components/ui/Screen';
 import { useSession } from '@/src/contexts/session-context';
 import { onMeasurementsSynced } from '@/src/services/body-sync';
+import { onPhotosSynced } from '@/src/services/photo-sync';
 import { onWorkoutsRestored } from '@/src/services/sync';
 import { getSyncStatus, restoreFromAccount, syncNow, type SyncStatus } from '@/src/services/sync-status';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import { formatSessionDate } from '@/src/utils/format';
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+// O que dizer das fotos: o servidor esperando, as que não puderam subir, ou onde fica o consentimento.
+function photosNote(photos: SyncStatus['photos'] | undefined, hasConsent: boolean) {
+  if (!hasConsent) {
+    return 'Sobem só com o consentimento próprio das fotos, que fica na tela Fotos da Evolução.';
+  }
+
+  if (photos?.serverWaiting) {
+    return 'O servidor ainda não está guardando fotos. Elas continuam seguras neste aparelho e sobem assim que der.';
+  }
+
+  const refused = photos?.refused ?? 0;
+
+  return `Com o seu consentimento, sobem sem os metadados e voltam num aparelho novo.${
+    refused > 0
+      ? ` ${plural(refused, 'foto não pôde', 'fotos não puderam')} subir e ${refused === 1 ? 'continua' : 'continuam'} só aqui.`
+      : ''
+  }`;
+}
+
+// O que sobrou das fotos depois de sincronizar: o servidor ainda sem armazenamento, ou a fila que sobe na
+// próxima rodada (o limite de envios por hora). null quando não sobrou nada.
+function photosLeftNote(photos: SyncStatus['photos'] | undefined) {
+  if (!photos?.hasConsent || photos.pending === 0) {
+    return null;
+  }
+
+  return photos.serverWaiting
+    ? 'O servidor ainda não está guardando fotos: elas seguem seguras aqui.'
+    : `${plural(photos.pending, 'foto continua', 'fotos continuam')} na fila e ${photos.pending === 1 ? 'sobe' : 'sobem'} na próxima rodada.`;
+}
 
 export default function SincronizarScreen() {
   const styles = useStyles();
@@ -22,29 +54,32 @@ export default function SincronizarScreen() {
   const [busy, setBusy] = useState<'sync' | 'restore' | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
   const token = session?.token;
-  const consentAt = session?.user.bodyDataConsentAt ?? null;
+  const bodyDataConsentAt = session?.user.bodyDataConsentAt ?? null;
+  const bodyPhotoConsentAt = session?.user.bodyPhotoConsentAt ?? null;
 
   const load = useCallback(() => {
-    getSyncStatus(consentAt)
+    getSyncStatus({ bodyDataConsentAt, bodyPhotoConsentAt })
       .then(setStatus)
       .catch(() => {});
-  }, [consentAt]);
+  }, [bodyDataConsentAt, bodyPhotoConsentAt]);
 
   useFocusEffect(load);
 
-  // Recarrega quando treinos ou medidas chegam da conta durante a tela aberta.
+  // Recarrega quando treinos, medidas ou fotos chegam da conta (ou sobem) durante a tela aberta.
   useEffect(() => {
     const stopWorkouts = onWorkoutsRestored(load);
     const stopMeasurements = onMeasurementsSynced(load);
+    const stopPhotos = onPhotosSynced(load);
 
     return () => {
       stopWorkouts();
       stopMeasurements();
+      stopPhotos();
     };
   }, [load]);
 
   async function run(kind: 'sync' | 'restore') {
-    if (!token) {
+    if (!session) {
       return;
     }
 
@@ -52,8 +87,19 @@ export default function SincronizarScreen() {
     setMessage(null);
 
     try {
-      await (kind === 'sync' ? syncNow(token, consentAt) : restoreFromAccount(token, consentAt));
-      setMessage({ text: kind === 'sync' ? 'Tudo em dia com a conta.' : 'Conta baixada de novo neste aparelho.', tone: 'ok' });
+      await (kind === 'sync' ? syncNow(session) : restoreFromAccount(session));
+      // Fotos que ficaram na fila não estão "em dia": a mensagem conta o porquê.
+      const fresh = await getSyncStatus({ bodyDataConsentAt, bodyPhotoConsentAt }).catch(() => null);
+      const photosLeft = photosLeftNote(fresh?.photos);
+      setMessage({
+        text:
+          kind === 'restore'
+            ? `Conta baixada de novo neste aparelho.${photosLeft ? ` ${photosLeft}` : ''}`
+            : photosLeft
+              ? `${photosLeft} O resto está em dia com a conta.`
+              : 'Tudo em dia com a conta.',
+        tone: 'ok',
+      });
     } catch (error) {
       setMessage({
         text: error instanceof Error ? error.message : 'Não foi possível sincronizar agora.',
@@ -68,7 +114,7 @@ export default function SincronizarScreen() {
   function confirmRestore() {
     Alert.alert(
       'Baixar de novo da conta?',
-      'Traz para este aparelho os treinos e as medidas da conta que ainda não estão aqui. Nada do aparelho é apagado.',
+      'Traz para este aparelho os treinos, as medidas e as fotos da conta que ainda não estão aqui. Nada do aparelho é apagado.',
       [
         { style: 'cancel', text: 'Cancelar' },
         { onPress: () => void run('restore'), text: 'Baixar' },
@@ -78,6 +124,7 @@ export default function SincronizarScreen() {
 
   const workouts = status?.workouts;
   const measurements = status?.measurements;
+  const photos = status?.photos;
 
   return (
     <Screen edges={['top', 'right', 'left']}>
@@ -142,12 +189,36 @@ export default function SincronizarScreen() {
         />
 
         <StatusCard
-          icon="cellphone-lock"
-          lines={status ? [`${plural(status.photos.total, 'foto', 'fotos')} de evolução`, 'Respostas do questionário'] : []}
-          note="Ficam só neste aparelho, de propósito. Fotos na conta chegam com armazenamento privado."
-          title="Só aqui"
-          tone={theme.text.secondary}
+          icon={photos?.hasConsent ? 'cloud-check-outline' : 'cloud-lock-outline'}
+          lines={
+            photos
+              ? photos.hasConsent
+                ? [
+                    `${plural(photos.total, 'foto', 'fotos')} neste aparelho`,
+                    `${photos.inAccount} na conta · ${
+                      photos.pending > 0
+                        ? `${photos.pending} ${photos.pending === 1 ? 'falta' : 'faltam'} subir`
+                        : 'nenhuma falta subir'
+                    }`,
+                  ]
+                : [`${plural(photos.total, 'foto', 'fotos')} só neste aparelho`]
+              : []
+          }
+          note={photosNote(photos, Boolean(bodyPhotoConsentAt))}
+          title="Fotos de evolução"
+          tone={theme.domain.conquista}
         />
+
+        {/* As respostas do questionário sobem só com o consentimento delas, que fica no Perfil. */}
+        {session?.user.questionnaireConsentAt ? null : (
+          <StatusCard
+            icon="cellphone-lock"
+            lines={['Respostas do questionário']}
+            note="Ficam só neste aparelho. Para guardá-las na conta, use o Perfil."
+            title="Só aqui"
+            tone={theme.text.secondary}
+          />
+        )}
 
         <View style={styles.actions}>
           <Button

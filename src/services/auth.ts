@@ -137,14 +137,17 @@ export async function getSession(): Promise<AuthResponse | null> {
     }
 
     // Sessões gravadas antes de existir o papel entram como pessoa comum; antes de um consentimento
-    // (medidas, questionário, diário do dia), como quem ainda não aceitou. O servidor confirma ao abrir o app.
+    // (medidas, fotos, questionário, diário do dia), como quem ainda não aceitou. O servidor confirma ao
+    // abrir o app.
     return {
       token: session.token,
       user: {
         ...session.user,
         bodyDataConsentAt: session.user.bodyDataConsentAt ?? null,
+        bodyPhotoConsentAt: session.user.bodyPhotoConsentAt ?? null,
         dailyLogConsentAt: session.user.dailyLogConsentAt ?? null,
         emailVerifiedAt: session.user.emailVerifiedAt ?? null,
+        gymRankingOptOut: session.user.gymRankingOptOut ?? false,
         questionnaireConsentAt: session.user.questionnaireConsentAt ?? null,
         role: session.user.role ?? 'user',
       },

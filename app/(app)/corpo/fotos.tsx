@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, type Href } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { PhotosBackupCard } from '@/src/components/body/PhotosBackupCard';
 import { Screen } from '@/src/components/ui/Screen';
 import { deletePhoto, listPhotos, savePhoto } from '@/src/services/body';
+import { onPhotosSynced } from '@/src/services/photo-sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { ProgressPhoto, Pose } from '@/src/types/body';
 import { monthKey, monthLabel, monthShortLabel } from '@/src/utils/format';
@@ -44,6 +46,10 @@ export default function FotosScreen() {
       void load();
     }, [load]),
   );
+
+  // Fotos que chegam da conta (num aparelho novo) entram na galeria na hora: a miniatura primeiro, depois
+  // a foto inteira no lugar dela.
+  useEffect(() => onPhotosSynced(() => void load()), [load]);
 
   const months = useMemo(() => recentMonths(), []);
   const byMonth = useMemo(() => {
@@ -231,9 +237,13 @@ export default function FotosScreen() {
           </Text>
         )}
 
+        <View style={styles.backup}>
+          <PhotosBackupCard />
+        </View>
+
         <Text style={styles.privacy}>
-          As fotos são copiadas para a área privada do app e ficam só neste aparelho. Nada é enviado nem
-          aparece para outra pessoa enquanto você não pedir.
+          As fotos são copiadas para a área privada do app. Só vão para a sua conta com o consentimento acima, e
+          nada aparece para outra pessoa enquanto você não pedir.
         </Text>
       </ScrollView>
     </Screen>
@@ -408,6 +418,9 @@ const useStyles = makeStyles((theme) => ({
     fontSize: 14,
     lineHeight: 20,
     marginTop: 8,
+  },
+  backup: {
+    marginTop: 14,
   },
   privacy: {
     color: theme.text.muted,

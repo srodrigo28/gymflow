@@ -14,8 +14,8 @@ export function onSyncQueued(listener: () => void) {
 /**
  * Fila de sincronização. Tudo é gravado primeiro no aparelho; aqui fica a lista do que
  * precisa subir para a API. Assim o app funciona inteiro sem rede e nada se perde quando a
- * rede volta. Hoje só os treinos sobem: medidas e fotos são dados sensíveis e ficam na fila
- * até existir o consentimento específico para enviá-los.
+ * rede volta. Os treinos sobem sempre; medidas e fotos são dados sensíveis e ficam na fila
+ * até existir o consentimento específico de cada uma (body-sync.ts e photo-sync.ts).
  */
 export async function queueSync(
   entity: string,

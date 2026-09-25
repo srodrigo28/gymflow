@@ -13,6 +13,7 @@ import {
 import { setDatabaseUser } from '@/src/db/client';
 import * as account from '@/src/services/account';
 import * as auth from '@/src/services/auth';
+import { stopPhotoSync } from '@/src/services/photo-sync';
 import { forgetPushToken } from '@/src/services/push';
 import { syncQuestionnaire } from '@/src/services/questionnaire-sync';
 import type { AuthResponse, SignInPayload, SignUpPayload } from '@/src/types/auth';
@@ -26,6 +27,7 @@ type SessionContextValue = {
   isLoading: boolean;
   session: AuthResponse | null;
   setBodyDataConsent: (granted: boolean) => Promise<void>;
+  setBodyPhotoConsent: (granted: boolean) => Promise<void>;
   setDailyLogConsent: (granted: boolean) => Promise<void>;
   setQuestionnaireConsent: (granted: boolean) => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
@@ -153,6 +155,30 @@ export function SessionProvider({ children }: PropsWithChildren) {
     [applySession, session],
   );
 
+  // Separado do das medidas, porque foto de corpo é o dado mais sensível do app. Ao aceitar, o
+  // usePhotoSync vê o consentimento novo e sobe as fotos; ao retirar, o servidor já apagou todas da conta
+  // e a sincronização para.
+  const setBodyPhotoConsent = useCallback(
+    async (granted: boolean) => {
+      if (!session) {
+        return;
+      }
+
+      // Retirar espera o envio em andamento terminar: uma foto que chegasse ao servidor depois da limpeza
+      // ficaria guardada lá sem consentimento.
+      if (!granted) {
+        await stopPhotoSync();
+      }
+
+      const freshSession = await auth.setBodyPhotoConsent(session, granted);
+
+      if (currentToken.current === freshSession.token) {
+        applySession(freshSession);
+      }
+    },
+    [applySession, session],
+  );
+
   // Como o das medidas: ao aceitar, o useDailyLogSync vê o consentimento novo e sobe o diário na hora;
   // ao retirar, o servidor já apagou tudo e a sincronização para.
   const setDailyLogConsent = useCallback(
@@ -212,6 +238,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       isLoading,
       session,
       setBodyDataConsent,
+      setBodyPhotoConsent,
       setDailyLogConsent,
       setQuestionnaireConsent,
       signIn,
@@ -225,6 +252,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       isLoading,
       session,
       setBodyDataConsent,
+      setBodyPhotoConsent,
       setDailyLogConsent,
       setQuestionnaireConsent,
       signIn,

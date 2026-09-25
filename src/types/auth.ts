@@ -26,6 +26,8 @@ export type AuthUser = {
   dailyLogConsentAt: string | null;
   // Quando aceitou guardar as fotos de evolução na conta (ISO 8601). null: não aceitou.
   bodyPhotoConsentAt: string | null;
+  // Não aparece no ranking da academia (o mural continua aberto).
+  gymRankingOptOut: boolean;
 };
 
 export type AuthResponse = {

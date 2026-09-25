@@ -71,3 +71,52 @@ export async function apiRequest<TResponse>(
 
   return data as TResponse;
 }
+
+const UPLOAD_TIMEOUT = 60000;
+
+// Envio de arquivo (multipart). O fetch monta o cabeçalho com a fronteira do multipart sozinho: não
+// defina Content-Type aqui. No React Native, o arquivo entra no FormData como { uri, name, type }.
+export async function apiUpload<TResponse>(
+  path: string,
+  form: FormData,
+  { method = 'POST', timeoutMs = UPLOAD_TIMEOUT, token }: { method?: string; timeoutMs?: number; token?: string } = {},
+) {
+  if (!env.apiUrl) {
+    throw new ApiError('O endereço do servidor não está configurado.', 0, 'NO_API_URL');
+  }
+
+  const headers = new Headers();
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, { body: form, headers, method, signal: controller.signal });
+  } catch {
+    throw new ApiError('Sem conexão com o servidor. A foto continua no aparelho; tente de novo depois.', 0, 'NETWORK');
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const data = (await response.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+
+  if (!response.ok) {
+    throw new ApiError(
+      data?.error?.message ?? 'Não foi possível enviar a foto.',
+      response.status,
+      data?.error?.code ?? 'HTTP_ERROR',
+    );
+  }
+
+  return data as TResponse;
+}
+
+/** Um arquivo local (file://…) no formato que o FormData do React Native aceita. */
+export function formFile(uri: string, name = 'foto.jpg', type = 'image/jpeg') {
+  return { name, type, uri } as unknown as Blob;
+}

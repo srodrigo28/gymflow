@@ -1,16 +1,22 @@
 import { getDatabase } from '@/src/db/client';
 import { syncMeasurements } from '@/src/services/body-sync';
+import { getPhotoBackupStatus, syncPhotos, type PhotoBackupStatus } from '@/src/services/photo-sync';
 import { syncWorkouts } from '@/src/services/sync';
+import type { AuthResponse, AuthUser } from '@/src/types/auth';
 
 // Marcas que a sincronização deixa em sync_state. Apagá-las faz a próxima rodada baixar tudo de novo.
 const WORKOUTS_RESTORED_KEY = 'workouts_restored_at';
 const MEASUREMENTS_EPOCH_KEY = 'measurements_consent_epoch';
+const PHOTOS_EPOCH_KEY = 'photos_consent_epoch';
 const LAST_SYNC_KEY = 'last_manual_sync_at';
+
+// Os consentimentos que decidem o que sobe além dos treinos.
+export type SyncConsents = Pick<AuthUser, 'bodyDataConsentAt' | 'bodyPhotoConsentAt'>;
 
 export type SyncStatus = {
   lastManualSyncAt: number | null;
   measurements: { hasConsent: boolean; pending: number; total: number };
-  photos: { total: number };
+  photos: PhotoBackupStatus & { hasConsent: boolean };
   // Quando este aparelho baixou os treinos da conta pela primeira vez.
   workoutsRestoredAt: number | null;
   workouts: { finished: number; pending: number; synced: number };
@@ -24,7 +30,7 @@ async function stateValue(key: string) {
 }
 
 // O retrato do que está neste aparelho e do que já está na conta, para a tela Sincronizar.
-export async function getSyncStatus(consentAt: string | null): Promise<SyncStatus> {
+export async function getSyncStatus({ bodyDataConsentAt, bodyPhotoConsentAt }: SyncConsents): Promise<SyncStatus> {
   const database = await getDatabase();
   const [workouts, pendingWorkouts, measurements, pendingMeasurements, photos, restoredAt, lastSync] =
     await Promise.all([
@@ -39,7 +45,7 @@ export async function getSyncStatus(consentAt: string | null): Promise<SyncStatu
       database.getFirstAsync<{ total: number }>(
         `SELECT COUNT(DISTINCT entity_id) AS total FROM outbox WHERE entity = 'measurement'`,
       ),
-      database.getFirstAsync<{ total: number }>('SELECT COUNT(*) AS total FROM photos'),
+      getPhotoBackupStatus(bodyPhotoConsentAt),
       stateValue(WORKOUTS_RESTORED_KEY),
       stateValue(LAST_SYNC_KEY),
     ]);
@@ -47,11 +53,11 @@ export async function getSyncStatus(consentAt: string | null): Promise<SyncStatu
   return {
     lastManualSyncAt: lastSync ? Number(lastSync) : null,
     measurements: {
-      hasConsent: Boolean(consentAt),
+      hasConsent: Boolean(bodyDataConsentAt),
       pending: pendingMeasurements?.total ?? 0,
       total: measurements?.total ?? 0,
     },
-    photos: { total: photos?.total ?? 0 },
+    photos: { ...photos, hasConsent: Boolean(bodyPhotoConsentAt) },
     workoutsRestoredAt: restoredAt ? Number(restoredAt) : null,
     workouts: {
       finished: workouts?.finished ?? 0,
@@ -62,9 +68,10 @@ export async function getSyncStatus(consentAt: string | null): Promise<SyncStatu
 }
 
 // Sobe o que está na fila e baixa o que falta, agora. É o mesmo caminho dos gatilhos automáticos.
-export async function syncNow(token: string, consentAt: string | null) {
+export async function syncNow({ token, user }: AuthResponse) {
   await syncWorkouts(token);
-  await syncMeasurements(token, consentAt);
+  await syncMeasurements(token, user.bodyDataConsentAt);
+  await syncPhotos(user.id, token, user.bodyPhotoConsentAt);
 
   const database = await getDatabase();
   await database.runAsync('INSERT OR REPLACE INTO sync_state (key, value) VALUES (?, ?)', [
@@ -75,8 +82,12 @@ export async function syncNow(token: string, consentAt: string | null) {
 
 // Esquece que este aparelho já baixou a conta e baixa de novo. Não apaga nada daqui: o que já
 // existe no aparelho continua com a versão daqui; só entra o que falta.
-export async function restoreFromAccount(token: string, consentAt: string | null) {
+export async function restoreFromAccount(session: AuthResponse) {
   const database = await getDatabase();
-  await database.runAsync('DELETE FROM sync_state WHERE key IN (?, ?)', [WORKOUTS_RESTORED_KEY, MEASUREMENTS_EPOCH_KEY]);
-  await syncNow(token, consentAt);
+  await database.runAsync('DELETE FROM sync_state WHERE key IN (?, ?, ?)', [
+    WORKOUTS_RESTORED_KEY,
+    MEASUREMENTS_EPOCH_KEY,
+    PHOTOS_EPOCH_KEY,
+  ]);
+  await syncNow(session);
 }

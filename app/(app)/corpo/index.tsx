@@ -5,10 +5,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { MeasurementsBackupCard } from '@/src/components/body/MeasurementsBackupCard';
+import { PhotosBackupSummary } from '@/src/components/body/PhotosBackupCard';
 import { WeightChart } from '@/src/components/body/WeightChart';
 import { Screen } from '@/src/components/ui/Screen';
 import { getBodyTrend, getWeightSeries, listPhotos } from '@/src/services/body';
 import { onMeasurementsSynced } from '@/src/services/body-sync';
+import { onPhotosSynced } from '@/src/services/photo-sync';
 import { fonts, makeStyles, radius, typography, useTheme, withAlpha } from '@/src/theme';
 import type { BodyTrend, ProgressPhoto } from '@/src/types/body';
 import { formatDelta, formatShortDate, monthLabel } from '@/src/utils/format';
@@ -40,9 +42,10 @@ export default function CorpoScreen() {
     }, [load]),
   );
 
-  // Medidas que chegam da conta (num aparelho novo, ou logo depois do consentimento) entram no
-  // gráfico na hora.
+  // Medidas e fotos que chegam da conta (num aparelho novo, ou logo depois do consentimento) entram no
+  // gráfico e na faixa de fotos na hora.
   useEffect(() => onMeasurementsSynced(() => void load()), [load]);
+  useEffect(() => onPhotosSynced(() => void load()), [load]);
 
   const latest = trend?.latest;
   const months = [...new Set(photos.map((photo) => photo.month))];
@@ -136,9 +139,11 @@ export default function CorpoScreen() {
         )}
 
         <MeasurementsBackupCard />
+        <PhotosBackupSummary />
 
         <Text style={styles.privacy}>
-          Fotos ficam só neste aparelho. Nada é publicado nem enviado enquanto você não pedir.
+          Medidas e fotos só vão para a sua conta com o consentimento de cada uma, e nada é publicado
+          enquanto você não pedir.
         </Text>
       </ScrollView>
     </Screen>

@@ -146,7 +146,8 @@ export async function getWeightSeries(limit = 40) {
   return rows.map((row) => ({ takenAt: row.taken_at, weightKg: row.weight_kg })).reverse();
 }
 
-function photosDirectory() {
+// A pasta privada das fotos de evolução. As que voltam da conta (services/photo-sync.ts) descem aqui também.
+export function photosDirectory() {
   const directory = new Directory(Paths.document, PHOTOS_FOLDER);
 
   if (!directory.exists) {

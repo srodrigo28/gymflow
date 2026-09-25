@@ -11,10 +11,10 @@ import { fonts, makeStyles, radius, useTheme } from '@/src/theme';
 import { formatShortDate } from '@/src/utils/format';
 
 // Consentimento específico e destacado, como a LGPD pede para dado de saúde: diz o que sobe, para
-// quê, quem vê e como voltar atrás. Fotos ficam de fora até existir armazenamento privado.
+// quê, quem vê e como voltar atrás. As fotos têm o consentimento delas (PhotosBackupCard).
 const CONSENT_TITLE = 'Guardar medidas na conta';
 const CONSENT_TEXT =
-  'Peso, gordura corporal e circunferências são dados de saúde. Com o seu consentimento, o Gyn Flow guarda essas medidas na sua conta, só para você recuperá-las em outro aparelho. Ninguém mais as vê.\n\nVocê pode retirar o consentimento quando quiser: aí apagamos tudo do servidor na hora. As fotos continuam só neste aparelho.';
+  'Peso, gordura corporal e circunferências são dados de saúde. Com o seu consentimento, o Gyn Flow guarda essas medidas na sua conta, só para você recuperá-las em outro aparelho. Ninguém mais as vê.\n\nVocê pode retirar o consentimento quando quiser: aí apagamos tudo do servidor na hora. As fotos não entram aqui: elas têm um consentimento separado.';
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
@@ -99,7 +99,7 @@ export function MeasurementsBackupCard() {
 
       <Text style={styles.text}>
         {consentAt
-          ? `Desde ${formatShortDate(Date.parse(consentAt))}, suas medidas sobem para a sua conta e voltam num aparelho novo. Fotos continuam só aqui.`
+          ? `Desde ${formatShortDate(Date.parse(consentAt))}, suas medidas sobem para a sua conta e voltam num aparelho novo. As fotos têm um consentimento separado.`
           : 'Peso e medidas são dados de saúde: só saem daqui com o seu consentimento. Guardá-las na conta evita perder o histórico ao trocar de celular.'}
       </Text>
 
