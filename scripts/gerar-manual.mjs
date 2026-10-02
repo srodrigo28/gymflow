@@ -55,11 +55,22 @@ data.phases.forEach((phase, index) => {
 });
 out.push('');
 
-out.push('## Próximos passos, na ordem sugerida', '');
+out.push('## O que só você pode fazer, na ordem sugerida', '');
 data.next.forEach((item, index) => {
   out.push(`${index + 1}. **${item.step}** (${item.tag}): ${item.note}`);
 });
 out.push('');
+
+if (data.decisions?.length) {
+  out.push('## Decisões em aberto', '');
+  out.push('Cada uma traz a minha sugestão e o que acontece se você não responder: nenhuma trava o trabalho.', '');
+  data.decisions.forEach((item, index) => {
+    out.push(`${index + 1}. **${item.question}** (${item.tag}): ${item.why}`);
+    out.push(`   - **Minha sugestão:** ${item.suggestion}`);
+    out.push(`   - **Sem resposta sua:** ${item.otherwise}`);
+  });
+  out.push('');
+}
 
 const sections = [
   ['app', 'App (frontend)'],

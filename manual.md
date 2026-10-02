@@ -1,6 +1,6 @@
 # Manual do projeto Gyn Flow
 
-Atualizado em 25/09/2026. Versão interativa, com filtros e busca: [manual.html](../manual.html), na raiz do workspace (abra no navegador).
+Atualizado em 02/10/2026. Versão interativa, com filtros e busca: [manual.html](../manual.html), na raiz do workspace (abra no navegador).
 
 Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o que falta, agrupado do jeito que o app se organiza.
 
@@ -8,9 +8,9 @@ Onde o app e a API estão hoje: o que já funciona, o que está pela metade e o 
 
 | Área | Prontas | Parciais | A fazer | Andamento |
 | --- | ---: | ---: | ---: | ---: |
-| **App** (frontend em Expo) | 86 | 1 | 5 | **94%** |
-| **API** (gymflow-api) | 61 | 0 | 2 | **97%** |
-| **Geral** (Fases 1 a 6, app e API) | 147 | 1 | 7 | **95%** |
+| **App** (frontend em Expo) | 88 | 1 | 5 | **94%** |
+| **API** (gymflow-api) | 65 | 0 | 2 | **97%** |
+| **Geral** (Fases 1 a 6, app e API) | 153 | 1 | 7 | **95%** |
 
 **Como ler:** cada função vale 1 ponto quando está pronta, meio ponto quando está parcial e zero quando falta; a porcentagem é a soma dividida pelo total listado. O número conta funções, não esforço: a Frase do dia pesa o mesmo que o registro de treino.
 
@@ -22,20 +22,59 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 2. ✅ **Fase 1 · Registro de treino**: Registro, histórico, recordes com card na hora, sincronização com a conta, restauração num aparelho novo e check-in na academia pelo GPS do aparelho.
 3. 🟨 **Fase 2 · Corpo e fotos**: Medidas, fotos, comparador, câmera com guia de contorno e compartilhar com tarja prontos; medidas e fotos ficam na conta com consentimentos separados, e as fotos só abrem por links de 10 minutos. Falta o Health Connect, que depende do build nativo.
 4. ✅ **Fase 3 · Social e desafios**: Card, desafios, convite, placar, amigos, notificações de lembrete e de placar, cards de sequência e do mês e o check-in com foto no desafio, com mural do dia e moderação do grupo.
-5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api, com as rotas documentadas em /doc e a publicação em um comando (salvek99). Em 25/09 saíram as oito categorias da temporada, os escudos, o diário, a agenda, as fotos com URL assinada, o check-in com foto, personal e academia e a IA, com 142 testes. Falta configurar na VPS o SMTP, o volume das fotos e a chave da Anthropic. No fim da tarde, uma revisão de segurança corrigiu duas falhas médias e quatro baixas.
+5. 🟨 **API · gymflow-api**: No ar em 99dev.pro/gymflow-api, com as rotas documentadas em /doc e a publicação em um comando (salvek99). Em 25/09 saíram as oito categorias da temporada, os escudos, o diário, a agenda, as fotos com URL assinada, o check-in com foto, personal e academia e a IA. Em 02/10 (no GitHub com o CI verde, ainda sem publicar) o envio de e-mail passou a só mandar a senha SMTP em conexão cifrada (e foi testado contra um servidor SMTP falso), o nodemailer foi atualizado, a tabela de custo da IA ganhou os modelos atuais e três testes frágeis (um preso ao dia do mês, dois à ordem do banco) foram corrigidos, com 145 testes. Falta configurar na VPS o SMTP, o volume das fotos e a chave da Anthropic. No fim da tarde, uma revisão de segurança corrigiu duas falhas médias e quatro baixas.
 6. ✅ **Fase 4 · Ranking e ligas**: XP, ligas semanais, temporada entre amigos com as oito categorias (pontualidade, modalidades e equilíbrio incluídos), escudos da sequência, força relativa por DOTS, check-in verificado, ranking da academia, troféus e selos.
 7. ✅ **Fase 5 · Personal e academia**: Perfil de personal com página pública, vínculo por convite com três permissões que o aluno controla, painel do personal, prescrição com o feito contra o prescrito, ranking de personais e mural da academia.
 8. ✅ **Fase 6 · Recomendação com IA**: Plano da semana com o porquê de cada dia, resumo do mês, leitura das medidas e o treino de hoje pelo plano, com consentimento próprio, regras de segurança por cima, custo medido com teto e lote de madrugada. Validada com o provedor simulado; em produção liga com a chave da Anthropic, e o custo real por pessoa ainda não foi medido.
 
-## Próximos passos, na ordem sugerida
+## O que só você pode fazer, na ordem sugerida
 
-1. **Configurar SMTP e SUPPORT_EMAIL na VPS** (Publicação): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM e o e-mail de contato no .env.deploy. Ligam de uma vez a recuperação de senha, a confirmação de e-mail e o alerta da sonda, que já estão prontos e testados.
-2. **Volume e segredo das fotos na VPS** (Publicação): Criar /var/lib/99dev/gymflow/fotos (dono 1000:1000), DEPLOY_VOLUMES no painel, STORAGE_DIR=/app/storage e STORAGE_SECRET gerado com openssl rand -hex 32. Liga as fotos na conta e o check-in com foto em produção. Passo a passo no guia de deploy.
-3. **Chave da Anthropic na VPS** (Publicação): ANTHROPIC_API_KEY no .env.deploy, com limite de gasto na conta da Anthropic. Liga a Fase 6 em produção; na primeira semana, conferir no painel de administração o custo real por pessoa contra o teto de US$ 0,20.
-4. **Fotos definitivas do hero e do login** (App): Duas fotos próprias ou licenciadas no lugar dos mockups gerados.
-5. **Publicar a versão web** (Publicação): Escolher o endereço (na mesma origem da API, em 99dev.pro, não precisa de CORS; num subcaminho, o build pede experiments.baseUrl no app.json), gerar com npx expo export -p web e hospedar a pasta dist com os cabeçalhos COOP same-origin e COEP credentialless e o index.html nas rotas do app. Passo a passo no README do app.
-6. **Celular físico, iPhone e build de loja (EAS)** (Publicação): GPS e push só se exercitam num celular com development build; a etapa 13 (VoiceOver e fonte grande) no iPhone; depois, o build de loja, como decidido em 23/09.
-7. **Health Connect e Apple Health** (App): Passos, batimentos e sono alimentando as recomendações. Só com o build nativo.
+1. **Publicar a API de hoje (salvek99)** (Publicação): Três commits da API (9ee8591) estão no GitHub com o CI verde, e a produção segue em 5ed63a9 (v2026.09.25-3): o envio de e-mail só com TLS quando há senha, o nodemailer 10.0.13, a tabela de preços da IA com os modelos atuais e os avisos de desafio em ordem fixa. Nada quebra sem isso, mas vale publicar antes de ligar o SMTP. Esta sessão não conseguiu publicar (o redeploy foi negado pelas permissões): diga salvek99 numa sessão da API, ou libere o redeploy.
+2. **Configurar SMTP e SUPPORT_EMAIL na VPS** (Publicação): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM e o e-mail de contato (SUPPORT_EMAIL) no .env.deploy. Ligam de uma vez a recuperação de senha, a confirmação de e-mail e o alerta da sonda, que já estão prontos e testados. Use a porta 587 (STARTTLS) ou a 465 (TLS direto): com usuário e senha a API só envia em conexão cifrada. O envio foi testado contra um servidor SMTP falso, mas ainda não contra um provedor de verdade: depois de configurar, peça "esqueci minha senha" numa conta sua para conferir.
+3. **Volume e segredo das fotos na VPS** (Publicação): Criar /var/lib/99dev/gymflow/fotos (dono 1000:1000), DEPLOY_VOLUMES no painel, STORAGE_DIR=/app/storage e STORAGE_SECRET gerado com openssl rand -hex 32. Liga as fotos na conta e o check-in com foto em produção. Passo a passo no guia de deploy.
+4. **Chave da Anthropic na VPS** (Publicação): ANTHROPIC_API_KEY no .env.deploy, com limite de gasto na conta da Anthropic. Liga a Fase 6 em produção; na primeira semana, conferir no painel de administração o custo real por pessoa contra o teto de US$ 0,20. O código da IA foi conferido em 02/10 contra a referência atual da API da Anthropic, mas nenhuma chamada real foi feita ainda: a primeira será a prova.
+5. **Fotos definitivas do hero e do login** (App): Duas fotos próprias ou licenciadas no lugar dos mockups gerados.
+6. **Publicar a versão web** (Publicação): A imagem está pronta: o Dockerfile na raiz do app constrói o web e serve com nginx, com os cabeçalhos COOP same-origin e COEP credentialless em toda resposta, o index.html nas rotas do app e o /healthz (conferida em 02/10 com o Playwright: login, treino lendo do banco local e nenhum erro). Falta você escolher o endereço (decisão 1, abaixo) e hospedar a imagem. Se o endereço for outra origem que não 99dev.pro, ela entra em CORS_ORIGINS da API. Passo a passo no README do app.
+7. **Celular físico, iPhone e build de loja (EAS)** (Publicação): GPS e push só se exercitam num celular com development build; a etapa 13 (VoiceOver e fonte grande) no iPhone; depois, o build de loja, como decidido em 23/09.
+8. **Health Connect e Apple Health** (App): Passos, batimentos e sono alimentando as recomendações. Só com o build nativo.
+
+## Decisões em aberto
+
+Cada uma traz a minha sugestão e o que acontece se você não responder: nenhuma trava o trabalho.
+
+1. **Onde publicar a versão web?** (Publicação): A versão web já funciona e agora tem uma imagem pronta (Dockerfile na raiz do app: nginx com os dois cabeçalhos que o banco local do navegador pede). Falta o endereço.
+   - **Minha sugestão:** Um subdomínio só para ela, por exemplo gynflow.99dev.pro, com o endereço entrando em CORS_ORIGINS da API. Num subcaminho de 99dev.pro o build pede experiments.baseUrl e um proxy na frente, e isso não foi testado.
+   - **Sem resposta sua:** A versão web fica sem publicar.
+2. **Qual modelo da IA usar, e quanto gastar?** (Custo): A decisão D2 foi o claude-opus-5 com esforço médio e teto de US$ 0,20 por pessoa por mês. O custo real nunca foi medido: nenhuma chamada real foi feita.
+   - **Minha sugestão:** Ligar a chave com um limite de gasto baixo na conta da Anthropic, olhar o custo por pessoa ativa no painel do app na primeira semana e, se quiser gastar menos, trocar AI_MODEL para claude-opus-5-5 (20% mais barato; a tabela de preços já o conhece).
+   - **Sem resposta sua:** Segue o claude-opus-5.
+3. **O que o login faz quando as respostas do questionário não estão no aparelho?** (Produto): Numa conta que entra num aparelho sem as respostas (e sem o consentimento de guardá-las na conta), o login leva à home, mas a abertura seguinte do app leva ao questionário de 23 etapas. Vale no celular também.
+   - **Minha sugestão:** Levar sempre à home e oferecer o questionário como um cartão, para quem só quer entrar não passar por 23 etapas.
+   - **Sem resposta sua:** Continua como está.
+4. **As fotos de evolução no navegador sobem para a conta?** (Produto): No navegador as fotos ficam só nele (a sincronização das fotos foi feita para o celular), e em produção o armazenamento das fotos ainda responde 503.
+   - **Minha sugestão:** Deixar assim até o volume das fotos estar ligado na VPS; depois, fazer o envio do navegador como trabalho à parte.
+   - **Sem resposta sua:** Ficam só no navegador.
+5. **Como contar a volta das pessoas (D7 e D30) no painel?** (Métricas): Hoje conta quem voltou ao app em qualquer momento depois do prazo, não quem estava lá exatamente no 7º ou no 30º dia, porque a API guarda só a última visita. O número fica igual ou acima do clássico.
+   - **Minha sugestão:** Manter por enquanto. Se quiser o número clássico, a API passa a guardar os dias de visita (uma tabela nova).
+   - **Sem resposta sua:** Continua como está.
+6. **O fator K deve contar o convite de personal?** (Métricas): Hoje conta só o convite de desafio (conta nova que entra num desafio até 48 h depois de se cadastrar); quem chega pelo convite de um personal não entra na conta.
+   - **Minha sugestão:** Manter e rever quando houver convites de personal em uso.
+   - **Sem resposta sua:** Continua como está.
+7. **A foto do mês no painel é um piso: serve assim?** (Métricas): Conta só a foto que está na conta; quem guarda só no aparelho (e todo uso pelo navegador) não aparece.
+   - **Minha sugestão:** Manter: o número passa a refletir todo mundo quando as fotos subirem para a conta.
+   - **Sem resposta sua:** Continua como piso.
+8. **A fila de pedidos da IA pode ficar na memória da API?** (Infra): Um pedido de IA por pessoa de cada vez vale com um processo só da API, como roda hoje. Com mais de um processo, precisaria virar uma trava no banco.
+   - **Minha sugestão:** Manter enquanto a API rodar em um processo só.
+   - **Sem resposta sua:** Continua na memória.
+9. **A carga que a IA sugere deve preencher as séries?** (Produto): Hoje aparece como alvo do exercício e não preenche as séries, que seguem com a carga da última vez: preencher pediria que a pessoa confirmasse sem pensar.
+   - **Minha sugestão:** Manter como alvo. Se preferir preencher, é uma troca pequena no app.
+   - **Sem resposta sua:** Continua como alvo.
+10. **O responsável do mural que sai da academia continua responsável?** (Produto): Se voltar, volta a publicar; enquanto isso ninguém publica, e o administrador pode transferir a responsabilidade pelo painel.
+   - **Minha sugestão:** Manter.
+   - **Sem resposta sua:** Continua assim.
+11. **A frase "sem cobrança para você" no cartão da IA fica?** (Texto): O cartão diz que o custo da IA é do Gyn Flow. A estratégia pede nenhum preço em tela, e um valor em dólar sem esse contexto poderia parecer cobrança.
+   - **Minha sugestão:** Manter a frase. Se não gostar, é tirar uma frase.
+   - **Sem resposta sua:** A frase fica.
 
 ## App (frontend)
 
@@ -177,14 +216,16 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Plataformas e loja · Publicação
 
-50% · 3 prontas, 0 parciais, 3 a fazer
+63% · 5 prontas, 0 parciais, 3 a fazer
 
 - ✅ **Android** · Testado no emulador com o Expo Go.
 - ✅ **Web** · Funciona no navegador desde 25/09 (noite), no servidor de desenvolvimento e no build exportado: treinos (com o banco local em WebAssembly), medidas, diário, desafios, liga, personal, painel e conta, com confirmações e compartilhamento próprios do navegador. As fotos de evolução e a capa ficam só no navegador, reduzidas; câmera com guia, check-in por GPS e notificações, só no celular. Validado com o Playwright contra a API local.
-- ⬜ **Versão web publicada** · Depende de você: escolher o endereço e hospedar o build com os dois cabeçalhos do banco local. Passo a passo no README do app.
+- ✅ **Imagem Docker da versão web** · O Dockerfile da raiz constrói com expo export e serve com nginx na raiz de um domínio: COOP same-origin e COEP credentialless em toda resposta, index.html nas rotas, cache longo nos arquivos com hash e /healthz. Conferida em 02/10 com o Playwright contra a imagem: cabeçalhos em todas as rotas, página isolada, rota profunda abrindo o app, login numa conta real, treino lendo do banco local e os arquivos do banco gravados no navegador, sem erro de console. O subcaminho (99dev.pro/gynflow) não foi testado. · `Dockerfile · web/nginx.conf.template`
+- ⬜ **Versão web publicada** · Depende de você: escolher o endereço e hospedar a imagem. A imagem está pronta e conferida (abaixo). Passo a passo no README do app.
 - ⬜ **iPhone**
 - ⬜ **Build de loja (EAS)** · Adiado em 23/09: primeiro as funções que faltam.
 - ✅ **App apontando para a API publicada** · expo.extra.apiUrl = https://99dev.pro/gymflow-api; sem .env.local o app já usa a produção. Testado de ponta a ponta no emulador em 24/09: cadastro, consentimento e medida, treino com recorde, desafio com convite e exclusão da conta, tudo conferido na API publicada. · `app.json`
+- ✅ **CI no repositório do app** · Typecheck, lint e expo export -p web a cada push, para pegar o que só o build pega (como o worker do banco que quebrou no pacote em 25/09). Os mesmos comandos passaram num checkout limpo, e o primeiro run no GitHub passou em 1 min 18 s (02/10). · `.github/workflows/ci.yml`
 
 ## API (gymflow-api)
 
@@ -258,12 +299,13 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Recomendação com IA · API
 
-100% · 5 prontas, 0 parciais, 0 a fazer
+100% · 6 prontas, 0 parciais, 0 a fazer
 
-- ✅ **Plano da semana, resumo do mês e leitura das medidas** · Claude (claude-opus-5) pela API da Anthropic, com saída estruturada validada, thinking adaptativo e a parte fixa do pedido em cache. Coberto por 7 testes com o provedor simulado. Em produção responde 503 até a chave ser configurada. · `/ai/weekly-plan · /ai/monthly-summary · /ai/measurements-reading`
+- ✅ **Plano da semana, resumo do mês e leitura das medidas** · Claude (claude-opus-5) pela API da Anthropic, com saída estruturada validada, thinking adaptativo e a parte fixa do pedido em cache. Coberto por 7 testes com o provedor simulado. Em produção responde 503 até a chave ser configurada. Conferido em 02/10 contra a referência atual da API da Anthropic: modelo claude-opus-5 válido (US$ 5 e US$ 25 por milhão de tokens), thinking adaptativo, esforço e saída estruturada em output_config, fallbacks "default" com o cabeçalho de 2026-07-01 (só no pedido direto; o lote não aceita) e o cache da parte fixa. Nenhuma chamada real foi feita. · `/ai/weekly-plan · /ai/monthly-summary · /ai/measurements-reading`
 - ✅ **Regras de segurança por cima da IA** · Cada resposta passa pelas regras antes de chegar à pessoa: exercícios só do catálogo, dias dentro da meta, carga só com histórico e no máximo o menor entre 10% e 5 kg acima da melhor marca de 8 semanas e, desde 25/09, também acima do que essa marca indica para as repetições pedidas (1RM estimada por Epley), nada de dieta nem remédio. A resposta recusada fica guardada com o motivo e nunca aparece. · `src/lib/ai.ts`
 - ✅ **Consentimento próprio e apagar ao retirar** · Retirar apaga o que a IA gerou e as escolhas de treino mandadas; o registro de custo, sem conteúdo, fica. A resposta só é gravada com o consentimento ainda em pé. Do questionário, só as respostas de treino e descanso vão para a IA. · `PUT /me/consents/ai · PUT /ai/preferences`
 - ✅ **Custo medido por pessoa, com teto** · Cada chamada guarda tokens e custo pela tabela de preços; teto de US$ 0,20 por pessoa por mês e o custo por pessoa ativa no painel de administração. Um pedido de IA por pessoa de cada vez: pedidos em paralelo não passam juntos pelo teto (coberto por teste). O custo aparece no painel do app. · `GET /ai/status · GET /admin/metrics`
+- ✅ **Tabela de preços com os modelos atuais** · Trocar AI_MODEL por claude-opus-5-5 (US$ 4 e US$ 20, 20% mais barato), claude-sonnet-5-5, claude-fable-5-1 ou qualquer outro da tabela pública grava o custo certo, inclusive a leitura do cache de cada um. Modelo fora da tabela vale como o claude-opus-5, que erra para o lado seguro (o teto chega antes). Coberto por teste. Ainda não está em produção: o commit 9ee8591 espera o salvek99 (primeiro passo da lista). · `src/lib/ai.ts`
 - ✅ **Lote de madrugada (Batch API)** · Plano da semana no domingo à noite e resumo no dia 1, pela metade do preço, com coleta de hora em hora. Instalado no cron da VPS; sem a chave, ele pula. · `src/scripts/ai-batch.ts`
 
 ### Administração · API
@@ -276,13 +318,16 @@ Legenda: ✅ pronto · 🟨 parcial · ⬜ a fazer.
 
 ### Qualidade e publicação · API
 
-83% · 10 prontas, 0 parciais, 2 a fazer
+87% · 13 prontas, 0 parciais, 2 a fazer
 
-- ✅ **142 testes automáticos contra um Postgres de verdade** · Passaram em 25/09 com o Postgres local do Prisma (cerca de 3 minutos): Fase 4 completa, fotos e check-in, personal e academia, a IA com o provedor simulado e, no fim da tarde, as correções de segurança e as métricas do painel. · `npm test`
+- ✅ **145 testes automáticos contra um Postgres de verdade** · Em 02/10 passaram num Postgres 18 real em cerca de 1 min 30 s (eram 142 e cerca de 3 minutos no Postgres local do Prisma em 25/09): Fase 4 completa, fotos e check-in, personal e academia, a IA com o provedor simulado, as correções de segurança, as métricas do painel e, hoje, o envio de e-mail por SMTP e a tabela de preços. O CI do GitHub passou com o commit 9ee8591 (Postgres 17, 1 min 54 s). · `npm test`
+- ✅ **Envio de e-mail por SMTP exercitado de verdade, com TLS obrigatório com senha** · Os testes usavam um modo que não abre conexão. Agora um servidor SMTP falso recebe a mensagem de verdade, com o código no texto, e a verificação achou um furo: com usuário e senha num servidor sem STARTTLS, o nodemailer mandava a senha em texto puro e entregava o e-mail. Corrigido: com SMTP_USER a conexão exige TLS (465 direto, as outras por STARTTLS) e o envio falha antes de a senha sair. Coberto por 2 testes; o segundo falha sem a correção. Ainda não testado contra um provedor de verdade. Ainda não está em produção: o commit 9ee8591 espera o salvek99 (primeiro passo da lista). · `src/lib/mailer.ts · test/mailer-smtp.test.ts`
+- ✅ **Dependências: nodemailer atualizado, o resto auditado** · nodemailer 7.0.13 para 10.0.13 (13 avisos conhecidos, 3 altos). Na API sobram 4 avisos altos na cadeia do CLI do Prisma (prisma, @prisma/config, deepmerge-ts e mysql2), que roda nas migrações e no build e não atende pedidos; o que o npm sugere é voltar ao Prisma 6, e a próxima linha (8) ainda é candidata a lançamento. O app tem 28 avisos, em sua maioria na cadeia de ferramentas do Expo; resolver pede trocar a versão do SDK do Expo, o que não foi feito. Ainda não está em produção: o commit 9ee8591 espera o salvek99 (primeiro passo da lista). · `npm audit --omit=dev`
+- ✅ **Testes que não dependem do dia do calendário nem da ordem do banco** · A suíte foi rodada num Postgres real sob nove datas simuladas (viradas de mês e de ano, domingo, segunda, 31/10 à noite) e com varredura por índice forçada. Achados e corrigidos: um teste do resumo do mês que só passava a partir do dia 4 de cada mês (falhou em 02/10) e a ordem dos avisos de desafio, que seguia o índice do banco e mudava de uma execução para outra (dois testes intermitentes). Não pôde ser simulado: os testes de amigos usam o relógio do próprio banco (NOW()). Ainda não está em produção: o commit 9ee8591 espera o salvek99 (primeiro passo da lista). · `test/ia.test.ts · src/lib/notifications.ts`
 - ✅ **Revisão de segurança do código de 25/09** · Duas falhas médias e quatro baixas corrigidas: URLs de foto que valiam depois de o aluno desligar a chave, teto da IA vencido com pedidos em paralelo, gravações que sobravam depois da retirada do consentimento, convite usado duas vezes, depoimento aprovado sem ser lido e fotos que não se apagavam sem o segredo. Coberto por testes; em produção, com contas temporárias, conferidos o diário e as medidas com o consentimento travado, o convite e o depoimento (fotos e IA seguem em 503 lá).
 - ✅ **Docker Compose com Postgres, migrações e Caddy (HTTPS)** · Testado localmente; o certificado só sai com o domínio real.
 - ✅ **CI no GitHub** · Conferido em 24/09: as 8 execuções da aba Actions passaram (typecheck, testes contra Postgres e build), inclusive a do último deploy. · `.github/workflows/ci.yml`
-- ✅ **Publicar na VPS** · Painel 99dev, em https://99dev.pro/gymflow-api. A sonda do painel testa /healthz, que responde como o /health e confere o banco. Duas publicações em 24/09 pelo salvek99, as medidas (eccb80e) e o pacote da tarde (e8f9330), as duas com TUDO CONFERE.
+- ✅ **Publicar na VPS** · Painel 99dev, em https://99dev.pro/gymflow-api. A sonda do painel testa /healthz, que responde como o /health e confere o banco. Duas publicações em 24/09 pelo salvek99, as medidas (eccb80e) e o pacote da tarde (e8f9330), as duas com TUDO CONFERE. Em 02/10 a produção continua em 5ed63a9 (v2026.09.25-3): os três commits de hoje (9ee8591) estão no GitHub com o CI verde e esperam o salvek99.
 - ✅ **Publicar em um comando (salvek99)** · No Claude Code, o token salvek99 roda typecheck, testes e build, faz commit e push, dispara o redeploy pelo vps-panel e confere a produção: commit, container, migrações, /health e /doc. · `.claude/skills/salvek99/SKILL.md`
 - ✅ **Documentação das rotas (Swagger e OpenAPI)** · Em https://99dev.pro/gymflow-api/doc e /openapi.json. Um teste falha se uma rota nova ficar sem documentação. · `src/routes/docs.ts`
 - ✅ **Backup automático do banco** · Cron às 03:15 na VPS, 14 dias guardados em /var/backups/99dev/gymflow; o primeiro backup foi feito em 24/09 ao instalar. · `scripts/vps/gymflow-backup.sh`
@@ -307,9 +352,11 @@ A porta 8090 está ocupada neste computador. Com .env.local, o app fala com a AP
 ```bash
 npx expo start --web --port 8099
 npx expo export -p web
+docker build -t gynflow-web .
+docker run --rm -p 8080:80 gynflow-web
 ```
 
-O banco local do navegador pede a página isolada de outras origens: o servidor de desenvolvimento manda os cabeçalhos (metro.config.js) e a raiz se recarrega uma vez pela /splash. Contra a API local, suba a API com CORS_ORIGINS=http://localhost:8099. O build sai em dist e precisa de hospedagem com Cross-Origin-Opener-Policy: same-origin e Cross-Origin-Embedder-Policy: credentialless em toda resposta.
+O banco local do navegador pede a página isolada de outras origens: o servidor de desenvolvimento manda os cabeçalhos (metro.config.js) e a raiz se recarrega uma vez pela /splash. Contra a API local, suba a API com CORS_ORIGINS=http://localhost:8099. O build sai em dist e precisa de hospedagem com Cross-Origin-Opener-Policy: same-origin e Cross-Origin-Embedder-Policy: credentialless em toda resposta. A imagem Docker da raiz do app já faz o build e serve com os dois cabeçalhos, o index.html nas rotas e o /healthz.
 
 **API** (`D:\dev\gynflow\gymflow-api`)
 
@@ -357,3 +404,5 @@ O script lê ../manual.html, recalcula as porcentagens e reescreve gymflow-mobil
 - **Código da API:** <https://github.com/srodrigo28/gymflow-api>
 - **Publicação no painel 99dev:** `gymflow-api/23-setembro-guia-deploy-api.md`
 - **Publicar a API em um comando:** `gymflow-api/.claude/skills/salvek99/SKILL.md`
+- **CI do app (typecheck, lint e build web):** `gymflow-mobile/.github/workflows/ci.yml`
+- **Imagem Docker da versão web (nginx):** `gymflow-mobile/Dockerfile`

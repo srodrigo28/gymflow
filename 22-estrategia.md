@@ -1111,6 +1111,62 @@ apareceram os pontos em que o app contava com o celular. O app ganhou quatro com
   home, mas a splash, na próxima abertura, manda para o questionário de 23 etapas. Vale no celular também. Dá para
   alinhar os dois caminhos para um lado ou para o outro; a escolha é de produto.
 
+## Registro de 02/10: manutenção, sem o dono
+
+Pedido do dono: "analise meu projeto, veja se temos atualização para o manual.html e vamos seguir completando o
+projeto, veja o que consegue fazer e atualize o painel para depois precisar de mim". Nenhum código tinha mudado
+desde 25/09 e a produção estava como a deixamos (API em `5ed63a9`, no ar desde 25/09 às 18h34, sem reinícios, e o
+`.env.deploy` ainda sem as variáveis de SMTP, fotos e IA). Como tudo o que o manual lista como "a fazer" depende
+do dono, o dia foi de manutenção e de risco: o que ninguém tinha testado, o que envelhece e o que o dono ainda
+teria de decidir. A API ganhou três commits (`6ca52be`, `c47b786`, `9ee8591`) e o app um (`709264a`), todos no
+GitHub com o CI verde. **A API não foi publicada**: o redeploy foi negado pelas permissões da sessão, e ficou como
+primeiro passo da lista do dono no manual (`salvek99`).
+
+**O que foi feito**
+
+- **Envio de e-mail por SMTP, testado de verdade.** Os testes só passavam pelo modo "test" do mailer, que não abre
+  conexão. Um servidor SMTP falso (`test/fake-smtp.ts`) recebe a mensagem de verdade. A verificação achou um furo:
+  com usuário e senha, num servidor sem STARTTLS, o nodemailer mandava o AUTH em texto puro e entregava o e-mail.
+  Com `SMTP_USER`, a conexão agora exige TLS (465 direto, as outras por STARTTLS), e o envio falha antes de a senha
+  sair. O `nodemailer` subiu de 7.0.13 para 10.0.13 (13 avisos conhecidos, 3 altos).
+- **Três testes frágeis.** Um dependia do dia do mês ("32 dias atrás" cai no mês passado só a partir do dia 4: falhou
+  em 02/10), e dois (`notifications.test.ts`) dependiam da ordem em que o Postgres devolve os membros do desafio, que
+  segue o índice (e o UUID) quando o plano muda. Os membros passam a vir por data de entrada.
+- **Tabela de custo da IA** com os onze modelos da tabela pública (inclui o `claude-opus-5-5`, 20% mais barato), com
+  a leitura do cache de cada um. Trocar `AI_MODEL` agora grava o custo certo. E o código da IA foi conferido contra a
+  referência atual da API (modelo, thinking adaptativo, esforço e saída estruturada, fallbacks, lote, cache).
+- **CI no repositório do app** (typecheck, lint e `expo export -p web`) e **imagem Docker da versão web** (nginx com
+  COOP e COEP em toda resposta, `index.html` nas rotas, cache longo nos arquivos com hash e `/healthz`).
+- **Painel**: o manual ganhou "Decisões em aberto" (11, cada uma com a sugestão e o que acontece sem resposta), a
+  lista do dono virou "O que só você pode fazer, na ordem sugerida", e o estouro de largura no celular nos cartões de
+  "Como rodar" foi corrigido.
+
+**Como foi validado**
+
+| Verificação | Resultado |
+| --- | --- |
+| SMTP | 2 testes novos contra o servidor falso: a mensagem chega com o código; com senha e sem STARTTLS, o envio falha e nenhum AUTH chega ao servidor. Tirando o `requireTLS` do código, o segundo falha |
+| API, suíte | 145 testes num Postgres 18 real (cerca de 1 min 30 s), inclusive com a varredura por índice forçada (`enable_seqscan = off`); typecheck e build; CI do GitHub verde em `9ee8591` (Postgres 17, 1 min 54 s) |
+| Notificações | Com a varredura por índice forçada, o código antigo falha o teste do placar final e o novo passa os 4 |
+| Datas simuladas | A suíte rodou sob nove datas (01, 04, 05 e 31/10, 01/11 e 31/12 de 2026; 01/01, 04/01 e 01/03 de 2027, no relógio do Node, do Date): só sobraram os testes de amigos, que usam o `NOW()` do próprio banco, e a ordem dos avisos já corrigida |
+| Imagem web | Com o Playwright contra a imagem: COOP e COEP em todas as rotas, bundle com cache imutável, página isolada, `/login` direto abrindo o app, login numa conta real, o Treino lendo do banco local e os arquivos do banco gravados no navegador, sem erro de console |
+| CI do app | Typecheck, lint e build web passaram num checkout limpo e depois no GitHub (1 min 18 s) |
+| Manual | Aberto no Chromium em tema claro, escuro e largura de celular: 11 decisões, 8 passos, 19 grupos, nenhum erro de console, sem rolagem horizontal; app 88/94 (94%), API 65/67 (97%), geral 153/161 (95%) |
+| Dependências | `npm audit --omit=dev`: na API sobram 4 avisos altos na cadeia do CLI do Prisma (migrações e build); no app, 28, em sua maioria na cadeia de ferramentas do Expo. Nenhum dos dois foi mexido além do nodemailer |
+| Não exercitado | Um provedor SMTP de verdade; uma chamada real à Anthropic; os testes de amigos numa segunda-feira real; o web num subcaminho; a suíte no Postgres local do Prisma (ele levou cerca de 10 minutos para ligar) |
+
+**Para o dono**
+
+- **Decisões**: as 11 estão no manual, com a sugestão de cada uma. A primeira (onde publicar o web) é a que destrava
+  alguma coisa; as outras são esclarecimentos de produto e de métricas.
+- **Publicar a API**: dizer `salvek99` (ou liberar o redeploy). Nada quebra sem isso, mas vale publicar antes de
+  ligar o SMTP, para o TLS obrigatório já estar em produção.
+- **Máquina**: o Postgres local do Prisma (`gynflow`) estava lento porque o fluxo de mudanças dele
+  (`%LOCALAPPDATA%\prisma-dev-nodejs\Data\durable-streams\gynflow`) chegou a 3,4 GB; foi movido, sem apagar, para
+  `gynflow.antigo-20261002` na mesma pasta, e pode ser apagado. O Postgres real usado nos testes de hoje roda
+  fora do projeto (porta 5433) e some ao reiniciar o computador. Com o Postgres da máquina fora do UTC (o do
+  Windows aqui fica em America/Sao_Paulo), dois testes falham pelo fuso da sessão; no CI e na VPS é UTC.
+
 ## Fontes da pesquisa
 
 - [Hevy vs Strong vs Fitbod vs Jefit (SensAI, 2026)](https://www.sensai.fit/blog/hevy-vs-strong-vs-fitbod-vs-jefit)
