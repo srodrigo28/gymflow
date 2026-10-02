@@ -1153,7 +1153,30 @@ primeiro passo da lista do dono no manual (`salvek99`).
 | CI do app | Typecheck, lint e build web passaram num checkout limpo e depois no GitHub (1 min 18 s) |
 | Manual | Aberto no Chromium em tema claro, escuro e largura de celular: 11 decisões, 8 passos, 19 grupos, nenhum erro de console, sem rolagem horizontal; app 88/94 (94%), API 65/67 (97%), geral 153/161 (95%) |
 | Dependências | `npm audit --omit=dev`: na API sobram 4 avisos altos na cadeia do CLI do Prisma (migrações e build); no app, 28, em sua maioria na cadeia de ferramentas do Expo. Nenhum dos dois foi mexido além do nodemailer |
-| Não exercitado | Um provedor SMTP de verdade; uma chamada real à Anthropic; os testes de amigos numa segunda-feira real; o web num subcaminho; a suíte no Postgres local do Prisma (ele levou cerca de 10 minutos para ligar) |
+| Não exercitado | Um provedor SMTP de verdade; uma chamada real à Anthropic; os testes de amigos numa segunda-feira real; a suíte no Postgres local do Prisma (ele levou cerca de 10 minutos para ligar) |
+
+**Segunda rodada do mesmo dia** (depois do pedido para ir das etapas mais simples às mais difíceis)
+
+- **Saúde das dependências do app**: `expo install --check` ("Dependencies are up to date") e `expo-doctor` (18 de 18).
+- **Corridas forçadas** (`test/concorrencia.test.ts`, o "não exercitado" de 25/09): dois alunos com o mesmo código de
+  personal ao mesmo tempo (um entra, o outro recebe 410); uma retirada de consentimento no meio de uma gravação espera
+  a linha da conta e apaga o que foi gravado; uma gravação depois da retirada, ou com o instante de um consentimento
+  antigo, desiste; e 8 rodadas de envio de medidas contra retirada. O arquivo se pula no PGlite, que mistura as
+  mensagens de conexões simultâneas (vi o erro, não um travamento).
+- **Apagar sem o segredo** (`test/fotos.test.ts`): apagar a foto, retirar o consentimento e apagar a conta limpam os
+  arquivos com o `STORAGE_SECRET` fora da configuração.
+- **Web num subcaminho**: o app gerado com `baseUrl` `/gynflow`, atrás de um nginx que tira o prefixo, entra, abre a
+  home, lê o Treino do banco local e grava o banco no navegador, sem erro. O `Dockerfile` ganhou `WEB_BASE_URL`.
+
+| Verificação | Resultado |
+| --- | --- |
+| Corridas, por mutação | Sem a guarda `usedAt: null` do convite saem dois 200; sem o `FOR UPDATE` da trava a retirada não espera e o envio deixa uma medida na conta (já na primeira rodada); com a exclusão dependendo do segredo, sobram os dois arquivos da foto |
+| Suíte | 150 testes num Postgres 18 real; CI do GitHub verde em `ad5d2e8` (Postgres 17, 1 min 51 s) |
+| Subcaminho | Playwright contra a imagem com `WEB_BASE_URL=/gynflow` atrás de um nginx com `proxy_pass` (cabeçalhos COOP e COEP chegando pelo proxy), e contra um servidor de teste que tira o prefixo |
+| Dependências do app | `expo install --check` limpo; `expo-doctor` 18/18 |
+
+Um tropeço de ambiente que vale lembrar: o Git Bash converte um argumento como `/gynflow` num caminho do Windows
+(`C:/Program Files/Git/gynflow`) e o primeiro build do subcaminho saiu errado; com `MSYS_NO_PATHCONV=1` ficou certo.
 
 **Para o dono**
 

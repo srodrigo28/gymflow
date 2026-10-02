@@ -9,9 +9,10 @@
 #
 # Argumentos de build:
 #   EXPO_PUBLIC_API_URL  a API que o app chama (padrão: a de produção)
+#   WEB_BASE_URL         subcaminho, se o app não ficar na raiz do domínio (ex.: /gynflow); vazio = raiz
 #
-# O app fica na raiz do domínio. Num subcaminho (ex.: 99dev.pro/gynflow) o build pede
-# experiments.baseUrl no app.json e o proxy na frente, e isso não foi testado.
+# Num subcaminho, o proxy na frente tira o prefixo (location /gynflow/ { proxy_pass http://web/; }) e
+# repassa os cabeçalhos desta imagem.
 
 FROM node:24-slim AS build
 WORKDIR /app
@@ -22,8 +23,14 @@ RUN npm ci
 COPY . .
 
 ARG EXPO_PUBLIC_API_URL=https://99dev.pro/gymflow-api
+ARG WEB_BASE_URL=
 ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL} \
     CI=1
+# Num subcaminho (WEB_BASE_URL=/gynflow), o app é gerado com o prefixo nos endereços dos arquivos; quem está
+# na frente (o proxy) tira o prefixo antes de chegar aqui, e o nginx abaixo segue servindo da raiz.
+RUN if [ -n "$WEB_BASE_URL" ]; then \
+      node -e "const fs=require('fs');const a=JSON.parse(fs.readFileSync('app.json','utf8'));a.expo.experiments={...a.expo.experiments,baseUrl:process.argv[1]};fs.writeFileSync('app.json',JSON.stringify(a,null,2))" "$WEB_BASE_URL"; \
+    fi
 RUN npx expo export -p web
 
 FROM nginx:alpine AS runner

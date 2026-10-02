@@ -143,7 +143,7 @@ npx expo export -p web
 A hospedagem precisa mandar `Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: credentialless`
 em toda resposta e devolver o `index.html` nas rotas do app (ex.: `/treino`). Na mesma origem da API (99dev.pro), não
 precisa de CORS; noutra origem, ela entra em `CORS_ORIGINS` da API. Num subcaminho, o build pede
-`experiments.baseUrl` no `app.json` (a imagem abaixo serve o app na raiz de um domínio; o subcaminho não foi testado).
+`experiments.baseUrl` no `app.json`; a imagem abaixo faz isso com `--build-arg WEB_BASE_URL=/gynflow`.
 
 O `Dockerfile` da raiz já faz tudo isso: constrói o web e o serve com nginx (`web/nginx.conf.template`), com os dois
 cabeçalhos em toda resposta, o `index.html` nas rotas do app, cache longo nos arquivos com hash e `/healthz`:
@@ -153,8 +153,12 @@ docker build -t gynflow-web .                      # a API de produção; --buil
 docker run --rm -p 8080:80 gynflow-web             # http://localhost:8080
 ```
 
-Conferido em 02/10 com o Playwright contra essa imagem: os cabeçalhos em todas as rotas, a página isolada, a rota
-profunda abrindo o app, o login numa conta real e o banco local gravando no navegador, sem erro de console. No navegador, as fotos de evolução e a capa ficam só nele, e a câmera com guia, o
+Num subcaminho (`99dev.pro/gynflow`), construa com `--build-arg WEB_BASE_URL=/gynflow` e ponha na frente um proxy que
+tire o prefixo (`location /gynflow/ { proxy_pass http://web/; }`); a imagem segue servindo da raiz.
+
+Conferido em 02/10 com o Playwright, na raiz e no subcaminho (nginx na frente tirando `/gynflow/`): os cabeçalhos em
+todas as rotas, a página isolada, a rota profunda abrindo o app, o login numa conta real, o treino lendo do banco
+local e o banco gravando no navegador, sem erro de console. No navegador, as fotos de evolução e a capa ficam só nele, e a câmera com guia, o
 check-in por GPS e as notificações ficam só no app do celular.
 
 Rodar no Android:
