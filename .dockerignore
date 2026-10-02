@@ -1,0 +1,12 @@
+node_modules
+dist
+.expo
+.git
+.github
+.vscode
+.env*
+*.md
+deploy-api-success.png
+image.png
+image
+preview

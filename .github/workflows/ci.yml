@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      # O build da versão web pega o que o typecheck não pega: módulo que o bundler não resolve e o
+      # worker do banco local que quebra no pacote de produção (aconteceu em 25/09).
+      - run: npx expo export -p web
+        env:
+          EXPO_PUBLIC_API_URL: https://99dev.pro/gymflow-api

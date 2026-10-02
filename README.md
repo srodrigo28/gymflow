@@ -143,7 +143,18 @@ npx expo export -p web
 A hospedagem precisa mandar `Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: credentialless`
 em toda resposta e devolver o `index.html` nas rotas do app (ex.: `/treino`). Na mesma origem da API (99dev.pro), não
 precisa de CORS; noutra origem, ela entra em `CORS_ORIGINS` da API. Num subcaminho, o build pede
-`experiments.baseUrl` no `app.json`. No navegador, as fotos de evolução e a capa ficam só nele, e a câmera com guia, o
+`experiments.baseUrl` no `app.json` (a imagem abaixo serve o app na raiz de um domínio; o subcaminho não foi testado).
+
+O `Dockerfile` da raiz já faz tudo isso: constrói o web e o serve com nginx (`web/nginx.conf.template`), com os dois
+cabeçalhos em toda resposta, o `index.html` nas rotas do app, cache longo nos arquivos com hash e `/healthz`:
+
+```powershell
+docker build -t gynflow-web .                      # a API de produção; --build-arg EXPO_PUBLIC_API_URL=... troca
+docker run --rm -p 8080:80 gynflow-web             # http://localhost:8080
+```
+
+Conferido em 02/10 com o Playwright contra essa imagem: os cabeçalhos em todas as rotas, a página isolada, a rota
+profunda abrindo o app, o login numa conta real e o banco local gravando no navegador, sem erro de console. No navegador, as fotos de evolução e a capa ficam só nele, e a câmera com guia, o
 check-in por GPS e as notificações ficam só no app do celular.
 
 Rodar no Android:
@@ -171,6 +182,8 @@ Checar TypeScript:
 ```powershell
 npx tsc --noEmit
 ```
+
+O CI do repositório (`.github/workflows/ci.yml`) roda o typecheck, o lint e o `npx expo export -p web` a cada push.
 
 ## API
 
